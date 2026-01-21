@@ -119,6 +119,76 @@ function _findPkg(seg, preferKeywords) {
   return pkgs[0] || null;
 }
 
+function _getCorePackages() {
+  const DATA = getDataSync();
+  const core = DATA.core_packages || {};
+  const pkgs = core.packages || [];
+  return Array.isArray(pkgs) ? pkgs : [];
+}
+
+function _corePackageSegments(pkg) {
+  const key = String(pkg?.segment_key || '');
+  if (key === 'retail_only') return ['retail'];
+  if (key === 'wholesale_only') return ['wholesale'];
+  if (key === 'producer_only') return ['producer'];
+  if (key === 'producer_retail') return ['producer', 'retail'];
+  return [];
+}
+
+function _normalizeCorePackage(pkg) {
+  if (!pkg) return null;
+  return {
+    ...pkg,
+    name: pkg.title || pkg.name || '—',
+    price: Number(pkg.price_rub || pkg.price || 0),
+  };
+}
+
+function _chooseCorePackage() {
+  const corePkgs = _getCorePackages();
+  if (!corePkgs.length) return { pkg: null, warning: '' };
+
+  const { isRetail, isWholesale, isProducer } = _segFlags();
+  const selected = new Set();
+  if (isRetail) selected.add('retail');
+  if (isWholesale) selected.add('wholesale');
+  if (isProducer) selected.add('producer');
+
+  if (!selected.size) return { pkg: null, warning: '' };
+
+  let exactKey = '';
+  if (isRetail && !isWholesale && !isProducer) exactKey = 'retail_only';
+  if (isWholesale && !isRetail && !isProducer) exactKey = 'wholesale_only';
+  if (isProducer && !isRetail && !isWholesale) exactKey = 'producer_only';
+  if (isProducer && isRetail && !isWholesale) exactKey = 'producer_retail';
+
+  if (exactKey) {
+    const match = corePkgs.find(p => p.segment_key === exactKey);
+    return { pkg: _normalizeCorePackage(match), warning: '' };
+  }
+
+  let best = null;
+  let bestScore = -1;
+  let bestSize = -1;
+  let bestPrice = -1;
+  for (const p of corePkgs) {
+    const segs = _corePackageSegments(p);
+    const overlap = segs.filter(s => selected.has(s)).length;
+    const size = segs.length;
+    const price = Number(p.price_rub || 0);
+    if (overlap > bestScore || (overlap === bestScore && size > bestSize) || (overlap === bestScore && size === bestSize && price > bestPrice)) {
+      best = p;
+      bestScore = overlap;
+      bestSize = size;
+      bestPrice = price;
+    }
+  }
+  return {
+    pkg: _normalizeCorePackage(best),
+    warning: best ? 'Комбо нестандартное, выбран ближайший пакет.' : ''
+  };
+}
+
 function _choosePackageForSegment(seg, points) {
   const s = String(seg || '').toLowerCase();
   const isRetail = s.includes('розниц');
@@ -137,14 +207,17 @@ function _choosePackageForSegment(seg, points) {
 }
 
 export function choosePackage(points) {
+  const core = _chooseCorePackage();
+  if (core.pkg) return core;
+
   const segs = state.segments || [];
-  if (!segs.length) return null;
+  if (!segs.length) return { pkg: null, warning: '' };
   const candidates = segs
     .map(seg => _choosePackageForSegment(seg, points))
     .filter(Boolean);
-  if (!candidates.length) return null;
+  if (!candidates.length) return { pkg: null, warning: '' };
   candidates.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
-  return candidates[0];
+  return { pkg: candidates[0], warning: '' };
 }
 
 export function buildCosts(pkg, calc) {

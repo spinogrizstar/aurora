@@ -35,11 +35,55 @@ export function renderKVList(ul, items, kind) {
   });
 }
 
+function resolvePackage(pkg) {
+  if (!pkg) return null;
+  const DATA = getDataSync();
+  const corePkgs = DATA.core_packages?.packages || [];
+  const name = pkg.title || pkg.name;
+  if (Array.isArray(corePkgs) && name) {
+    const match = corePkgs.find(p => p.id === pkg.id || p.title === name);
+    if (match) {
+      return {
+        ...pkg,
+        ...match,
+        name: match.title || match.name || name,
+        price: Number(match.price_rub || match.price || pkg.price || 0),
+      };
+    }
+  }
+  return pkg;
+}
+
+function buildGroupSummary(groups) {
+  return (groups || []).map(g => {
+    const pts = Number(g.points || 0);
+    const base = `${g.name}${pts ? ` — ${pts} балл.` : ''}`;
+    return g.note ? `${base} (${g.note})` : base;
+  });
+}
+
+function buildGroupDetails(groups) {
+  const items = [];
+  (groups || []).forEach(g => {
+    const header = `${g.name}${g.points ? ` — ${g.points} балл.` : ''}`;
+    if (Array.isArray(g.details) && g.details.length) {
+      g.details.forEach(d => {
+        const pts = Number(d.points || 0);
+        items.push(`${header}: ${d.text}${pts ? ` — ${pts} балл.` : ''}`);
+      });
+    } else {
+      items.push(header);
+    }
+  });
+  return items;
+}
+
 export function renderFromCalc(pkg, calc, prelim, costs, hint) {
+  const pkgView = resolvePackage(pkg);
   // Шапка
   el.segBadge.textContent = segText();
 
-  if (!pkg) {
+  if (!pkgView) {
     // Сбрасываем заголовок (и возможную кнопку «подробнее»)
     _renderPackageTitle('Пакет: —', null);
     el.pkgWho.textContent = '';
@@ -70,10 +114,14 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint) {
   }
 
   _renderPackageTitle(
-    (prelim ? 'Пакет (предварительно): ' : 'Пакет: ') + (pkg.name || '—'),
-    pkg,
+    (prelim ? 'Пакет (предварительно): ' : 'Пакет: ') + (pkgView.name || '—'),
+    pkgView,
   );
-  el.pkgWho.textContent = pkg.who ? ('Для кого: ' + pkg.who) : '';
+  const whoParts = [];
+  if (pkgView.who) whoParts.push(`Для кого: ${pkgView.who}`);
+  if (pkgView.total_points) whoParts.push(`Баллы пакета: ${pkgView.total_points}`);
+  if (costs?.base) whoParts.push(`Цена пакета: ${fmtRub(costs.base)}`);
+  el.pkgWho.textContent = whoParts.join(' · ');
 
   // Плашки
   el.pkgPills.innerHTML = '';
@@ -95,7 +143,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint) {
   if (!devParts.length) devParts.push('Устройства: 0');
 
   [
-    `Баллы: ${calc.points}`,
+    `Доп.баллы: ${calc.points}`,
     `ККТ: ${kktCount()} · Юрлица: ${state.org_count}`,
     devParts.join(' · '),
     onecPill || '',
@@ -109,8 +157,28 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint) {
   });
 
   // Детализация пакета
-  const det = splitToBullets(pkg.detail);
-  renderList(el.pkgDetailed, det.length ? det : splitToBullets(pkg.inc));
+  if (Array.isArray(pkgView.groups) && pkgView.groups.length) {
+    el.pkgDetailed.innerHTML = '';
+    pkgView.groups.forEach(group => {
+      const li = document.createElement('li');
+      li.textContent = buildGroupSummary([group])[0] || group.name;
+      if (group.details && group.details.length) {
+        li.style.cursor = 'pointer';
+        li.title = 'Нажмите, чтобы увидеть детали группы';
+        li.onclick = () => {
+          const items = (group.details || []).map(d => `${d.text}${d.points ? ` — ${d.points} балл.` : ''}`);
+          openInfoModal(group.name || 'Группа работ', {
+            desc: group.note || '',
+            items,
+          });
+        };
+      }
+      el.pkgDetailed.appendChild(li);
+    });
+  } else {
+    const det = splitToBullets(pkgView.detail);
+    renderList(el.pkgDetailed, det.length ? det : splitToBullets(pkgView.inc));
+  }
 
   // Диагностика (сейчас выключена)
   el.diagBanner.style.display = (needDiagnostics() ? 'block' : 'none');
@@ -130,10 +198,10 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint) {
   el.projAlert.style.display = state.custom_integration ? 'block' : 'none';
 
   // «Почему такая стоимость?» — открывает понятную раскладку.
-  _wireWhyButton(pkg, calc, costs);
+  _wireWhyButton(pkgView, calc, costs);
 
   // «Матрица услуг» — показывает правила/условия, что именно сработало.
-  _wireMatrixButton(pkg, calc, costs);
+  _wireMatrixButton(pkgView, calc, costs);
 }
 
 function _renderPackageTitle(text, pkg) {
@@ -153,7 +221,8 @@ function _renderPackageTitle(text, pkg) {
   // Если пакета нет — не показываем кнопку.
   if (!pkg) return;
 
-  const raw = (pkg.detail || pkg.inc || '').trim();
+  const hasGroups = Array.isArray(pkg.groups) && pkg.groups.length;
+  const raw = hasGroups ? 'ok' : (pkg.detail || pkg.inc || '').trim();
   if (!raw) return;
 
   const btn = document.createElement('button');
@@ -162,24 +231,21 @@ function _renderPackageTitle(text, pkg) {
   btn.title = 'Посмотреть состав пакета';
   btn.textContent = 'i';
 
+  const infoItems = hasGroups ? buildGroupDetails(pkg.groups) : (splitToBullets(pkg.detail).length ? splitToBullets(pkg.detail) : splitToBullets(pkg.inc));
   btn.onclick = () => {
-    const items = splitToBullets(pkg.detail).length ? splitToBullets(pkg.detail) : splitToBullets(pkg.inc);
     openInfoModal(pkg.name || 'Пакет', {
       desc: pkg.who ? `Для кого: ${pkg.who}` : '',
-      items,
+      items: infoItems,
     });
   };
 
   // На ПК показываем состав пакета при наведении.
   // На телефонах hover нет, там остаётся клик.
-  attachPopover(btn, () => {
-    const items = splitToBullets(pkg.detail).length ? splitToBullets(pkg.detail) : splitToBullets(pkg.inc);
-    return {
-      title: pkg.name || 'Пакет',
-      desc: pkg.who ? `Для кого: ${pkg.who}` : '',
-      items,
-    };
-  });
+  attachPopover(btn, () => ({
+    title: pkg.name || 'Пакет',
+    desc: pkg.who ? `Для кого: ${pkg.who}` : '',
+    items: infoItems,
+  }));
 
   el.pkgTitle.appendChild(btn);
 }

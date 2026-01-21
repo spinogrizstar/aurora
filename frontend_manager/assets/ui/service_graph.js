@@ -60,7 +60,8 @@ export function openServiceGraphModal(opts = {}) {
 
   // заполнить селект сегментов
   const DATA = getDataSync();
-  const segNames = Object.keys(DATA.segments || {});
+  const corePkgs = Array.isArray(DATA.core_packages?.packages) ? DATA.core_packages.packages : [];
+  const segNames = corePkgs.length ? [...new Set(corePkgs.map(p => p.title).filter(Boolean))] : Object.keys(DATA.segments || {});
   if (el.graphSegSelect && !el.graphSegSelect.dataset.filled) {
     const sel = el.graphSegSelect;
     sel.innerHTML = '';
@@ -76,7 +77,8 @@ export function openServiceGraphModal(opts = {}) {
   }
 
   // авто-сегмент: если выбран один в чек-листе — берём его
-  const autoSeg = (Array.isArray(state.segments) && state.segments.length === 1) ? state.segments[0] : '';
+  const autoSegRaw = (Array.isArray(state.segments) && state.segments.length === 1) ? state.segments[0] : '';
+  const autoSeg = resolveAutoSegment(DATA, autoSegRaw);
   if (el.graphSegSelect) {
     if (!el.graphSegSelect.value) el.graphSegSelect.value = '__auto__';
     if (opts.preferSegment) el.graphSegSelect.value = opts.preferSegment;
@@ -468,8 +470,29 @@ class ServiceGraph {
 
 /* -------------------- data builder -------------------- */
 
+function resolveAutoSegment(DATA, fallback) {
+  const corePkgs = Array.isArray(DATA.core_packages?.packages) ? DATA.core_packages.packages : [];
+  if (!corePkgs.length) return fallback || '';
+
+  const segs = (state.segments || []).map(s => String(s).toLowerCase());
+  const isRetail = segs.some(s => s.includes('розниц'));
+  const isWholesale = segs.some(s => s.includes('опт'));
+  const isProducer = segs.some(s => s.includes('производ'));
+
+  let key = '';
+  if (isRetail && !isWholesale && !isProducer) key = 'retail_only';
+  if (isWholesale && !isRetail && !isProducer) key = 'wholesale_only';
+  if (isProducer && !isRetail && !isWholesale) key = 'producer_only';
+  if (isProducer && isRetail && !isWholesale) key = 'producer_retail';
+
+  if (!key) return fallback || '';
+  const match = corePkgs.find(p => p.segment_key === key);
+  return match?.title || fallback || '';
+}
+
 function buildGraphData(DATA, segFilter, q) {
   const segments = DATA.segments || {};
+  const corePkgs = Array.isArray(DATA.core_packages?.packages) ? DATA.core_packages.packages : [];
   const nodes = [];
   const links = [];
   const packagesById = {};
@@ -477,6 +500,11 @@ function buildGraphData(DATA, segFilter, q) {
   const workToPkgs = {};
 
   const pickSegments = () => {
+    if (corePkgs.length) {
+      if (!segFilter || segFilter === '__all__') return corePkgs;
+      const match = corePkgs.filter(p => p.title === segFilter || p.segment_key === segFilter);
+      return match.length ? match : corePkgs;
+    }
     if (!segFilter || segFilter === '__all__') return Object.keys(segments);
     if (segments[segFilter]) return [segFilter];
     return Object.keys(segments);
@@ -486,24 +514,26 @@ function buildGraphData(DATA, segFilter, q) {
 
   // packages
   let pkgIndex = 0;
-  for (const seg of segs) {
-    const pkgs = Array.isArray(segments[seg]) ? segments[seg] : [];
-    for (const p of pkgs) {
+  if (corePkgs.length) {
+    for (const p of segs) {
       const pkgId = `pkg_${pkgIndex++}`;
-      const pkg = { ...p, segment: seg, _id: pkgId };
+      const pkg = {
+        ...p,
+        name: p.title || p.name,
+        price: Number(p.price_rub || 0),
+        segment: p.title || p.segment_key || '',
+        _id: pkgId,
+      };
       packagesById[pkgId] = pkg;
 
-      const works = extractWorks(p.detail);
+      const works = extractWorks(pkg);
       const filteredWorks = q ? works.filter(w => w.toLowerCase().includes(q)) : works;
-
-      // если есть поиск и пакет без подходящих работ — можно всё равно показать пакет (чтобы не терять контекст),
-      // но без линков он будет "пустой". Оставим его, но это норм.
       pkgToWorks[pkgId] = filteredWorks;
 
       nodes.push({ id: `n_${pkgId}`, type: 'pkg', label: pkg.name || `Пакет ${pkgIndex}`, pkgId, x: 0, y: 0, vx: 0, vy: 0 });
 
       for (const w of filteredWorks) {
-        const key = w; // нормализованный текст
+        const key = w;
         const wid = `work_${hashKey(key)}`;
 
         if (!workToPkgs[key]) workToPkgs[key] = [];
@@ -513,6 +543,38 @@ function buildGraphData(DATA, segFilter, q) {
 
         if (!nodes.find(n => n.id === `n_${wid}`)) {
           nodes.push({ id: `n_${wid}`, type: 'work', label: key, workKey: key, x: 0, y: 0, vx: 0, vy: 0 });
+        }
+      }
+    }
+  } else {
+    for (const seg of segs) {
+      const pkgs = Array.isArray(segments[seg]) ? segments[seg] : [];
+      for (const p of pkgs) {
+        const pkgId = `pkg_${pkgIndex++}`;
+        const pkg = { ...p, segment: seg, _id: pkgId };
+        packagesById[pkgId] = pkg;
+
+        const works = extractWorks(p.detail);
+        const filteredWorks = q ? works.filter(w => w.toLowerCase().includes(q)) : works;
+
+        // если есть поиск и пакет без подходящих работ — можно всё равно показать пакет (чтобы не терять контекст),
+        // но без линков он будет "пустой". Оставим его, но это норм.
+        pkgToWorks[pkgId] = filteredWorks;
+
+        nodes.push({ id: `n_${pkgId}`, type: 'pkg', label: pkg.name || `Пакет ${pkgIndex}`, pkgId, x: 0, y: 0, vx: 0, vy: 0 });
+
+        for (const w of filteredWorks) {
+          const key = w; // нормализованный текст
+          const wid = `work_${hashKey(key)}`;
+
+          if (!workToPkgs[key]) workToPkgs[key] = [];
+          if (!workToPkgs[key].includes(pkgId)) workToPkgs[key].push(pkgId);
+
+          links.push({ source: `n_${pkgId}`, target: `n_${wid}` });
+
+          if (!nodes.find(n => n.id === `n_${wid}`)) {
+            nodes.push({ id: `n_${wid}`, type: 'work', label: key, workKey: key, x: 0, y: 0, vx: 0, vy: 0 });
+          }
         }
       }
     }
@@ -533,10 +595,24 @@ function buildGraphData(DATA, segFilter, q) {
   };
 }
 
-function extractWorks(detail) {
-  if (!detail) return [];
+function extractWorks(pkgOrDetail) {
+  if (!pkgOrDetail) return [];
+  if (pkgOrDetail.groups && Array.isArray(pkgOrDetail.groups)) {
+    const works = [];
+    pkgOrDetail.groups.forEach(g => {
+      (g.details || []).forEach(d => {
+        if (d?.text) works.push(String(d.text));
+      });
+    });
+    return dedupeWorks(works);
+  }
+  const detail = pkgOrDetail.detail || pkgOrDetail;
   // в проекте уже есть splitToBullets, он умеет вытаскивать «• ...»
   const arr = splitToBullets(String(detail));
+  return dedupeWorks(arr);
+}
+
+function dedupeWorks(arr) {
   const cleaned = arr
     .map(x => String(x).replace(/^[-•\s]+/g, '').trim())
     .filter(Boolean);

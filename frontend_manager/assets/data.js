@@ -17,6 +17,14 @@ export async function loadData() {
     throw new Error('Не удалось загрузить /data/data.json');
   }
   _DATA = await res.json();
+  try {
+    const coreRes = await fetch('/data/core_packages.json', { cache: 'no-store' });
+    if (coreRes.ok) {
+      _DATA.core_packages = await coreRes.json();
+    }
+  } catch (e) {
+    // core_packages.json опционален
+  }
   return _DATA;
 }
 

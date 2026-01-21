@@ -191,7 +191,86 @@ def _choose_package_for_segment(data: Dict[str, Any], seg: str, points: int) -> 
     return _find_pkg(data, seg, prefer)
 
 
-def _choose_package(data: Dict[str, Any], state: V5Input, points: int) -> Dict[str, Any] | None:
+def _get_core_packages(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    core = data.get("core_packages") or {}
+    pkgs = core.get("packages") or []
+    return pkgs if isinstance(pkgs, list) else []
+
+
+def _core_pkg_segments(pkg: Dict[str, Any]) -> List[str]:
+    key = str(pkg.get("segment_key") or "")
+    if key == "retail_only":
+        return ["retail"]
+    if key == "wholesale_only":
+        return ["wholesale"]
+    if key == "producer_only":
+        return ["producer"]
+    if key == "producer_retail":
+        return ["producer", "retail"]
+    return []
+
+
+def _choose_core_package(data: Dict[str, Any], state: V5Input) -> Tuple[Dict[str, Any] | None, str]:
+    core_pkgs = _get_core_packages(data)
+    if not core_pkgs:
+        return None, ""
+
+    is_retail, is_wholesale, is_producer = _seg_flags(state)
+    selected = set()
+    if is_retail:
+        selected.add("retail")
+    if is_wholesale:
+        selected.add("wholesale")
+    if is_producer:
+        selected.add("producer")
+
+    if not selected:
+        return None, ""
+
+    exact_key = ""
+    if is_retail and not is_wholesale and not is_producer:
+        exact_key = "retail_only"
+    if is_wholesale and not is_retail and not is_producer:
+        exact_key = "wholesale_only"
+    if is_producer and not is_retail and not is_wholesale:
+        exact_key = "producer_only"
+    if is_producer and is_retail and not is_wholesale:
+        exact_key = "producer_retail"
+
+    if exact_key:
+        match = next((p for p in core_pkgs if p.get("segment_key") == exact_key), None)
+        return match, ""
+
+    best = None
+    best_score = -1
+    best_size = -1
+    best_price = -1
+    for pkg in core_pkgs:
+        segs = _core_pkg_segments(pkg)
+        overlap = len([s for s in segs if s in selected])
+        size = len(segs)
+        price = int(pkg.get("price_rub") or 0)
+        if overlap > best_score or (overlap == best_score and size > best_size) or (overlap == best_score and size == best_size and price > best_price):
+            best = pkg
+            best_score = overlap
+            best_size = size
+            best_price = price
+
+    warning = "Комбо нестандартное, выбран ближайший пакет." if best else ""
+    return best, warning
+
+
+def _core_pkg_detail(pkg: Dict[str, Any]) -> str:
+    lines: List[str] = []
+    for group in pkg.get("groups") or []:
+        for detail in group.get("details") or []:
+            text = detail.get("text")
+            if text:
+                lines.append(f"• {text}")
+    return "\n".join(lines)
+
+
+def _choose_package(data: Dict[str, Any], state: V5Input, points: int) -> Tuple[Dict[str, Any] | None, str]:
     """Выбираем "главный" пакет.
 
     По твоему правилу (Вариант 2):
@@ -202,9 +281,13 @@ def _choose_package(data: Dict[str, Any], state: V5Input, points: int) -> Dict[s
       - сегменты могут быть выбраны вместе (например, розница + опт)
       - а людям нужно видеть один пакет в рекомендации.
     """
+    core_pkg, warning = _choose_core_package(data, state)
+    if core_pkg:
+        return core_pkg, warning
+
     segs = state.segments or []
     if not segs:
-        return None
+        return None, ""
 
     candidates: List[Dict[str, Any]] = []
     for seg in segs:
@@ -213,11 +296,11 @@ def _choose_package(data: Dict[str, Any], state: V5Input, points: int) -> Dict[s
             candidates.append(pkg)
 
     if not candidates:
-        return None
+        return None, ""
 
     # max by price
     candidates.sort(key=lambda p: int(p.get('price') or 0), reverse=True)
-    return candidates[0]
+    return candidates[0], ""
 
 
 def calculate_v5(state: V5Input) -> V5Result:
@@ -235,28 +318,42 @@ def calculate_v5(state: V5Input) -> V5Result:
     kkt_confirmed = _kkt_count(state) > 0
 
     service_items, lic_items, pts, svc_rub, lic_rub = _calc_services_and_licenses(state, data)
-    pkg = _choose_package(data, state, pts)
+    pkg, warning = _choose_package(data, state, pts)
     if not pkg:
         pkg = {'name': '—', 'price': 0, 'inc': '', 'who': '', 'detail': ''}
+        warning = ""
 
-    base = int(pkg.get('price') or 0)
+    base = int(pkg.get('price_rub') or pkg.get('price') or 0)
     diag = int(data.get('diag_price_rub') or 0) if prelim else 0
     support_rub = _points_to_rub(int(data.get('support_points') or 0), int(data.get('rub_per_point') or 0)) if state.support else 0
     total = base + diag + support_rub + svc_rub + lic_rub
 
     hint = 'Пакет и сумма рассчитаны по чек-листу.'
+    if warning:
+        hint = f"{warning} {hint}".strip()
     if state.custom_integration:
         hint += ' (Включён маркер проекта: возможны доп. работы/интеграции.)'
 
-    return V5Result(
-        prelim=prelim,
-        package=PackageBlock(
+    if pkg.get("groups"):
+        pkg_block = PackageBlock(
+            name=str(pkg.get("title") or pkg.get("name") or '—'),
+            price=base,
+            inc='',
+            who='',
+            detail=_core_pkg_detail(pkg),
+        )
+    else:
+        pkg_block = PackageBlock(
             name=str(pkg.get('name') or '—'),
             price=base,
             inc=str(pkg.get('inc') or ''),
             who=str(pkg.get('who') or ''),
             detail=str(pkg.get('detail') or ''),
-        ),
+        )
+
+    return V5Result(
+        prelim=prelim,
+        package=pkg_block,
         calc=CalcBlock(
             points=pts,
             rub=svc_rub,
