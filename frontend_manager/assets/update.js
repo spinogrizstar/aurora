@@ -33,14 +33,15 @@ function _emptyState() {
 
 function _localUpdate() {
   const calc = calcServicesAndLicenses();
-  const pkg = choosePackage(calc.points);
+  const { pkg, warning } = choosePackage(calc.points);
   if (!pkg) {
     _emptyState();
     return;
   }
   const prelim = needDiagnostics();
   const costs = buildCosts(pkg, calc);
-  const hint = prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.';
+  let hint = prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.';
+  if (warning) hint = `${warning} ${hint}`.trim();
   lastResult = { prelim, pkg, calc, costs, hint };
   renderFromCalc(pkg, calc, prelim, costs, hint);
 }
@@ -82,7 +83,9 @@ export async function update() {
       support: res.costs.support_rub,
       total: res.costs.total_rub,
     };
-    const hint = res.hint || 'Пакет и сумма рассчитаны по чек‑листу.';
+    const { warning } = choosePackage(calc.points);
+    let hint = res.hint || 'Пакет и сумма рассчитаны по чек‑листу.';
+    if (warning) hint = `${warning} ${hint}`.trim();
 
     lastResult = { prelim, pkg, calc, costs, hint };
     renderFromCalc(pkg, calc, prelim, costs, hint);

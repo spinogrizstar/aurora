@@ -18,8 +18,13 @@ def load_data_from_frontend() -> Dict[str, Any]:
     """
 
     base_dir = Path(__file__).resolve().parents[2]  # .../backend/v5 -> project root
-    data_json = base_dir / "frontend" / "data" / "data.json"
+    data_dir = base_dir / "frontend" / "data"
+    data_json = data_dir / "data.json"
     if not data_json.exists():
         raise RuntimeError(f"Не найден файл данных: {data_json}")
 
-    return json.loads(data_json.read_text(encoding="utf-8"))
+    data = json.loads(data_json.read_text(encoding="utf-8"))
+    core_json = data_dir / "core_packages.json"
+    if core_json.exists():
+        data["core_packages"] = json.loads(core_json.read_text(encoding="utf-8"))
+    return data

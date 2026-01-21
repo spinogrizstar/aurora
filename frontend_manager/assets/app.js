@@ -21,6 +21,7 @@ import { wirePresaleButtons } from './presale.js';
 import { initDropdownGlobalClose } from './components/dropdown.js';
 import { initInfoModal } from './components/info_modal.js';
 import { initServiceGraphModal } from './ui/service_graph.js';
+import { el } from './dom.js';
 
 async function init() {
   // 1) Данные
@@ -31,10 +32,29 @@ async function init() {
   initInfoModal();
   initServiceGraphModal();
   wirePresaleButtons();
+  applyManagerLayout();
 
   // 3) Рендер + первый расчёт
   renderChecklist(update);
   await update();
+}
+
+function applyManagerLayout() {
+  document.body.classList.add('managerSlim');
+
+  const hide = (node) => {
+    if (node) node.style.display = 'none';
+  };
+
+  hide(el.presaleBtn);
+  hide(el.wordBtn);
+  hide(el.matrixBtn);
+  hide(el.whyBtn);
+  hide(el.diagBanner);
+  hide(el.projAlert);
+
+  hide(el.pkgDetailed?.closest('.card'));
+  hide(document.getElementById('sumBase')?.closest('.card'));
 }
 
 function escapeHtml(s){
