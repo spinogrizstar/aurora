@@ -1,0 +1,157 @@
+// ФАЙЛ: frontend/assets/calc.js
+// ------------------------------------------------------------
+// ЛОКАЛЬНЫЙ РАСЧЁТ.
+//
+// Обычно мы считаем через API /api/v5/calculate.
+// Но если сервер недоступен (или коллега открыл сайт как файл),
+// то мы считаем здесь — чтобы UI всё равно работал.
+//
+// ВАЖНО:
+//   Логика повторяет backend/v5/calc.py (почти 1-в-1).
+// ------------------------------------------------------------
+
+import { getDataSync } from './data.js';
+import { state } from './state.js';
+import { deviceCounts, kktCount, hasProducer, hasWholesaleOrProducer } from './helpers.js';
+
+export function pointsToRub(points) {
+  const DATA = getDataSync();
+  return Number(points || 0) * Number(DATA.rub_per_point || 0);
+}
+
+export function needDiagnostics() {
+  // По последнему решению: диагностику не навязываем.
+  return false;
+}
+
+function _segFlags() {
+  const segs = (state.segments || []).map(s => String(s).toLowerCase());
+  const isRetail = segs.some(s => s.includes('розниц'));
+  const isWholesale = segs.some(s => s.includes('опт'));
+  const isProducer = segs.some(s => s.includes('производ'));
+  return { isRetail, isWholesale, isProducer };
+}
+
+export function calcServicesAndLicenses() {
+  const DATA = getDataSync();
+  const pm = DATA.points_model || {};
+
+  const serviceItems = [];
+  const licItems = [];
+
+  const addSvc = (label, pts) => {
+    const p = Number(pts || 0);
+    if (p > 0) serviceItems.push({ label, pts: p });
+  };
+  const addLic = (label, rub) => {
+    const r = Number(rub || 0);
+    if (r > 0) licItems.push({ label, rub: r });
+  };
+
+  // --- ККТ ---
+  const kc = kktCount();
+  const extraKkt = Math.max(0, kc - 1);
+  if (state.kkt_rereg && extraKkt > 0) {
+    addSvc(`Доп.кассы: перерегистрация/подготовка ККТ (+${extraKkt})`, extraKkt * Number(pm.kkt_rereg_points_per_kkt || 0));
+  }
+  if (state.needs_rr && extraKkt > 0) {
+    addSvc(`Доп.кассы: Разрешительный режим (РР) (+${extraKkt})`, extraKkt * Number(pm.rr_points_per_kkt || 0));
+  }
+
+  // --- Юрлица ---
+  const extraOrg = Math.max(0, Number(state.org_count || 1) - 1);
+  if (extraOrg > 0) {
+    addSvc(`Доп.юрлица (+${extraOrg})`, extraOrg * Number(pm.org_points_per_extra || 0));
+  }
+
+  // --- Устройства ---
+  const dc = deviceCounts();
+  const extraScanner = Math.max(0, dc.scanners - 1);
+  if (extraScanner > 0) {
+    addSvc(`Доп.сканеры (+${extraScanner})`, extraScanner * Number(pm.scanner_setup_points_per_scanner || 0));
+  }
+
+  if (dc.tsd > 0) {
+    let rub = dc.tsd * Number(pm.tsd_license_rub || 0);
+    if (state.tsd_collective) rub += dc.tsd * Number(pm.collective_tsd_license_rub || 0);
+    addLic(
+      `Клеверенс: лицензия ТСД ×${dc.tsd}` + (state.tsd_collective ? ' + коллективная работа' : ''),
+      rub,
+    );
+  }
+
+  // --- Сегменты и сценарии ---
+  const { isWholesale, isProducer } = _segFlags();
+  if (!state.has_edo && (isWholesale || isProducer)) {
+    addSvc('Нет ЭДО (опт/производство)', Number(pm.no_edo_wholesale_points || 0));
+  }
+  if (state.needs_rework) {
+    addSvc('Остатки/перемаркировка/вывод из оборота', Number(pm.rework_points || 0));
+  }
+  if (state.needs_aggregation) {
+    addSvc('Агрегация/КИТУ', Number(pm.aggregation_points || 0));
+  }
+  if (state.big_volume) {
+    addSvc('Большие объёмы/автоматизация', Number(pm.big_volume_points || 0));
+  }
+  if (isProducer && state.producer_codes) {
+    addSvc('Заказ кодов/нанесение', Number(pm.producer_codes_points || 0));
+  }
+  if (state.custom_integration) {
+    addSvc('Нестандарт/интеграции (маркер проекта)', Number(pm.custom_project_marker_points || 0));
+  }
+
+  const points = serviceItems.reduce((s, x) => s + Number(x.pts || 0), 0);
+  const rub = pointsToRub(points);
+  const licRub = licItems.reduce((s, x) => s + Number(x.rub || 0), 0);
+  return { serviceItems, licItems, points, rub, licRub };
+}
+
+function _findPkg(seg, preferKeywords) {
+  const DATA = getDataSync();
+  const pkgs = (DATA.segments || {})[seg] || [];
+  const low = s => String(s || '').toLowerCase();
+  for (const kw of preferKeywords) {
+    for (const p of pkgs) {
+      if (kw && low(p.name).includes(low(kw))) return p;
+    }
+  }
+  return pkgs[0] || null;
+}
+
+function _choosePackageForSegment(seg, points) {
+  const s = String(seg || '').toLowerCase();
+  const isRetail = s.includes('розниц');
+  const isWholesale = s.includes('опт');
+  const isProducer = s.includes('производ');
+
+  let prefer = ['Старт', 'Оптим', 'Комбо', 'Запуск'];
+  if (isProducer) {
+    prefer = points >= 8 ? ['Премиум', 'Оптим', 'Запуск'] : ['Запуск', 'Старт', 'Оптим'];
+  } else if (isWholesale) {
+    prefer = points >= 6 ? ['Комбо', 'Оптим'] : ['Приемка + Отгрузка', 'Комбо', 'Приемка', 'Отгрузка', 'Старт', 'Оптим'];
+  } else if (isRetail) {
+    prefer = points >= 6 ? ['Оптим'] : ['Старт', 'Оптим'];
+  }
+  return _findPkg(seg, prefer);
+}
+
+export function choosePackage(points) {
+  const segs = state.segments || [];
+  if (!segs.length) return null;
+  const candidates = segs
+    .map(seg => _choosePackageForSegment(seg, points))
+    .filter(Boolean);
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+  return candidates[0];
+}
+
+export function buildCosts(pkg, calc) {
+  const DATA = getDataSync();
+  const base = Number(pkg?.price || 0);
+  const diag = needDiagnostics() ? Number(DATA.diag_price_rub || 0) : 0;
+  const support = state.support ? pointsToRub(Number(DATA.support_points || 0)) : 0;
+  const total = base + diag + support + Number(calc.rub || 0) + Number(calc.licRub || 0);
+  return { base, diag, support, total };
+}

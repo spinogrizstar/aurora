@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Aurora Checklist — Админка цен</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <!-- Важно: стили админки (тосты, аккордеоны, поля) лежат отдельно -->
+  <link rel="stylesheet" href="assets/admin.css" />
+  <style>
+    /* Мини-надстройка над общими стилями, чтобы было удобно редактировать JSON */
+    .adminWrap{max-width:1100px;margin:0 auto;padding:28px}
+    .adminGrid{display:grid;grid-template-columns:1fr;gap:14px}
+    .adminRow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .adminRow .btn{min-width:160px}
+    .adminHint{opacity:.85;font-size:13px}
+    textarea.adminJson{width:100%;min-height:55vh;resize:vertical;font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.45;padding:14px;border-radius:16px;background:rgba(15,22,34,.55);color:#fff;border:1px solid rgba(255,255,255,.12)}
+    .adminOk{padding:10px 12px;border-radius:14px;background:rgba(46, 204, 113, .12);border:1px solid rgba(46, 204, 113, .25)}
+    .adminErr{padding:10px 12px;border-radius:14px;background:rgba(231, 76, 60, .12);border:1px solid rgba(231, 76, 60, .25)}
+    .adminTag{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);font-size:12px}
+    .adminTop{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+
+    /* Табы (чтобы не тонуть в JSON) */
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px 0}
+    .tabBtn{padding:10px 12px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;cursor:pointer;transition:transform .15s ease, background .15s ease, border-color .15s ease}
+    .tabBtn:hover{transform:translateY(-1px);background:rgba(255,255,255,.09)}
+    .tabBtn.active{background:rgba(109, 89, 255, .18);border-color:rgba(109, 89, 255, .35)}
+    .tabPane{display:none}
+    .tabPane.active{display:block}
+
+    /* Маленькие кнопки управления (добавить/удалить/вверх/вниз) */
+    .miniBtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .mini{padding:8px 10px;min-width:auto}
+    .mini.danger{background:rgba(231, 76, 60, .12);border:1px solid rgba(231, 76, 60, .25)}
+    .mini.danger:hover{background:rgba(231, 76, 60, .18)}
+
+    /* Advanced JSON как сворачиваемый блок */
+    details.adv{margin-top:12px}
+    details.adv > summary{cursor:pointer;user-select:none;list-style:none}
+    details.adv > summary::-webkit-details-marker{display:none}
+  </style>
+</head>
+<body>
+  <div class="adminWrap">
+    <div class="adminTop">
+      <div>
+        <div class="h1">Админка цен</div>
+        <div class="sub">Правка <span class="adminTag">frontend/data/data.json</span> прямо из браузера.</div>
+      </div>
+      <div class="adminRow">
+        <a class="btn alt" href="/">← к выбору режима</a>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="cardHead">
+        <div>
+          <div class="h2">Доступ</div>
+          <div class="adminHint">Нужен токен <b>AURORA_ADMIN_TOKEN</b>. Токен хранится в браузере (localStorage).</div>
+        </div>
+      </div>
+      <div class="adminRow" style="padding:12px 14px;">
+        <input id="token" class="input" style="min-width:340px;" placeholder="Вставь админ‑токен" />
+        <button id="saveToken" class="btn">Сохранить токен</button>
+        <button id="load" class="btn alt">Загрузить data.json</button>
+        <button id="save" class="btn">Сохранить изменения</button>
+        <button id="download" class="btn alt">Скачать резервную копию</button>
+        <label class="btn alt" style="cursor:pointer;min-width:auto">
+          Импорт JSON
+          <input id="importFile" type="file" accept="application/json" style="display:none" />
+        </label>
+      </div>
+      <div id="msg" style="padding:0 14px 14px 14px;"></div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="cardHead">
+        <div>
+          <div class="h2">Быстрые настройки</div>
+          <div class="adminHint">Редактирование без «копания в коде». Здесь основные цены и пакеты. Под капотом всё равно сохраняется в <span class="adminTag">data.json</span>.</div>
+        </div>
+      </div>
+      <div style="padding:12px 14px 14px 14px;">
+        <div id="quick" class="adminGrid"></div>
+        <details class="adv">
+          <summary class="adminHint" style="padding:10px 0;">Advanced: открыть raw data.json (на свой страх и риск)</summary>
+          <textarea id="json" class="adminJson" spellcheck="false"></textarea>
+          <div class="adminHint" style="margin-top:8px;">Если сломаешь JSON — сохранение не пройдёт. Для 90% правок используй табы выше.</div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/admin.js"></script>
+  <div id="toastHost" class="toastHost" aria-live="polite"></div>
+</body>
+</html>

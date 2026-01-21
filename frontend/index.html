@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Чек-лист → пакет + стоимость (v5)</title>
+<link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Чек-лист → пакет + стоимость (v5)</h1>
+      <div class="subtitle">Перечень работ берём <b>из матрицы пакетов</b> (поле «Состав работ (детально)»). Никаких часов: только баллы сложности и понятные опции.</div>
+    </div>
+    <div class="badge">Матрица: <b>детализация включена</b></div>
+  </div>
+
+  <div class="grid" id="grid3">
+    <!-- Колонка 1: главное (основные вопросы) -->
+    <div class="panel panelMain">
+      <div class="hd"><h2>Чек-лист — главное</h2><div class="mini" style="margin-top:6px;">Сегмент → учётная система → ключевые факторы.</div></div>
+      <div class="bd" id="checklistMain"></div>
+    </div>
+
+    <!-- Колонка 2: второстепенное (доп.факторы) -->
+    <div class="panel panelExtra">
+      <div class="hd"><h2>Чек-лист — доп.факторы</h2><div class="mini" style="margin-top:6px;">ККТ / устройства / сценарии / поддержка.</div></div>
+      <div class="bd" id="checklistExtra"></div>
+    </div>
+
+    <!-- Колонка 3: результат (пакет, состав, расчёт, действия) -->
+    <div class="panel summary panelResult">
+      <!-- Верх — итог и действия (фиксируем) -->
+      <div class="stickyTop">
+        <div class="total"><div>Итого</div><div class="v" id="sumTotal">0 ₽</div></div>
+
+        <div class="row" style="justify-content:flex-end;margin-top:10px;">
+          <button class="btnMini" id="whyBtn" type="button" style="display:none;">Почему такая стоимость?</button>
+          <button class="btnMini" id="matrixBtn" type="button" style="display:none;">Матрица услуг</button>
+        </div>
+
+        <div class="alert red" id="projAlert" style="display:none"><b>Похоже на проект.</b> Нестандарт/интеграции — уводим на пресейл.</div>
+
+        <div class="btnRow">
+          <button class="btn" id="copyBtn">Скопировать (КП)</button>
+          <button class="btn alt" id="presaleBtn">Запросить пресейл</button>
+          <button class="btn" id="wordBtn">Скачать Word</button>
+        </div>
+
+        <div class="small" style="margin-top:10px;">* Баллы конвертируются во внутреннюю стоимость. Клиенту коэффициенты не раскрываем.</div>
+      </div>
+
+      <!-- Ниже — детали и расчёт -->
+      <div class="row">
+        <div>
+          <div style="font-weight:900;font-size:16px;">Рекомендация</div>
+          <div class="small" id="recHint">Заполните чек-лист — покажем пакет и расчёт.</div>
+        </div>
+        <div class="badge" id="segBadge">—</div>
+      </div>
+
+      <div class="card" id="diagBanner" style="display:none">
+        <div class="chip warn" style="margin-bottom:8px;">Нужна диагностика ККТ до финального пакета</div>
+        <div class="small">Пакет и сумма будут подтверждены после диагностики.</div>
+      </div>
+
+      <div class="card">
+        <h3 id="pkgTitle">Пакет: —</h3>
+        <div class="pillRow" id="pkgPills"></div>
+        <div class="small" id="pkgWho" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>Что входит (детально)</h3>
+        <ul class="list" id="pkgDetailed"></ul>
+      </div>
+
+      <div class="card">
+        <h3>Расчёт</h3>
+        <div class="kv"><span class="chip ok">База пакета</span><strong id="sumBase">0 ₽</strong></div>
+        <div class="kv" style="margin-top:10px;"><span class="chip warn">Диагностика ККТ</span><strong id="sumDiag">0 ₽</strong></div>
+        <div class="kv" style="margin-top:10px;"><span class="chip ok">Поддержка 5 дней</span><strong id="sumSupport">0 ₽</strong></div>
+
+        <div class="section" style="margin-top:14px;padding-top:14px;">
+          <div class="secTitle"><h3 style="font-size:13px;">Услуги (баллы сложности)</h3><span class="tag">прозрачно</span></div>
+          <div class="sumline"><span>Доп.баллы</span><strong id="sumServices">0 ₽</strong></div>
+          <ul class="list" id="servicesBreakdown"></ul>
+          <div class="mini" style="margin-top:10px;">Ниже считаются только <b>доп.объекты</b> (2-я касса, 2-й сканер и т.п.).</div>
+        </div>
+
+        <div class="section">
+          <div class="secTitle"><h3 style="font-size:13px;">ПО и лицензии</h3><span class="tag">отдельно</span></div>
+          <div class="sumline"><span>Лицензии/ПО</span><strong id="sumLic">0 ₽</strong></div>
+          <ul class="list" id="licBreakdown"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modalBack" id="modalBack">
+  <div class="modal">
+    <h3>Диагностика ККТ — обязательный шаг</h3>
+    <p>Без модели/прошивки/ПО кассы нельзя гарантировать Разрешительный режим и корректную работу с маркировкой. Сначала диагностика, после — подтверждаем пакет и цену.</p>
+    <div class="btnRow">
+      <button class="btn" id="modalCopy">Скопировать запрос</button>
+      <button class="btn alt" id="modalClose">Понятно</button>
+    </div>
+  </div>
+</div>
+
+<!-- Универсальная подсказка/описание (состав пакета, состав мини‑планов и т.п.) -->
+<div class="modalBack" id="infoBack" style="display:none">
+  <div class="modal">
+    <h3 id="infoTitle">Подробности</h3>
+    <div id="infoBody" style="margin-top:10px;"></div>
+    <div class="btnRow" style="margin-top:14px;">
+      <button class="btn alt" id="infoClose">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Матрица услуг (граф / паутина) -->
+<div class="modalBack" id="graphBack" style="display:none">
+  <div class="modal modalWide">
+    <div class="modalHead">
+      <h3 id="graphTitle">Матрица услуг — граф</h3>
+      <button class="btn icon" id="graphClose" title="Закрыть">×</button>
+    </div>
+
+    <div class="graphToolbar">
+      <label class="small" style="display:flex;align-items:center;gap:8px;">
+        <span style="opacity:.85;">Сегмент</span>
+        <select id="graphSegSelect" class="select" style="min-width:210px;"></select>
+      </label>
+
+      <input id="graphSearch" class="input" placeholder="Поиск по работам…" />
+
+      <button class="btn alt" id="graphReset">Сброс</button>
+    </div>
+
+    <div class="graphWrap">
+      <div class="graphCanvas">
+        <svg id="graphSvg" viewBox="0 0 1200 720" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="graphHint small">Колесо — зум • ЛКМ — панорама • Перетаскивай узлы</div>
+      </div>
+
+      <div class="graphSide" id="graphSide">
+        <div class="small" style="opacity:.85;">Кликни по пакету или работе, чтобы увидеть детали.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/assets/app.js"></script>
+</body>
+</html>

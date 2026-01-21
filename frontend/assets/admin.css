@@ -1,0 +1,113 @@
+/* FILE: frontend/assets/admin.css
+   -------------------------------
+   Стили админки. Делали в том же «стеклянном» стиле, что и основной чек-лист.
+   Если хочешь поменять внешний вид — правь здесь, а не в JS.
+*/
+
+:root{
+  --a-bg-1: rgba(15, 23, 42, .55);
+  --a-bg-2: rgba(30, 41, 59, .45);
+  --a-brd: rgba(148, 163, 184, .18);
+  --a-brd2: rgba(148, 163, 184, .28);
+  --a-txt: rgba(226, 232, 240, .92);
+  --a-sub: rgba(226, 232, 240, .70);
+  --a-accent: rgba(34, 211, 238, .85);
+  --a-err: rgba(248, 113, 113, .95);
+  --a-ok: rgba(52, 211, 153, .95);
+}
+
+.adminWrap{
+  color: var(--a-txt);
+}
+
+.adminCard{
+  background: linear-gradient(180deg, var(--a-bg-1), var(--a-bg-2));
+  border: 1px solid var(--a-brd);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
+.adminCard .adminCardHd{
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--a-brd);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+
+.adminCard .adminCardBd{
+  padding: 14px 16px;
+}
+
+.adminRow{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.adminRow > *{flex: 1 1 auto}
+
+.adminBtn{
+  border-radius: 14px;
+  border: 1px solid var(--a-brd2);
+  background: rgba(15, 23, 42, .35);
+  color: var(--a-txt);
+  padding: 10px 12px;
+  cursor:pointer;
+  transition: transform .08s ease, border-color .15s ease, background .15s ease;
+}
+.adminBtn:hover{transform: translateY(-1px); border-color: rgba(34,211,238,.35); background: rgba(15, 23, 42, .48);}
+.adminBtn:active{transform: translateY(0px);}
+.adminBtn--primary{border-color: rgba(34,211,238,.35); background: rgba(34,211,238,.12);}
+.adminBtn--danger{border-color: rgba(248,113,113,.28); background: rgba(248,113,113,.10);}
+
+.adminField{
+  width:100%;
+  border-radius: 14px;
+  border: 1px solid var(--a-brd);
+  background: rgba(2, 6, 23, .28);
+  color: var(--a-txt);
+  padding: 10px 12px;
+  outline:none;
+}
+.adminField:focus{border-color: rgba(34,211,238,.35); box-shadow: 0 0 0 3px rgba(34,211,238,.10);}
+
+.adminHelp{color: var(--a-sub); font-size: 12px; line-height: 1.35}
+
+details.adminAcc{
+  border-radius: 18px;
+  border: 1px solid var(--a-brd);
+  background: rgba(2, 6, 23, .18);
+  overflow:hidden;
+}
+details.adminAcc > summary{
+  list-style:none;
+  cursor:pointer;
+  padding: 12px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;
+}
+details.adminAcc[open] > summary{border-bottom: 1px solid var(--a-brd);}
+details.adminAcc > .accBody{padding: 12px 14px;}
+
+.toastHost{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9999;
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events:none;
+}
+.toast{
+  pointer-events:none;
+  max-width: 420px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--a-brd);
+  background: rgba(2, 6, 23, .72);
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  color: var(--a-txt);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.toast.toast--show{opacity:1; transform: translateY(0);}
+.toast.toast--ok{border-color: rgba(52,211,153,.35);}
+.toast.toast--err{border-color: rgba(248,113,113,.35);}
+.toast .tHd{font-weight:700; font-size: 13px; margin-bottom: 2px}
+.toast .tBd{font-size: 12px; color: var(--a-sub)}

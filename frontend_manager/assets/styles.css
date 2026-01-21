@@ -1,0 +1,474 @@
+/* Стили интерфейса. Правь тут, а не в index.html */
+
+  :root{--bg:#0b1220;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.10);--text:rgba(255,255,255,.92);--muted:rgba(255,255,255,.65);--shadow:0 18px 60px rgba(0,0,0,.45);--r2:22px;--font:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font);color:var(--text);min-height:100vh;background:
+    radial-gradient(1200px 600px at 15% 0%, rgba(167,139,250,.28), transparent 60%),
+    radial-gradient(900px 500px at 85% 10%, rgba(125,211,252,.25), transparent 55%),
+    radial-gradient(900px 700px at 50% 100%, rgba(52,211,153,.12), transparent 60%),var(--bg)}
+  /* Было тесновато на десктопе: расширяем рабочую область,
+     чтобы 3 колонки не «сжимались» и в колонке результата
+     не начиналась давка. */
+  .wrap{max-width:1520px;margin:0 auto;padding:34px 18px 60px}
+  .top{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
+  h1{margin:0;font-size:34px;line-height:1.1;letter-spacing:-.02em}
+  .subtitle{margin-top:8px;color:var(--muted);max-width:1020px}
+  .badge{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--muted)}
+  /*
+    Сетка по ТЗ:
+      1) главное (чек-лист)
+      2) доп.факторы (чек-лист)
+      3) результат (пакет/расчёт/кнопки)
+    Адаптив:
+      3 → 2 → 1 колонка.
+  */
+  .grid{display:grid;gap:16px;margin-top:18px;
+    /* minmax() держит адекватную ширину колонок и не даёт
+       им ужаться до состояния «всё в кашу». */
+    grid-template-columns:
+      minmax(360px, 1fr)
+      minmax(360px, 1fr)
+      minmax(420px, 1.15fr);
+    grid-template-areas:"main extra result";
+    align-items:stretch;
+  }
+  .panelMain{grid-area:main}
+  .panelExtra{grid-area:extra}
+  .panelResult{grid-area:result}
+
+  /* Раньше 3 колонки держались до 1180px и становились слишком узкими.
+     Поднимаем порог: на «обычных» мониторах 1366px сетка остаётся 3‑колоночной,
+     но при 1280px и ниже — уже 2 колонки (так визуально стабильнее). */
+  @media (max-width:1320px){
+    .grid{
+      grid-template-columns:1fr 1.15fr;
+      grid-template-areas:
+        "main result"
+        "extra result";
+    }
+  }
+  @media (max-width:980px){
+    .grid{
+      grid-template-columns:1fr;
+      grid-template-areas:
+        "main"
+        "extra"
+        "result";
+    }
+  }
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--shadow);min-width:0}
+  .hd{padding:16px 16px 12px;border-bottom:1px solid var(--line)}
+  .hd h2{margin:0;font-size:16px;color:rgba(255,255,255,.88)}
+  .bd{padding:14px 16px 16px}
+  .mini{font-size:12.5px;color:var(--muted);line-height:1.4}
+  /* Плавное раскрытие/сворачивание секций.
+     Длительность синхронизирована с SECTION_ANIM_MS (visibility.js). */
+  /* ВАЖНО: overflow должен быть visible, иначе выпадающие меню (dropdown)
+     «обрезаются» (секция раньше всегда была overflow:hidden из-за анимации).
+     Для анимации сворачивания мы включаем overflow:hidden только в collapsed. */
+  .section{margin-top:14px;padding-top:14px;border-top:1px dashed rgba(255,255,255,.14);overflow:visible;max-height:2200px;opacity:1;transform:none;transition:max-height 1.12s ease,opacity 1.12s ease,transform 1.12s ease,margin-top 1.12s ease,padding-top 1.12s ease}
+  .section:first-child{margin-top:0;padding-top:0;border-top:none}
+  .section.collapsed{max-height:0;opacity:0;transform:translateY(-8px);margin-top:0;padding-top:0;border-top:none;overflow:hidden}
+  .secTitle{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .secTitle h3{margin:0;font-size:14px;letter-spacing:-.01em}
+  .tag{font-size:12px;color:rgba(255,255,255,.80);background:rgba(255,255,255,.08);border:1px solid var(--line);padding:6px 10px;border-radius:999px}
+  .opts{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+  .opt{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.05);transition:transform .18s ease, background .18s ease}
+  .opt:hover{transform:translateY(-1px);background:rgba(255,255,255,.08)}
+  .chk{flex:0 0 auto;width:22px;height:22px;border-radius:7px;border:2px solid rgba(255,255,255,.35);display:grid;place-items:center;margin-top:1px}
+  .chk svg{width:16px;height:16px;opacity:0;transform:scale(.6);transition:opacity .15s ease,transform .15s ease}
+  .opt.on .chk{border-color:rgba(52,211,153,.75);background:rgba(52,211,153,.18)}
+  .opt.on .chk svg{opacity:1;transform:scale(1)}
+
+  /* Поля ввода внутри строки .opt (контакты и похожие блоки)
+     Заметка: без этих правил браузер рисует «белые системные» инпуты. */
+  .opt .inp,.opt .ta{
+    flex:0 0 260px;
+    min-width:220px;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.10));
+    color:rgba(255,255,255,.92);
+    font-weight:800;
+    outline:none;
+  }
+  .opt .ta{min-height:70px;resize:vertical}
+  .opt .inp::placeholder,.opt .ta::placeholder{color:rgba(255,255,255,.45)}
+  .opt .inp:focus,.opt .ta:focus{border-color:rgba(125,211,252,.35);box-shadow:0 0 0 3px rgba(125,211,252,.15)}
+  .label{flex:1;min-width:0}
+  /* Правая часть строки .opt (выпадашка + мелкая кнопка).
+     На узких экранах переносим элементы, чтобы не «вылезало» за границы. */
+  .optRight{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex:0 1 440px;min-width:0;flex-wrap:wrap}
+  .optRight .dd{flex:1 1 260px;min-width:180px;max-width:100%}
+
+  /* Спец-верстка строки "Конфигурация 1С":
+     по просьбе — заголовок/описание сверху, а селект + пилюля ниже,
+     чтобы никогда не вылезало за границы и не ломало текст. */
+  .onecCfgRow{flex-direction:column}
+  .onecCfgRow .label{flex:1 1 auto;min-width:0}
+  .onecCfgRow .optRight{
+    width:100%;
+    flex:1 1 auto;
+    max-width:none;
+    justify-content:flex-start;
+    margin-top:10px;
+    display:grid;
+    grid-template-columns:1fr auto;
+    align-items:center;
+    gap:10px;
+  }
+  .onecCfgRow .optRight .dd{min-width:0;width:100%}
+  @media (max-width:520px){
+    .onecCfgRow .optRight{grid-template-columns:1fr}
+    .onecCfgRow .pillToggle{width:100%;justify-content:center}
+  }
+
+  /* Переключатель "Актуальная/Неактуальная" */
+  .pillToggle{
+    height:40px;
+    padding:0 12px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);
+    background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.05));
+    color:rgba(255,255,255,.92);
+    cursor:pointer;
+    font-weight:900;
+    font-size:12px;
+    line-height:1;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    white-space:nowrap;
+    transition:transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+    box-shadow:0 10px 24px rgba(0,0,0,.16);
+  }
+  .pillToggle::before{
+    content:'';
+    width:10px;height:10px;border-radius:999px;
+    background:rgba(255,255,255,.28);
+    box-shadow:0 0 0 3px rgba(255,255,255,.06) inset;
+    flex:0 0 auto;
+  }
+  .pillToggle:hover{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.06))}
+  .pillToggle.on{
+    border-color:rgba(52,211,153,.45);
+    background:linear-gradient(180deg,rgba(52,211,153,.14),rgba(52,211,153,.06));
+    box-shadow:0 12px 35px rgba(0,0,0,.18), 0 0 0 3px rgba(52,211,153,.10);
+  }
+  .pillToggle.on::before{background:rgba(52,211,153,.95);box-shadow:0 0 0 3px rgba(52,211,153,.16) inset}
+
+  .label .t{font-weight:800}
+  .label .n{color:var(--muted);font-size:12.5px;margin-top:3px;line-height:1.35}
+  .inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  @media (max-width:760px){.inputs{grid-template-columns:1fr}}
+  .field{padding:12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05)}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .field input,.field select{width:100%;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.18);color:rgba(255,255,255,.92);padding:10px 10px;font-weight:700;outline:none}
+  .summary{padding:16px;border-radius:var(--r2);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.06));border:1px solid var(--line);box-shadow:var(--shadow)}
+  .sticky{position:sticky;top:14px}
+  /* Верхний блок в колонке результата: всегда под рукой */
+  /* stickyTop раньше был «прозрачным», из-за этого при скролле
+     было ощущение, что элементы «налезают» друг на друга.
+     Делаем подложку, чтобы содержимое снизу не просвечивало. */
+  .stickyTop{
+    position:sticky;
+    top:14px;
+    z-index:3;
+    padding:12px;
+    margin:0 0 12px 0;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.12);
+    background:linear-gradient(180deg, rgba(11,18,32,.92), rgba(11,18,32,.78));
+    backdrop-filter: blur(10px);
+    box-shadow:0 18px 60px rgba(0,0,0,.45);
+  }
+  .stickyTop .total{margin-top:0}
+  /* Убираем лишний «верхний отступ» у блока итога внутри stickyTop */
+  .stickyTop .total{margin-top:0}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .card{margin-top:12px;padding:14px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.05)}
+  .card h3{margin:0 0 8px 0;font-size:14px}
+  .pillRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .pill{font-size:12px;color:rgba(255,255,255,.80);background:rgba(255,255,255,.08);border:1px solid var(--line);padding:6px 10px;border-radius:999px}
+  .list{margin:0;padding-left:18px;color:var(--muted);line-height:1.5}
+  .sumline{display:flex;justify-content:space-between;gap:10px;margin:10px 0;color:var(--muted)}
+  .sumline strong{color:rgba(255,255,255,.92)}
+  .total{margin-top:12px;padding:14px;border-radius:16px;background:linear-gradient(90deg,rgba(125,211,252,.16),rgba(167,139,250,.14));border:1px solid rgba(125,211,252,.22);display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .total .v{font-size:22px;font-weight:900}
+  .btnRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  @media (max-width:520px){.btnRow{grid-template-columns:1fr}}
+  .btn{width:100%;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:rgba(255,255,255,.92);font-weight:900;cursor:pointer;transition:transform .18s ease,background .18s ease}
+  .btn:hover{transform:translateY(-1px);background:rgba(255,255,255,.12)}
+  .btn.alt{background:rgba(125,211,252,.12);border-color:rgba(125,211,252,.24)}
+  .small{font-size:12px;color:var(--muted);line-height:1.35}
+  .kv{display:flex;justify-content:space-between;gap:10px}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:rgba(255,255,255,.82);font-size:12px}
+  .chip.ok{border-color:rgba(52,211,153,.28);background:rgba(52,211,153,.10)}
+  .chip.warn{border-color:rgba(251,191,36,.28);background:rgba(251,191,36,.10)}
+  .alert{margin-top:12px;padding:12px;border-radius:14px;border:1px solid rgba(251,191,36,.28);background:rgba(251,191,36,.10)}
+  .alert.red{border-color:rgba(251,113,133,.28);background:rgba(251,113,133,.10)}
+  .modalBack{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
+  .modal{max-width:560px;width:100%;background:rgba(18,24,38,.92);border:1px solid rgba(255,255,255,.14);border-radius:18px;box-shadow:var(--shadow);padding:16px}
+  .modal h3{margin:0 0 6px 0}
+  .modal p{margin:0;color:var(--muted);line-height:1.45}
+  .modal .btnRow{margin-top:12px}
+
+  /* Мини‑поповер (подсказка при наведении) */
+  .popover{
+    position:fixed;
+    z-index:9999;
+    display:none;
+    max-width:360px;
+    min-width:220px;
+    background:linear-gradient(135deg, rgba(28,36,56,.94), rgba(14,18,28,.94));
+    border:1px solid rgba(255,255,255,.16);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    padding:12px;
+    backdrop-filter: blur(10px);
+  }
+  .popoverHead{font-weight:800;margin-bottom:6px}
+  .popoverBody .list{padding-left:18px}
+
+
+  /* --- additions v6 (multi-segment, lists, steppers, contacts) --- */
+  .rowlist{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .row .grow{flex:1;min-width:220px}
+  .row select,.row input,.row textarea{width:100%;padding:12px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--text);outline:none}
+  /* nicer selects (dark dropdown) */
+  .row select{appearance:none;-webkit-appearance:none;-moz-appearance:none;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.05));}
+  .row select:focus{border-color:rgba(125,211,252,.35);box-shadow:0 0 0 3px rgba(125,211,252,.15);}
+  .row select option{background:#0f172a;color:rgba(255,255,255,.92);}
+  .field select{appearance:none;-webkit-appearance:none;-moz-appearance:none;background:linear-gradient(180deg,rgba(0,0,0,.22),rgba(0,0,0,.12));}
+  .field select option{background:#0f172a;color:rgba(255,255,255,.92);}
+
+  .row textarea{min-height:90px;resize:vertical}
+  .btnMini{border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);padding:10px 12px;border-radius:14px;cursor:pointer}
+  .btnMini:hover{background:rgba(255,255,255,.10)}
+
+  /* маленькая «пилюля» (переключатели типа «Актуальная»)
+     Раньше была без стиля и выглядела как системная кнопка. */
+  .btnTiny{
+    border:1px solid rgba(255,255,255,.16);
+    background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.05));
+    color:rgba(255,255,255,.92);
+    padding:10px 12px;
+    border-radius:999px;
+    cursor:pointer;
+    font-weight:900;
+    font-size:12px;
+    line-height:1;
+    transition:transform .18s ease, background .18s ease, border-color .18s ease;
+    box-shadow:0 12px 35px rgba(0,0,0,.22);
+    white-space:nowrap;
+  }
+  .btnTiny:hover{transform:translateY(-1px);background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.06))}
+  .btnTiny.on{border-color:rgba(52,211,153,.35);background:linear-gradient(180deg,rgba(52,211,153,.20),rgba(52,211,153,.08))}
+
+  @media (max-width:520px){
+    .optRight{justify-content:flex-start}
+    .optRight .dd{flex:1 1 100%;min-width:0}
+    .btnTiny{width:100%;text-align:center}
+  }
+  .stepper{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:rgba(255,255,255,.05);padding:6px 8px;border-radius:14px}
+  .stepper button{width:34px;height:34px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);cursor:pointer;font-weight:800}
+  .stepper button:hover{background:rgba(255,255,255,.10)}
+  .stepper input{width:46px;text-align:center;border:none;background:transparent;color:var(--text);font-weight:800;outline:none}
+  .muted{color:var(--muted)}
+  .formGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
+  .formGrid .span2{grid-column:1/-1}
+  @media(max-width:900px){.formGrid{grid-template-columns:1fr}}
+
+  /* compact icon buttons (minus/remove) */
+  .iconBtn{width:40px;height:40px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.06));color:rgba(255,255,255,.92);font-weight:900;cursor:pointer;display:grid;place-items:center;transition:transform .18s ease,background .18s ease;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .iconBtn:hover{transform:translateY(-1px);background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.08))}
+
+  /* custom dropdown (rounded menu, matches theme) */
+  .dd{position:relative;flex:1;min-width:220px}
+  .ddBtn{width:100%;padding:12px 12px;border-radius:16px;border:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.05));
+    color:var(--text);outline:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .ddBtn:focus{border-color:rgba(125,211,252,.35);box-shadow:0 0 0 3px rgba(125,211,252,.15);}
+  .ddChevron{opacity:.75;font-weight:900}
+  .ddMenu{position:absolute;left:0;right:0;top:calc(100% + 8px);z-index:50;
+    border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg,rgba(15,23,42,.98),rgba(15,23,42,.92));
+    border-radius:16px;
+    box-shadow:0 18px 60px rgba(0,0,0,.55);
+    overflow:hidden;
+    padding:4px;
+    display:none;
+    max-height:260px;
+  }
+  .dd.open .ddMenu{display:block}
+  .ddScroll{max-height:252px;overflow:auto;
+    scrollbar-width:none;          /* Firefox */
+    -ms-overflow-style:none;       /* IE/Edge legacy */
+    /* Убираем «пустую полосу» справа (gutter) на Windows,
+       когда браузер резервирует место под скроллбар. */
+    box-sizing:content-box;
+    padding-right:18px;
+    margin-right:-18px;
+  }
+  .ddScroll::-webkit-scrollbar{width:0;height:0} /* Chrome/Safari */
+  .ddItem{padding:10px 12px;color:rgba(255,255,255,.92);cursor:pointer;user-select:none; border-radius:12px; margin:2px; }
+  .ddItem:hover{background:rgba(255,255,255,.10)}
+  .ddItem.on{background:rgba(125,211,252,.12)}
+
+  /* ККТ: строки и кнопки добавления (чтобы не «разваливалось»)
+     Если нужно поправить размеры/отступы — делай это здесь. */
+  .kktAddRow{margin-top:10px}
+  .kktList{margin-top:10px;display:flex;flex-direction:column;gap:10px}
+  .kktRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .kktRow .dd{min-width:240px}
+
+  /* producer product groups */
+  .prodSearch{margin-top:10px}
+  .prodSearch input{width:100%;padding:12px 12px;border-radius:16px;border:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.10));color:rgba(255,255,255,.92);font-weight:800;outline:none}
+  .prodSearch input::placeholder{color:rgba(255,255,255,.45)}
+  .prodList{margin-top:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+    max-height:260px;overflow:auto;padding-right:6px;scrollbar-width:none;-ms-overflow-style:none}
+  .prodList::-webkit-scrollbar{width:0;height:0}
+  @media(max-width:760px){.prodList{grid-template-columns:1fr}}
+  .prodNote{margin-top:10px}
+  .prodNote textarea{width:100%;min-height:90px;resize:vertical;padding:12px 12px;border-radius:16px;border:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.10));color:rgba(255,255,255,.92);font-weight:800;outline:none}
+  .prodNote textarea::placeholder{color:rgba(255,255,255,.45)}
+
+  /* выбранные категории (чипы) */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.05));
+    color:rgba(255,255,255,.92);font-weight:800;font-size:12px;
+  }
+  .chipX{width:18px;height:18px;border-radius:999px;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.14);cursor:pointer;user-select:none;
+  }
+  .chipX:hover{background:rgba(255,255,255,.10)}
+
+  /* tiny spacing helpers */
+  .mt10{margin-top:10px}
+  .mt8{margin-top:8px}
+
+
+  /* give + buttons air */
+  .btnMini{transition:transform .18s ease,background .18s ease}
+  .btnMini:hover{transform:translateY(-1px)}
+
+  /* contacts form in same style */
+  .formGrid label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .formGrid input,.formGrid textarea{width:100%;border-radius:14px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.10));color:rgba(255,255,255,.92);padding:12px 12px;font-weight:800;outline:none}
+  .formGrid textarea{min-height:110px;resize:vertical}
+  .formGrid input::placeholder,.formGrid textarea::placeholder{color:rgba(255,255,255,.45)}
+  .formGrid input:focus,.formGrid textarea:focus{border-color:rgba(125,211,252,.35);box-shadow:0 0 0 3px rgba(125,211,252,.15)}
+
+
+/* --- Матрица услуг: граф/паутина --- */
+.modalWide{
+  max-width: 1180px;
+  width: min(1180px, calc(100vw - 40px));
+}
+
+.modalHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.btn.icon{
+  width:38px;
+  height:38px;
+  padding:0;
+  border-radius:12px;
+  font-size:20px;
+  line-height:1;
+}
+
+.graphToolbar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+
+.graphToolbar .input{
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+
+.graphWrap{
+  display:grid;
+  grid-template-columns: 1.35fr .65fr;
+  gap:14px;
+  margin-top:14px;
+  min-height: 520px;
+}
+
+.graphCanvas{
+  position:relative;
+  border-radius:16px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  overflow:hidden;
+}
+
+#graphSvg{
+  width:100%;
+  height:520px;
+  display:block;
+  cursor:grab;
+}
+
+#graphSvg:active{ cursor:grabbing; }
+
+.graphHint{
+  position:absolute;
+  left:12px;
+  bottom:10px;
+  padding:6px 10px;
+  border-radius:999px;
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.10);
+  backdrop-filter: blur(8px);
+}
+
+.graphSide{
+  border-radius:16px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  padding:12px;
+  overflow:auto;
+}
+
+.graphSide h4{
+  margin:0 0 8px;
+  font-size:14px;
+}
+
+.graphPills{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:8px;
+}
+
+.graphPill{
+  padding:6px 10px;
+  border-radius:999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  font-size:12px;
+  opacity:.95;
+}
+
+@media (max-width: 980px){
+  .graphWrap{ grid-template-columns: 1fr; }
+  #graphSvg{ height: 460px; }
+}

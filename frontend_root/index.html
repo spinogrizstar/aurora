@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Aurora — выбор модуля</title>
+  <!-- Берём тот же визуал, что и в чек-листе -->
+  <link rel="stylesheet" href="/client/assets/styles.css" />
+  <style>
+    .landingWrap{max-width:980px;margin:0 auto;padding:34px 18px}
+    .landingCard{padding:22px}
+    .landingBtns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
+    @media (max-width: 920px){.landingBtns{grid-template-columns:1fr;}}
+    .landingBtn{display:flex;flex-direction:column;gap:6px;text-decoration:none}
+    .landingBtn .t{font-weight:900;font-size:16px}
+    .landingBtn .d{opacity:.85;font-size:13px;line-height:1.35}
+  </style>
+</head>
+<body>
+  <div class="landingWrap">
+    <div class="top" style="margin-bottom:16px;">
+      <div>
+        <h1 style="margin:0;">Aurora — выбор модуля</h1>
+        <div class="subtitle" style="margin-top:8px;">Открой нужный интерфейс. Клиентский UI пока можно держать «в паузе», а менеджер — рабочий.</div>
+      </div>
+      <div class="badge">v5</div>
+    </div>
+
+    <div class="card landingCard">
+      <div class="h2" style="margin:0;">Куда зайти?</div>
+      <div class="landingBtns">
+        <a class="btn landingBtn" href="/manager/">
+          <div class="t">Менеджер</div>
+          <div class="d">Рабочий модуль: тыкаем чек‑лист и по телефону называем итоговый пакет.</div>
+        </a>
+        <a class="btn alt landingBtn" href="/client/">
+          <div class="t">Клиент</div>
+          <div class="d">Красивый UI (пока заморожен), наши наработки остаются здесь.</div>
+        </a>
+        <a class="btn alt landingBtn" href="/admin/">
+          <div class="t">Администратор</div>
+          <div class="d">Правка data.json (пакеты, цены, тексты) — через токен.</div>
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
