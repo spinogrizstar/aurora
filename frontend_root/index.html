@@ -4,9 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Aurora — выбор модуля</title>
-  <!-- Берём тот же визуал, что и в чек-листе -->
-  <link rel="stylesheet" href="/client/assets/styles.css" />
   <style>
+    :root{color-scheme:dark}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0b0f1a;color:#e7ecf5}
+    .top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+    .subtitle{opacity:.82;font-size:14px;line-height:1.45}
+    .badge{padding:6px 12px;border-radius:999px;background:rgba(109,89,255,.18);border:1px solid rgba(109,89,255,.35);font-weight:700;font-size:12px}
+    .card{border-radius:22px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);padding:18px}
+    .btn{display:flex;align-items:flex-start;gap:8px;padding:14px 16px;border-radius:18px;background:#6d59ff;border:1px solid rgba(109,89,255,.55);color:#fff;text-decoration:none;font-weight:700;transition:transform .15s ease, box-shadow .15s ease}
+    .btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(109,89,255,.22)}
+    .btn.alt{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)}
+    .h2{font-weight:800;font-size:18px}
     .landingWrap{max-width:980px;margin:0 auto;padding:34px 18px}
     .landingCard{padding:22px}
     .landingBtns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
@@ -39,7 +47,7 @@
         </a>
         <a class="btn alt landingBtn" href="/admin/">
           <div class="t">Администратор</div>
-          <div class="d">Правка data.json (пакеты, цены, тексты) — через токен.</div>
+          <div class="d">Правка data.json и core пакетов — через токен.</div>
         </a>
       </div>
     </div>

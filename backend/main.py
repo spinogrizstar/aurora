@@ -20,7 +20,7 @@ import mimetypes
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi import Request
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
 
 from .api_routes import router
 
@@ -95,7 +95,7 @@ FRONTEND_ROOT_DIR = BASE_DIR / "frontend_root"
 FRONTEND_CLIENT_DIR = BASE_DIR / "frontend_client"
 FRONTEND_MANAGER_DIR = BASE_DIR / "frontend_manager"
 FRONTEND_ADMIN_DIR = BASE_DIR / "frontend_admin"
-DATA_DIR = FRONTEND_CLIENT_DIR / "data"
+DATA_DIR = BASE_DIR / "frontend_shared" / "data"
 
 # Общие данные
 app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
@@ -104,6 +104,24 @@ app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
 app.mount("/client", StaticFiles(directory=FRONTEND_CLIENT_DIR, html=True), name="client")
 app.mount("/manager", StaticFiles(directory=FRONTEND_MANAGER_DIR, html=True), name="manager")
 app.mount("/admin", StaticFiles(directory=FRONTEND_ADMIN_DIR, html=True), name="admin")
+
+
+@app.get("/client")
+def client_redirect():
+    return RedirectResponse(url="/client/", status_code=307)
+
+
+@app.get("/manager")
+def manager_redirect():
+    return RedirectResponse(url="/manager/", status_code=307)
+
+
+@app.get("/admin")
+def admin_redirect(request: Request):
+    from .admin_utils import allow_admin_page
+
+    allow_admin_page(request)
+    return RedirectResponse(url="/admin/", status_code=307)
 
 
 @app.get("/")

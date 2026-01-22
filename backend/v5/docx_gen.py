@@ -370,6 +370,25 @@ def _parse_pkg_inc(inc: str) -> tuple[list[tuple[str, int]], list[str]]:
     return fixed, flex
 
 
+def _collect_group_tasks(groups: list[dict]) -> list[tuple[str, int]]:
+    tasks: list[tuple[str, int]] = []
+    for group in groups or []:
+        group_name = str(group.get("name") or "").strip()
+        group_points = int(group.get("points") or 0)
+        details = group.get("details") or []
+        if isinstance(details, list) and details:
+            for detail in details:
+                text = str(detail.get("text") or "").strip()
+                if not text:
+                    continue
+                pts = int(detail.get("points") or 0)
+                label = f"{group_name}: {text}" if group_name else text
+                tasks.append((label, pts))
+        elif group_name:
+            tasks.append((group_name, group_points))
+    return tasks
+
+
 def _fill_tasks_table(nested: Table, res: V5Result) -> None:
     """Заполняет блок '8. Подробный список задач' во вложенной таблице."""
     header_idx = _find_row_index(nested, "Стоимость минимальная")  # шапка
@@ -414,7 +433,9 @@ def _fill_tasks_table(nested: Table, res: V5Result) -> None:
 
     # 4) Строки без явной цены из inc — распределяем как «условные баллы»
     # Чтобы не спорить о весах, даём 1 балл на строку.
+    group_tasks = _collect_group_tasks(getattr(res.package, "groups", []) or [])
     inc_flex_pts = [(lbl, 1) for lbl in inc_flex]
+    base_items = group_tasks if group_tasks else inc_flex_pts
 
     # 5) Фиксированная строка проверки заказчиком
     check_rub = CUSTOMER_CHECK_RUB
@@ -425,7 +446,7 @@ def _fill_tasks_table(nested: Table, res: V5Result) -> None:
         remaining_for_distribution = 0
 
     # Распределяем остаток по (inc_flex + svc_items) по баллам
-    distributed = _distribute_by_pts(remaining_for_distribution, inc_flex_pts + svc_items)
+    distributed = _distribute_by_pts(remaining_for_distribution, base_items + svc_items)
 
     # Итоговый список строк: фикс из inc → распределённые → лицензии
     task_rows: list[tuple[str, int]] = []

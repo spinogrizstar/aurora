@@ -112,6 +112,7 @@ class PackageBlock(BaseModel):
     inc: str = ""
     who: str = ""
     detail: str = ""
+    groups: List[dict] = Field(default_factory=list)
 
 
 class CostsBlock(BaseModel):

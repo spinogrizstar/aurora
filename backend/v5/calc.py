@@ -13,6 +13,7 @@ from .models import (
     V5Result,
 )
 
+CORE_PRICE_PER_POINT = 4950
 
 def _points_to_rub(points: int, rub_per_point: int) -> int:
     """Переводим "баллы сложности" в рубли.
@@ -198,7 +199,7 @@ def _get_core_packages(data: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def _core_pkg_segments(pkg: Dict[str, Any]) -> List[str]:
-    key = str(pkg.get("segment_key") or "")
+    key = str(_resolve_core_segment_key(pkg))
     if key == "retail_only":
         return ["retail"]
     if key == "wholesale_only":
@@ -208,6 +209,41 @@ def _core_pkg_segments(pkg: Dict[str, Any]) -> List[str]:
     if key == "producer_retail":
         return ["producer", "retail"]
     return []
+
+
+def _normalize_core_title(title: str) -> str:
+    t = (title or "").lower()
+    t = t.replace("прозводитель", "производитель")
+    t = " ".join(t.split())
+    return t
+
+
+def _normalize_core_display_name(name: str) -> str:
+    return (name or "").replace("Прозводитель", "Производитель").replace("прозводитель", "Производитель")
+
+
+def _resolve_core_segment_key(pkg: Dict[str, Any]) -> str:
+    key = str(pkg.get("segment_key") or "")
+    if key:
+        return key
+    title = _normalize_core_title(pkg.get("title") or pkg.get("name") or "")
+    if "только" in title and "розниц" in title:
+        return "retail_only"
+    if "только" in title and "опт" in title:
+        return "wholesale_only"
+    if "только" in title and ("производ" in title or "импорт" in title):
+        return "producer_only"
+    if ("производ" in title or "импорт" in title) and "розниц" in title:
+        return "producer_retail"
+    return ""
+
+
+def _core_pkg_price(pkg: Dict[str, Any]) -> int:
+    price = int(pkg.get("price_rub") or pkg.get("price") or 0)
+    if price:
+        return price
+    total_points = int(pkg.get("total_points") or 0)
+    return total_points * CORE_PRICE_PER_POINT
 
 
 def _choose_core_package(data: Dict[str, Any], state: V5Input) -> Tuple[Dict[str, Any] | None, str]:
@@ -238,9 +274,11 @@ def _choose_core_package(data: Dict[str, Any], state: V5Input) -> Tuple[Dict[str
         exact_key = "producer_retail"
 
     if exact_key:
-        match = next((p for p in core_pkgs if p.get("segment_key") == exact_key), None)
+        match = next((p for p in core_pkgs if _resolve_core_segment_key(p) == exact_key), None)
         return match, ""
 
+    # Если комбо нестандартное, берём «ближайший» пакет:
+    # максимум пересечения сегментов → больше сегментов → более дорогой.
     best = None
     best_score = -1
     best_size = -1
@@ -249,7 +287,7 @@ def _choose_core_package(data: Dict[str, Any], state: V5Input) -> Tuple[Dict[str
         segs = _core_pkg_segments(pkg)
         overlap = len([s for s in segs if s in selected])
         size = len(segs)
-        price = int(pkg.get("price_rub") or 0)
+        price = _core_pkg_price(pkg)
         if overlap > best_score or (overlap == best_score and size > best_size) or (overlap == best_score and size == best_size and price > best_price):
             best = pkg
             best_score = overlap
@@ -324,6 +362,8 @@ def calculate_v5(state: V5Input) -> V5Result:
         warning = ""
 
     base = int(pkg.get('price_rub') or pkg.get('price') or 0)
+    if base == 0 and int(pkg.get("total_points") or 0) > 0:
+        base = int(pkg.get("total_points") or 0) * CORE_PRICE_PER_POINT
     diag = int(data.get('diag_price_rub') or 0) if prelim else 0
     support_rub = _points_to_rub(int(data.get('support_points') or 0), int(data.get('rub_per_point') or 0)) if state.support else 0
     total = base + diag + support_rub + svc_rub + lic_rub
@@ -336,11 +376,12 @@ def calculate_v5(state: V5Input) -> V5Result:
 
     if pkg.get("groups"):
         pkg_block = PackageBlock(
-            name=str(pkg.get("title") or pkg.get("name") or '—'),
+            name=_normalize_core_display_name(str(pkg.get("title") or pkg.get("name") or '—')),
             price=base,
             inc='',
             who='',
             detail=_core_pkg_detail(pkg),
+            groups=pkg.get("groups") or [],
         )
     else:
         pkg_block = PackageBlock(
@@ -349,6 +390,7 @@ def calculate_v5(state: V5Input) -> V5Result:
             inc=str(pkg.get('inc') or ''),
             who=str(pkg.get('who') or ''),
             detail=str(pkg.get('detail') or ''),
+            groups=[],
         )
 
     return V5Result(

@@ -486,8 +486,27 @@ function resolveAutoSegment(DATA, fallback) {
   if (isProducer && isRetail && !isWholesale) key = 'producer_retail';
 
   if (!key) return fallback || '';
-  const match = corePkgs.find(p => p.segment_key === key);
+  const match = corePkgs.find(p => resolveCoreSegmentKey(p) === key);
   return match?.title || fallback || '';
+}
+
+function normalizeCoreTitle(title) {
+  return String(title || '')
+    .toLowerCase()
+    .replace('прозводитель', 'производитель')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function resolveCoreSegmentKey(pkg) {
+  const key = String(pkg?.segment_key || '');
+  if (key) return key;
+  const title = normalizeCoreTitle(pkg?.title || pkg?.name || '');
+  if (title.includes('только') && title.includes('розниц')) return 'retail_only';
+  if (title.includes('только') && title.includes('опт')) return 'wholesale_only';
+  if (title.includes('только') && (title.includes('производ') || title.includes('импорт'))) return 'producer_only';
+  if ((title.includes('производ') || title.includes('импорт')) && title.includes('розниц')) return 'producer_retail';
+  return '';
 }
 
 function buildGraphData(DATA, segFilter, q) {

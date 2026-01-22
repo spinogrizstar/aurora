@@ -5,7 +5,7 @@
 // КАК ЭТО РАБОТАЕТ:
 //   1) Нажми «Загрузить data.json» — увидишь текущий JSON.
 //   2) Поправь значения.
-//   3) Нажми «Сохранить изменения» — сервер перезапишет frontend/data/data.json
+//   3) Нажми «Сохранить изменения» — сервер перезапишет frontend_shared/data/data.json
 //      и сбросит кеш, чтобы расчёт сразу увидел новые цены.
 //
 // БЕЗОПАСНОСТЬ:
@@ -47,6 +47,8 @@ function toast(title, body = '', kind = 'ok', ms = 2800) {
 }
 
 let currentData = null;
+let currentCore = null;
+const CORE_PRICE_PER_POINT = 4950;
 
 // Короткие пояснения к полям points_model (чтобы было понятно «что за что отвечает»)
 const POINTS_HELP = {
@@ -102,6 +104,14 @@ function mkTextarea(label, value, { rows = 3, placeholder = '' } = {}) {
   return { wrap, ta };
 }
 
+function sumGroupPoints(groups = []) {
+  return groups.reduce((acc, g) => acc + Number(g?.points || 0), 0);
+}
+
+function sumDetailPoints(details = []) {
+  return details.reduce((acc, d) => acc + Number(d?.points || 0), 0);
+}
+
 function renderQuick(data) {
   el.quick.innerHTML = '';
 
@@ -112,6 +122,7 @@ function renderQuick(data) {
   const panes = {
     main: h('div', { class: 'tabPane', 'data-tab': 'main' }),
     packages: h('div', { class: 'tabPane', 'data-tab': 'packages' }),
+    core: h('div', { class: 'tabPane', 'data-tab': 'core' }),
     points: h('div', { class: 'tabPane', 'data-tab': 'points' }),
     catalogs: h('div', { class: 'tabPane', 'data-tab': 'catalogs' }),
   };
@@ -119,6 +130,7 @@ function renderQuick(data) {
   const tabButtons = [
     { id: 'main', label: 'Основное' },
     { id: 'packages', label: 'Пакеты' },
+    { id: 'core', label: 'Core пакеты (4 основных)' },
     { id: 'points', label: 'Баллы и лицензии' },
     { id: 'catalogs', label: 'Справочники' },
   ].map(t => {
@@ -266,6 +278,195 @@ function renderQuick(data) {
   panes.packages.appendChild(pkgsCard);
 
   // ----------------------------------------------------------
+  // TAB: Core пакеты (4 основных)
+  // ----------------------------------------------------------
+  const coreCard = h('div', { class: 'card', style: 'padding:12px 14px;' }, [
+    h('div', { class: 'h2', style: 'margin-bottom:6px' }, 'Core пакеты (4 основных)'),
+    h('div', { class: 'adminHint', style: 'margin-bottom:10px' }, 'Редактируй ключевые пакеты. Эти данные используются клиентом, менеджером и Word-выгрузкой.'),
+  ]);
+  const coreActions = h('div', { class: 'adminRow', style: 'margin:4px 0 10px 0;' }, [
+    h('button', { class: 'btn', type: 'button', onclick: () => saveCorePackages().catch(e => setMsg('Ошибка сохранения core пакетов: ' + e.message, 'err')) }, 'Сохранить core пакеты'),
+  ]);
+  coreCard.appendChild(coreActions);
+
+  if (!currentCore || typeof currentCore !== 'object') currentCore = { packages: [] };
+  if (!Array.isArray(currentCore.packages)) currentCore.packages = [];
+
+  const corePackages = currentCore.packages;
+
+  function rerenderCore() {
+    renderQuick(currentData);
+  }
+
+  corePackages.forEach((pkg, idx) => {
+    if (!pkg || typeof pkg !== 'object') corePackages[idx] = { title: '', segment_key: '', total_points: 0, price_rub: 0, groups: [] };
+    const p = corePackages[idx];
+    if (!Array.isArray(p.groups)) p.groups = [];
+
+    const det = h('details', { open: true, style: 'margin:10px 0;padding:10px 12px;border-radius:18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);' });
+    const sum = h('summary', { style: 'cursor:pointer;user-select:none;' }, [
+      h('span', { class: 'h2', style: 'font-size:16px' }, p.title || `Пакет #${idx + 1}`),
+      h('span', { class: 'adminTag', style: 'margin-left:10px' }, `groups: ${p.groups.length}`),
+    ]);
+    det.appendChild(sum);
+
+    const grid = h('div', { class: 'adminGrid', style: 'grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px;' });
+    const title = mkInput('Название (title)', p.title || '', { type: 'text' });
+    const segment = mkInput('segment_key', p.segment_key || '', { type: 'text', placeholder: 'retail_only | wholesale_only | producer_only | producer_retail' });
+    const totalPts = mkInput('total_points', p.total_points || 0, { type: 'number', step: 1 });
+    const price = mkInput('price_rub', p.price_rub || p.price || '', { type: 'number', step: 1, placeholder: '0 = авто' });
+    [title.wrap, segment.wrap, totalPts.wrap, price.wrap].forEach(x => grid.appendChild(x));
+    det.appendChild(grid);
+
+    const applyPkg = () => {
+      p.title = (title.inp.value || '').trim();
+      p.segment_key = (segment.inp.value || '').trim();
+      p.total_points = parseInt(totalPts.inp.value || '0', 10) || 0;
+      const priceVal = parseInt(price.inp.value || '0', 10) || 0;
+      p.price_rub = priceVal;
+    };
+    [title.inp, segment.inp, totalPts.inp, price.inp].forEach(inp => inp.addEventListener('input', () => {
+      applyPkg();
+      sum.firstChild.textContent = p.title || `Пакет #${idx + 1}`;
+    }));
+
+    const priceBtn = h('button', {
+      class: 'btn alt mini',
+      type: 'button',
+      onclick: () => {
+        if ((price.inp.value || '').trim()) return;
+        const total = parseInt(totalPts.inp.value || '0', 10) || 0;
+        if (!total) return;
+        const next = total * CORE_PRICE_PER_POINT;
+        price.inp.value = String(next);
+        applyPkg();
+      }
+    }, 'Пересчитать цену если пусто (total_points × 4950)');
+    det.appendChild(priceBtn);
+
+    const warn = h('div', { class: 'adminHint', style: 'margin-top:8px;' });
+    const updateWarn = () => {
+      const total = Number(p.total_points || 0);
+      const sumGroups = sumGroupPoints(p.groups);
+      const detailMismatch = p.groups.some(g => Array.isArray(g.details) && g.details.length && sumDetailPoints(g.details) !== Number(g.points || 0));
+      const parts = [];
+      if (total !== sumGroups) parts.push(`total_points (${total}) != сумма групп (${sumGroups})`);
+      if (detailMismatch) parts.push('есть группы, где сумма деталей не равна баллам группы');
+      warn.textContent = parts.length ? `Проверка: ${parts.join(' • ')}` : 'Проверка: ок (total_points = сумма групп).';
+      warn.className = parts.length ? 'adminErr' : 'adminOk';
+    };
+    updateWarn();
+    det.appendChild(warn);
+
+    p.groups.forEach((group, gIdx) => {
+      if (!group || typeof group !== 'object') p.groups[gIdx] = { name: '', points: 0, note: '', details: [] };
+      const g = p.groups[gIdx];
+      if (!Array.isArray(g.details)) g.details = [];
+
+      const gWrap = h('div', { style: 'margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.10);' });
+      gWrap.appendChild(h('div', { class: 'sub', style: 'margin-bottom:8px;opacity:.9' }, `Группа #${gIdx + 1}`));
+      const gGrid = h('div', { class: 'adminGrid', style: 'grid-template-columns:repeat(2,minmax(0,1fr));gap:12px' });
+      const gName = mkInput('Название группы', g.name || '', { type: 'text' });
+      const gPoints = mkInput('Баллы группы', g.points || 0, { type: 'number', step: 1 });
+      const gNote = mkTextarea('Комментарий (note)', g.note || '', { rows: 2 });
+      [gName.wrap, gPoints.wrap, gNote.wrap].forEach(x => gGrid.appendChild(x));
+      gWrap.appendChild(gGrid);
+
+      const applyGroup = () => {
+        g.name = (gName.inp.value || '').trim();
+        g.points = parseInt(gPoints.inp.value || '0', 10) || 0;
+        g.note = (gNote.ta.value || '').trim();
+        updateWarn();
+      };
+      [gName.inp, gPoints.inp, gNote.ta].forEach(inp => inp.addEventListener('input', applyGroup));
+
+      g.details.forEach((detail, dIdx) => {
+        if (!detail || typeof detail !== 'object') g.details[dIdx] = { text: '', points: 0 };
+        const d = g.details[dIdx];
+        const dRow = h('div', { class: 'adminGrid', style: 'grid-template-columns:3fr 1fr auto;gap:10px;margin-top:10px;' });
+        const dText = h('input', { class: 'input', type: 'text', value: d.text || '', placeholder: 'Деталь' });
+        const dPoints = h('input', { class: 'input', type: 'number', step: 1, value: d.points || 0 });
+        const dDel = h('button', { class: 'btn mini danger', type: 'button', onclick: () => {
+          g.details.splice(dIdx, 1);
+          rerenderCore();
+        } }, 'Удалить');
+        dRow.appendChild(dText);
+        dRow.appendChild(dPoints);
+        dRow.appendChild(dDel);
+        gWrap.appendChild(dRow);
+        [dText, dPoints].forEach(inp => inp.addEventListener('input', () => {
+          d.text = (dText.value || '').trim();
+          d.points = parseInt(dPoints.value || '0', 10) || 0;
+          updateWarn();
+        }));
+      });
+
+      gWrap.appendChild(h('button', { class: 'btn alt mini', type: 'button', onclick: () => {
+        g.details.push({ text: '', points: 0 });
+        rerenderCore();
+      } }, '+ Добавить деталь'));
+
+      const gBtns = h('div', { class: 'miniBtns' });
+      const gUp = h('button', { class: 'btn alt mini', type: 'button', onclick: () => {
+        if (gIdx <= 0) return;
+        const item = p.groups.splice(gIdx, 1)[0];
+        p.groups.splice(gIdx - 1, 0, item);
+        rerenderCore();
+      } }, '↑ группа');
+      const gDown = h('button', { class: 'btn alt mini', type: 'button', onclick: () => {
+        if (gIdx >= p.groups.length - 1) return;
+        const item = p.groups.splice(gIdx, 1)[0];
+        p.groups.splice(gIdx + 1, 0, item);
+        rerenderCore();
+      } }, '↓ группа');
+      const gDel = h('button', { class: 'btn mini danger', type: 'button', onclick: () => {
+        if (!confirm('Удалить группу?')) return;
+        p.groups.splice(gIdx, 1);
+        rerenderCore();
+      } }, 'Удалить группу');
+      [gUp, gDown, gDel].forEach(b => gBtns.appendChild(b));
+      gWrap.appendChild(gBtns);
+
+      det.appendChild(gWrap);
+    });
+
+    det.appendChild(h('button', { class: 'btn alt mini', type: 'button', onclick: () => {
+      p.groups.push({ name: '', points: 0, note: '', details: [] });
+      rerenderCore();
+    } }, '+ Добавить группу'));
+
+    const pkgBtns = h('div', { class: 'miniBtns' });
+    const pkgUp = h('button', { class: 'btn alt mini', type: 'button', onclick: () => {
+      if (idx <= 0) return;
+      const item = corePackages.splice(idx, 1)[0];
+      corePackages.splice(idx - 1, 0, item);
+      rerenderCore();
+    } }, '↑ пакет');
+    const pkgDown = h('button', { class: 'btn alt mini', type: 'button', onclick: () => {
+      if (idx >= corePackages.length - 1) return;
+      const item = corePackages.splice(idx, 1)[0];
+      corePackages.splice(idx + 1, 0, item);
+      rerenderCore();
+    } }, '↓ пакет');
+    const pkgDel = h('button', { class: 'btn mini danger', type: 'button', onclick: () => {
+      if (!confirm('Удалить пакет?')) return;
+      corePackages.splice(idx, 1);
+      rerenderCore();
+    } }, 'Удалить пакет');
+    [pkgUp, pkgDown, pkgDel].forEach(b => pkgBtns.appendChild(b));
+    det.appendChild(pkgBtns);
+
+    coreCard.appendChild(det);
+  });
+
+  coreCard.appendChild(h('button', { class: 'btn alt mini', type: 'button', style: 'margin-top:10px', onclick: () => {
+    corePackages.push({ title: '', segment_key: '', total_points: 0, price_rub: 0, groups: [] });
+    rerenderCore();
+  } }, '+ Добавить core пакет'));
+
+  panes.core.appendChild(coreCard);
+
+  // ----------------------------------------------------------
   // TAB: Баллы и лицензии
   // ----------------------------------------------------------
   const pmCard = h('div', { class: 'card', style: 'padding:12px 14px;' }, [
@@ -411,11 +612,15 @@ async function api(path, opts = {}) {
 }
 
 async function loadData() {
-  const data = await api('/api/admin/data');
+  const [data, core] = await Promise.all([
+    api('/api/admin/data'),
+    api('/api/admin/core-packages'),
+  ]);
   currentData = data;
+  currentCore = core;
   syncJsonFromData();
   renderQuick(currentData);
-  setMsg('data.json загружен. Можно править в «Быстрых настройках» или прямо в JSON.');
+  setMsg('Данные загружены. Можно править в «Быстрых настройках» или прямо в JSON.');
 }
 
 async function saveData() {
@@ -450,6 +655,57 @@ async function saveData() {
   });
   if (res?.ok) setMsg('Сохранено. Расчёт уже работает с новыми ценами.');
   else setMsg('Не удалось сохранить: ' + JSON.stringify(res), 'err');
+}
+
+function validateCorePackages(obj) {
+  const errors = [];
+  const warnings = [];
+  if (!obj || typeof obj !== 'object') {
+    errors.push('Core packages: JSON должен быть объектом.');
+    return { errors, warnings };
+  }
+  const pkgs = Array.isArray(obj.packages) ? obj.packages : [];
+  pkgs.forEach((p, idx) => {
+    const title = (p?.title || p?.name || '').trim() || `Пакет #${idx + 1}`;
+    const groups = Array.isArray(p?.groups) ? p.groups : [];
+    const total = Number(p?.total_points || 0);
+    const sumGroups = sumGroupPoints(groups);
+    if (total !== sumGroups) {
+      errors.push(`${title}: total_points (${total}) != сумма групп (${sumGroups})`);
+    }
+    groups.forEach((g, gIdx) => {
+      const details = Array.isArray(g?.details) ? g.details : [];
+      if (!details.length) return;
+      const sumDetails = sumDetailPoints(details);
+      const gPoints = Number(g?.points || 0);
+      if (sumDetails !== gPoints) {
+        warnings.push(`${title} → группа #${gIdx + 1}: сумма деталей (${sumDetails}) != баллы группы (${gPoints})`);
+      }
+    });
+  });
+  return { errors, warnings };
+}
+
+async function saveCorePackages() {
+  const core = currentCore || { packages: [] };
+  const { errors, warnings } = validateCorePackages(core);
+  if (errors.length) {
+    setMsg('Core пакеты: не сохраняю — проверь поля:<br><ul style="margin:6px 0 0 18px">' + errors.map(p => `<li>${p}</li>`).join('') + '</ul>', 'err');
+    return;
+  }
+  if (warnings.length) {
+    setMsg('Core пакеты: сохраню, но есть предупреждения:<br><ul style="margin:6px 0 0 18px">' + warnings.map(p => `<li>${p}</li>`).join('') + '</ul>');
+  }
+  const res = await api('/api/admin/core-packages', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(core),
+  });
+  if (res?.ok) {
+    if (!warnings.length) setMsg('Core пакеты сохранены.');
+  } else {
+    setMsg('Не удалось сохранить core пакеты: ' + JSON.stringify(res), 'err');
+  }
 }
 
 function validateData(obj) {

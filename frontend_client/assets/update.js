@@ -85,7 +85,7 @@ export async function update() {
     };
     const { warning } = choosePackage(calc.points);
     let hint = res.hint || 'Пакет и сумма рассчитаны по чек‑листу.';
-    if (warning) hint = `${warning} ${hint}`.trim();
+    if (warning && !hint.startsWith(warning)) hint = `${warning} ${hint}`.trim();
 
     lastResult = { prelim, pkg, calc, costs, hint };
     renderFromCalc(pkg, calc, prelim, costs, hint);

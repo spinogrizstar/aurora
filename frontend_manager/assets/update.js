@@ -33,7 +33,7 @@ function _emptyState() {
 
 function _localUpdate() {
   const calc = calcServicesAndLicenses();
-  const { pkg, warning } = choosePackage(calc.points);
+  const { pkg } = choosePackage(calc.points);
   if (!pkg) {
     _emptyState();
     return;
@@ -41,7 +41,6 @@ function _localUpdate() {
   const prelim = needDiagnostics();
   const costs = buildCosts(pkg, calc);
   let hint = prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.';
-  if (warning) hint = `${warning} ${hint}`.trim();
   lastResult = { prelim, pkg, calc, costs, hint };
   renderFromCalc(pkg, calc, prelim, costs, hint);
 }
@@ -83,9 +82,11 @@ export async function update() {
       support: res.costs.support_rub,
       total: res.costs.total_rub,
     };
-    const { warning } = choosePackage(calc.points);
     let hint = res.hint || 'Пакет и сумма рассчитаны по чек‑листу.';
-    if (warning) hint = `${warning} ${hint}`.trim();
+    const warnText = 'Комбо нестандартное, выбран ближайший пакет.';
+    if (hint.startsWith(warnText)) {
+      hint = hint.slice(warnText.length).trim() || 'Пакет и сумма рассчитаны по чек‑листу.';
+    }
 
     lastResult = { prelim, pkg, calc, costs, hint };
     renderFromCalc(pkg, calc, prelim, costs, hint);

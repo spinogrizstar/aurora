@@ -3,11 +3,12 @@
 #   Принимает ответы клиента и возвращает результат расчёта.
 
 from fastapi import APIRouter, Request, Body
-from fastapi.responses import FileResponse
 from fastapi.responses import StreamingResponse
 from pathlib import Path
 from datetime import datetime
 from io import BytesIO
+import os
+import shutil
 from urllib.parse import quote
 from .models.input import ChecklistInput
 from .models.output import ChecklistResult
@@ -20,9 +21,8 @@ from .v5.models import V5Input, V5Result
 from .v5.calc import calculate_v5
 from .v5.docx_gen import build_docx_bytes, suggest_filename
 from .v5.data import load_data_from_frontend
-from .admin_utils import require_admin, allow_admin_page
+from .admin_utils import require_admin
 
-from pathlib import Path
 import json
 import difflib
 
@@ -65,6 +65,32 @@ def _append_admin_diff_log(project_dir: Path, request: Request, old_text: str, n
     except Exception:
         # Логи не должны ломать админку.
         pass
+
+
+def _backup_file(path: Path, backup_dir: Path, limit: int = 20) -> None:
+    if not path.exists():
+        return
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    backup_path = backup_dir / f"{path.stem}_{stamp}{path.suffix}"
+    try:
+        shutil.copy2(path, backup_path)
+    except Exception:
+        return
+    backups = sorted(backup_dir.glob(f"{path.stem}_*{path.suffix}"), key=os.path.getmtime, reverse=True)
+    for extra in backups[limit:]:
+        try:
+            extra.unlink()
+        except Exception:
+            pass
+
+
+def _write_json_atomic(path: Path, payload: dict, backup_dir: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _backup_file(path, backup_dir)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    tmp_path.replace(path)
 
 router = APIRouter()
 
@@ -138,24 +164,14 @@ def export_docx(data: V5Input):
 # -----------------------------
 
 
-@router.get("/admin")
-def admin_page(request: Request):
-    """Открывает простую страницу редактирования data.json."""
-    # Страницу можно открыть «сразу», токен вводится внутри UI.
-    # Поэтому тут проверяем только что админка включена и IP разрешён.
-    allow_admin_page(request)
-    # Path(__file__) = .../backend/api_routes.py
-    # parents[1] = корень проекта (папка, где лежат backend/ и frontend/)
-    project_dir = Path(__file__).resolve().parents[1]
-    admin_html = project_dir / "frontend" / "admin.html"
-    return FileResponse(admin_html)
-
-
 @router.get("/api/admin/data")
 def admin_get_data(request: Request):
     require_admin(request)
-    # Возвращаем то, что использует и UI, и бэкенд.
-    return load_data_from_frontend()
+    project_dir = Path(__file__).resolve().parents[1]
+    data_json = project_dir / "frontend_shared" / "data" / "data.json"
+    if not data_json.exists():
+        return {"ok": False, "error": "data.json not found"}
+    return json.loads(data_json.read_text(encoding="utf-8"))
 
 
 @router.put("/api/admin/data")
@@ -164,7 +180,7 @@ def admin_put_data(request: Request, payload: dict = Body(...)):
     require_admin(request)
 
     project_dir = Path(__file__).resolve().parents[1]
-    data_json = project_dir / "frontend" / "data" / "data.json"
+    data_json = project_dir / "frontend_shared" / "data" / "data.json"
 
     # Минимальная валидация, чтобы случайно не сохранить мусор.
     if not isinstance(payload, dict):
@@ -182,8 +198,38 @@ def admin_put_data(request: Request, payload: dict = Body(...)):
 
     new_text = json.dumps(payload, ensure_ascii=False, indent=2)
 
-    data_json.write_text(new_text, encoding="utf-8")
+    backup_dir = project_dir / "frontend_shared" / "data" / "_backups"
+    _write_json_atomic(data_json, payload, backup_dir)
     _append_admin_diff_log(project_dir, request, old_text, new_text)
     # Сбрасываем кеш данных, чтобы расчёты сразу увидели изменения.
+    load_data_from_frontend.cache_clear()
+    return {"ok": True}
+
+
+@router.get("/api/admin/core-packages")
+def admin_get_core_packages(request: Request):
+    require_admin(request)
+    project_dir = Path(__file__).resolve().parents[1]
+    core_json = project_dir / "frontend_shared" / "data" / "core_packages.json"
+    if not core_json.exists():
+        return {"ok": False, "error": "core_packages.json not found"}
+    return json.loads(core_json.read_text(encoding="utf-8"))
+
+
+@router.put("/api/admin/core-packages")
+def admin_put_core_packages(request: Request, payload: dict = Body(...)):
+    """Сохраняет core_packages.json (принимаем JSON целиком)."""
+    require_admin(request)
+
+    project_dir = Path(__file__).resolve().parents[1]
+    core_json = project_dir / "frontend_shared" / "data" / "core_packages.json"
+
+    if not isinstance(payload, dict):
+        return {"ok": False, "error": "payload must be an object"}
+    if "packages" not in payload or not isinstance(payload.get("packages"), list):
+        return {"ok": False, "error": "missing key: packages (list)"}
+
+    backup_dir = project_dir / "frontend_shared" / "data" / "_backups"
+    _write_json_atomic(core_json, payload, backup_dir)
     load_data_from_frontend.cache_clear()
     return {"ok": True}

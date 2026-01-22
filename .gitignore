@@ -5,3 +5,7 @@ venv/
 .env
 .idea/
 .DS_Store
+output/
+*.docx
+!backend/v5/templates/*.docx
+frontend_shared/data/_backups/

@@ -6,7 +6,7 @@
 
 ## 1) Где живёт "настройка" (цены/пакеты/баллы)
 Открой файл:
-- `frontend/data/data.json`
+- `frontend_shared/data/data.json`
 
 Это как "таблица в экселе", только в JSON.
 

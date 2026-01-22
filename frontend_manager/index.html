@@ -44,8 +44,8 @@
 
         <div class="btnRow">
           <button class="btn" id="copyBtn">Скопировать (КП)</button>
-          <button class="btn alt" id="presaleBtn">Запросить пресейл</button>
-          <button class="btn" id="wordBtn">Скачать Word</button>
+          <button class="btn alt" id="presaleBtn" style="display:none">Запросить пресейл</button>
+          <button class="btn" id="wordBtn" style="display:none">Скачать Word</button>
         </div>
 
         <div class="small" style="margin-top:10px;">* Баллы конвертируются во внутреннюю стоимость. Клиенту коэффициенты не раскрываем.</div>
@@ -71,12 +71,12 @@
         <div class="small" id="pkgWho" style="margin-top:8px;"></div>
       </div>
 
-      <div class="card">
+      <div class="card" style="display:none">
         <h3>Что входит (детально)</h3>
         <ul class="list" id="pkgDetailed"></ul>
       </div>
 
-      <div class="card">
+      <div class="card" style="display:none">
         <h3>Расчёт</h3>
         <div class="kv"><span class="chip ok">База пакета</span><strong id="sumBase">0 ₽</strong></div>
         <div class="kv" style="margin-top:10px;"><span class="chip warn">Диагностика ККТ</span><strong id="sumDiag">0 ₽</strong></div>

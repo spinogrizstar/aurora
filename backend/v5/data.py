@@ -10,7 +10,7 @@ from typing import Any, Dict
 def load_data_from_frontend() -> Dict[str, Any]:
     """Берём DATA из фронта, чтобы бэкенд и UI считали одинаково.
 
-    Источник правды: frontend/data/data.json
+    Источник правды: frontend_shared/data/data.json
 
     Почему так:
       - UI теперь разбит на несколько файлов и DATA больше не лежит в HTML
@@ -18,7 +18,7 @@ def load_data_from_frontend() -> Dict[str, Any]:
     """
 
     base_dir = Path(__file__).resolve().parents[2]  # .../backend/v5 -> project root
-    data_dir = base_dir / "frontend" / "data"
+    data_dir = base_dir / "frontend_shared" / "data"
     data_json = data_dir / "data.json"
     if not data_json.exists():
         raise RuntimeError(f"Не найден файл данных: {data_json}")
