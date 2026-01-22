@@ -40,14 +40,21 @@ function resolvePackage(pkg) {
   const DATA = getDataSync();
   const corePkgs = DATA.core_packages?.packages || [];
   const name = pkg.title || pkg.name;
+  const normalizeName = (value) => String(value || '').replace(/прозводитель/gi, 'Производитель');
+  const priceFallback = (p) => {
+    const base = Number(p?.price_rub || p?.price || 0);
+    if (base) return base;
+    const total = Number(p?.total_points || 0);
+    return total ? total * 4950 : 0;
+  };
   if (Array.isArray(corePkgs) && name) {
     const match = corePkgs.find(p => p.id === pkg.id || p.title === name);
     if (match) {
       return {
         ...pkg,
         ...match,
-        name: match.title || match.name || name,
-        price: Number(match.price_rub || match.price || pkg.price || 0),
+        name: normalizeName(match.title || match.name || name),
+        price: priceFallback(match) || Number(pkg.price || 0),
       };
     }
   }

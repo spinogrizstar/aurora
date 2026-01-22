@@ -17,7 +17,7 @@
 - `state.support` — включена ли поддержка.
 
 ## Откуда берутся цены и правила
-Всё лежит в одном месте: `frontend/data/data.json`.
+Всё лежит в одном месте: `frontend_shared/data/data.json`.
 
 Внутри DATA есть 3 главные части:
 
@@ -77,7 +77,7 @@
 ## Где именно это считается в коде
 ### В браузере (UI)
 - файлы:
-  - `frontend/data/data.json` — настройки (пакеты/цены/баллы)
+  - `frontend_shared/data/data.json` — настройки (пакеты/цены/баллы)
   - `frontend/assets/state.js` — что выбрал пользователь
   - `frontend/assets/ui/checklist.js` — как рисуется чек‑лист
   - `frontend/assets/calc.js` — локальный расчёт (фолбэк)

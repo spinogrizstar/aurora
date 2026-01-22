@@ -11,7 +11,7 @@
 - `frontend/assets/ui/summary.js` — правая панель (пакет/состав/суммы).
 - `frontend/assets/calc.js` — локальный расчёт (если бэкенд недоступен).
 - `frontend/assets/update.js` — отправка state на API и обновление правой панели.
-- `frontend/data/data.json` — **все настройки цен/пакетов/баллов**.
+- `frontend_shared/data/data.json` — **все настройки цен/пакетов/баллов**.
 
 ### Backend (FastAPI)
 - `backend/main.py` — приложение, раздаёт фронтенд и API.
@@ -39,7 +39,7 @@
 ## 3) Где менять цены и тексты
 
 ### 3.1 Пакеты и их состав
-Файл: `frontend/data/data.json`
+Файл: `frontend_shared/data/data.json`
 
 `segments -> <Сегмент> -> [пакеты]`.
 У пакета важные поля:
@@ -49,11 +49,11 @@
 - `detail` — детально (это попадает в Word и в правую панель)
 
 ### 3.2 Рубли за балл
-Файл: `frontend/data/data.json`
+Файл: `frontend_shared/data/data.json`
 - поле: `rub_per_point`
 
 ### 3.3 Сколько баллов даёт каждая опция
-Файл: `frontend/data/data.json`
+Файл: `frontend_shared/data/data.json`
 - объект: `points_model`
 
 ---

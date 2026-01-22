@@ -14,6 +14,8 @@ import { getDataSync } from './data.js';
 import { state } from './state.js';
 import { deviceCounts, kktCount, hasProducer, hasWholesaleOrProducer } from './helpers.js';
 
+const CORE_PRICE_PER_POINT = 4950;
+
 export function pointsToRub(points) {
   const DATA = getDataSync();
   return Number(points || 0) * Number(DATA.rub_per_point || 0);
@@ -127,7 +129,7 @@ function _getCorePackages() {
 }
 
 function _corePackageSegments(pkg) {
-  const key = String(pkg?.segment_key || '');
+  const key = _resolveCoreSegmentKey(pkg);
   if (key === 'retail_only') return ['retail'];
   if (key === 'wholesale_only') return ['wholesale'];
   if (key === 'producer_only') return ['producer'];
@@ -135,12 +137,42 @@ function _corePackageSegments(pkg) {
   return [];
 }
 
+function _normalizeCoreTitle(title) {
+  return String(title || '')
+    .toLowerCase()
+    .replace('прозводитель', 'производитель')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function _normalizeCoreDisplayName(name) {
+  return String(name || '').replace(/прозводитель/gi, 'Производитель');
+}
+
+function _resolveCoreSegmentKey(pkg) {
+  const key = String(pkg?.segment_key || '');
+  if (key) return key;
+  const title = _normalizeCoreTitle(pkg?.title || pkg?.name || '');
+  if (title.includes('только') && title.includes('розниц')) return 'retail_only';
+  if (title.includes('только') && title.includes('опт')) return 'wholesale_only';
+  if (title.includes('только') && (title.includes('производ') || title.includes('импорт'))) return 'producer_only';
+  if ((title.includes('производ') || title.includes('импорт')) && title.includes('розниц')) return 'producer_retail';
+  return '';
+}
+
+function _corePackagePrice(pkg) {
+  const price = Number(pkg?.price_rub || pkg?.price || 0);
+  if (price) return price;
+  const total = Number(pkg?.total_points || 0);
+  return total ? total * CORE_PRICE_PER_POINT : 0;
+}
+
 function _normalizeCorePackage(pkg) {
   if (!pkg) return null;
   return {
     ...pkg,
-    name: pkg.title || pkg.name || '—',
-    price: Number(pkg.price_rub || pkg.price || 0),
+    name: _normalizeCoreDisplayName(pkg.title || pkg.name || '—'),
+    price: _corePackagePrice(pkg),
   };
 }
 
@@ -163,10 +195,12 @@ function _chooseCorePackage() {
   if (isProducer && isRetail && !isWholesale) exactKey = 'producer_retail';
 
   if (exactKey) {
-    const match = corePkgs.find(p => p.segment_key === exactKey);
+    const match = corePkgs.find(p => _resolveCoreSegmentKey(p) === exactKey);
     return { pkg: _normalizeCorePackage(match), warning: '' };
   }
 
+  // Нестандартное комбо → берём «ближайший» пакет:
+  // максимум пересечения сегментов → больше сегментов → более дорогой.
   let best = null;
   let bestScore = -1;
   let bestSize = -1;
@@ -175,7 +209,7 @@ function _chooseCorePackage() {
     const segs = _corePackageSegments(p);
     const overlap = segs.filter(s => selected.has(s)).length;
     const size = segs.length;
-    const price = Number(p.price_rub || 0);
+    const price = _corePackagePrice(p);
     if (overlap > bestScore || (overlap === bestScore && size > bestSize) || (overlap === bestScore && size === bestSize && price > bestPrice)) {
       best = p;
       bestScore = overlap;
