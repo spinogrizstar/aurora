@@ -265,9 +265,7 @@ export function renderChecklist(update){
     if (!state.kkt.type) state.kkt.type = types[0]?.id || 'other';
     if (state.kkt.count > prev) {
       const scanners = Number(state.device_scanner || 0);
-      if (scanners < state.kkt.count) {
-        state.device_scanner = clamp(state.kkt.count, 0, 99);
-      }
+      state.device_scanner = clamp(Math.max(scanners, state.kkt.count), 0, 99);
     }
     if (!hadType) {
       renderChecklist(update);

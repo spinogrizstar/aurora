@@ -174,8 +174,13 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   if (dc.tsd) devParts.push(`ТСД: ${dc.tsd}`);
   if (!devParts.length) devParts.push('Устройства: 0');
 
+  const kktPrepHours = Number(totals.breakdown?.kktPrepareHours || 0);
+
   [
-    `Доп.баллы: ${calc.points}`,
+    `Часы пакета: ${totals.packageHours || 0} ч`,
+    `Часы допов: ${totals.addonHours || 0} ч`,
+    kktPrepHours > 0 ? `Подготовка кассы: ${kktPrepHours} ч` : '',
+    `Всего часов: ${totals.totalHours || 0} ч`,
     `ККТ: ${kktCount()} · Юрлица: ${state.org_count}`,
     devParts.join(' · '),
     onecPill || '',
@@ -246,7 +251,8 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   renderKVList(el.licBreakdown, calc.licItems || [], 'lic');
 
   el.recHint.textContent = hint || (prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.');
-  el.projAlert.style.display = state.custom_integration ? 'block' : 'none';
+  const customIntegrationNote = String(state.custom_integration_comment || state.custom_integration_note || '').trim();
+  el.projAlert.style.display = (state.custom_integration || customIntegrationNote) ? 'block' : 'none';
 
   // «Почему такая стоимость?» — открывает понятную раскладку.
   _wireWhyButton(pkgView, calc, costs);
