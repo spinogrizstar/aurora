@@ -29,7 +29,7 @@ export function segText() {
 }
 
 export function kktCount() {
-  return Array.isArray(state.kkt) ? state.kkt.length : 0;
+  return Number(state.kkt?.count || 0);
 }
 
 export function deviceCounts() {

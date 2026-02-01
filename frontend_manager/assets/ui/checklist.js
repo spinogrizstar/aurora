@@ -215,67 +215,80 @@ export function renderChecklist(update){
   const box2 = document.createElement('div'); box2.className='opts';
   box2.style.marginTop='10px';
 
-  // Кнопка «добавить кассу»
-  const addWrap = document.createElement('div');
-  addWrap.className='kktAddRow';
-  const addBtn = document.createElement('button');
-  // Кнопки держим в одном стиле: используем .btnMini из styles.css
-  addBtn.className='btnMini';
-  addBtn.type='button';
-  addBtn.innerHTML = `+ <span>Добавить ККТ</span>`;
-  addBtn.onclick=()=>{
-    const firstType = KKT_TYPES[0]?.id || 'other';
-    state.kkt.push({ type: firstType });
-    const scanners = Number(state.device_scanner || 0);
-    state.device_scanner = clamp(scanners + 1, 0, 99);
-    renderChecklist(update);
+  const types = Array.isArray(KKT_TYPES) && KKT_TYPES.length
+    ? KKT_TYPES
+    : [{ id: 'other', label: 'Прочие ККТ', prep_hours: 2 }];
+  if (!state.kkt) state.kkt = { type: null, count: 0 };
+  if (state.kkt.type && !types.some(t => t.id === state.kkt.type)) {
+    state.kkt.type = types[0]?.id || 'other';
+  }
+
+  const typeRow = document.createElement('div');
+  typeRow.className = 'opt kktTypeRow';
+  typeRow.innerHTML = `<div class="label"><div class="t">Тип ККТ</div><div class="d">Выберите тип кассы</div></div>`;
+  const typeRight = document.createElement('div');
+  typeRight.className = 'optRight kktTypeRight';
+
+  const hint = document.createElement('div');
+  hint.className = 'kktHint';
+  const renderHint = () => {
+    const current = types.find(t => t.id === state.kkt.type) || types[0];
+    hint.textContent = `Подготовка: +${Number(current?.prep_hours || 2)}ч/кассу`;
+  };
+
+  types.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'pillToggle';
+    btn.type = 'button';
+    btn.textContent = t.label;
+    btn.classList.toggle('on', state.kkt.type === t.id);
+    btn.onclick = () => {
+      state.kkt.type = t.id;
+      Array.from(typeRight.querySelectorAll('.pillToggle')).forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      renderHint();
+      update();
+    };
+    typeRight.appendChild(btn);
+  });
+  renderHint();
+  typeRight.appendChild(hint);
+  typeRow.appendChild(typeRight);
+  box2.appendChild(typeRow);
+
+  const countRow = document.createElement('div');
+  countRow.className = 'opt kktCountRow';
+  countRow.innerHTML = `<div class="label"><div class="t">Касс</div><div class="d">Количество</div></div>`;
+  const step = document.createElement('div'); step.className = 'stepper';
+  const minus = document.createElement('button'); minus.className = 'btnTiny'; minus.type = 'button'; minus.textContent = '−';
+  const num = document.createElement('div'); num.className = 'stepNum'; num.textContent = String(state.kkt.count || 0);
+  const plus = document.createElement('button'); plus.className = 'btnTiny'; plus.type = 'button'; plus.textContent = '+';
+  const refresh = () => { num.textContent = String(state.kkt.count || 0); };
+  minus.onclick = () => {
+    state.kkt.count = clamp((state.kkt.count || 0) - 1, 0, 99);
+    refresh();
     update();
   };
-  addWrap.appendChild(addBtn);
-  box2.appendChild(addWrap);
-
-  // Список выбранных ККТ
-  const list = document.createElement('div');
-  list.className='kktList';
-  (state.kkt||[]).forEach((item, idx)=>{
-    const row = document.createElement('div');
-    row.className='kktRow';
-
-    const types = Array.isArray(KKT_TYPES) && KKT_TYPES.length
-      ? KKT_TYPES
-      : [{ id: 'other', label: 'Прочие ККТ', prep_hours: 2 }];
-    const typeItems = types.map(t => ({ value: t.id, label: t.label }));
-    const currentType = types.some(t => t.id === item.type) ? item.type : types[0].id;
-
-    const info = types.find(t => t.id === currentType) || types[0];
-    const hint = document.createElement('div');
-    hint.className = 'kktHint';
-    hint.textContent = `Подготовка: +${Number(info?.prep_hours || 2)}ч`;
-    const ddType = mkDropdown({
-      items: typeItems,
-      value: currentType,
-      onChange: (v)=>{
-        item.type = v;
-        const info = types.find(t => t.id === v) || types[0];
-        hint.textContent = `Подготовка: +${Number(info?.prep_hours || 2)}ч`;
-        update();
-      }
-    });
-
-    // Кнопка удаления строки — в стиле «красивых» квадратных кнопок
-    const del = document.createElement('button');
-    del.className='iconBtn';
-    del.type='button';
-    del.textContent='−';
-    del.title='Убрать эту ККТ';
-    del.onclick=()=>{ state.kkt.splice(idx,1); renderChecklist(update); update(); };
-
-    row.appendChild(ddType);
-    row.appendChild(hint);
-    row.appendChild(del);
-    list.appendChild(row);
-  });
-  box2.appendChild(list);
+  plus.onclick = () => {
+    const prev = Number(state.kkt.count || 0);
+    state.kkt.count = clamp(prev + 1, 0, 99);
+    const hadType = !!state.kkt.type;
+    if (!state.kkt.type) state.kkt.type = types[0]?.id || 'other';
+    if (state.kkt.count > prev) {
+      const scanners = Number(state.device_scanner || 0);
+      state.device_scanner = clamp(scanners + 1, 0, 99);
+    }
+    if (!hadType) {
+      renderChecklist(update);
+      update();
+      return;
+    }
+    refresh();
+    update();
+  };
+  step.appendChild(minus); step.appendChild(num); step.appendChild(plus);
+  countRow.appendChild(step);
+  box2.appendChild(countRow);
   sec2.appendChild(box2);
   revealAppend(sec2, 'kkt', vis.kkt, checklistExtra);
 
@@ -285,10 +298,13 @@ export function renderChecklist(update){
   secAddons.innerHTML = `<div class="secTitle"><h3>Доп.работы</h3><span class="tag">опции</span></div>`;
   const optsAddons = document.createElement('div'); optsAddons.className='opts';
 
-  const hasRetailSegment = hasRetail();
+  const retailPackageIds = new Set(['retail_only', 'producer_retail']);
+  const hasRetailSegment = hasRetail() || retailPackageIds.has(String(state.selectedPackageId || ''));
   const hasKkt = kktCount() > 0;
-  if (!hasRetailSegment && state.addons?.reg_lk_cz_retail) state.addons.reg_lk_cz_retail = false;
-  if (!(hasRetailSegment && hasKkt) && state.addons?.kkt_prepare_marking) state.addons.kkt_prepare_marking = false;
+  const showRegLk = hasRetailSegment;
+  const showKktPrepareMarking = hasRetailSegment || hasKkt;
+  if (!showRegLk && state.addons?.reg_lk_cz_retail) state.addons.reg_lk_cz_retail = false;
+  if (!showKktPrepareMarking && state.addons?.kkt_prepare_marking) state.addons.kkt_prepare_marking = false;
 
   const addAddon = (key, title, desc, show = true)=>{
     if (!show) return;
@@ -304,9 +320,9 @@ export function renderChecklist(update){
     optsAddons.appendChild(row);
   };
 
-  addAddon('reg_lk_cz_retail', 'Рега в ЛК ЧЗ (розница)', '+1 час', hasRetailSegment);
+  addAddon('reg_lk_cz_retail', 'Рега в ЛК ЧЗ (розница)', '+1 час', showRegLk);
   addAddon('integration_to_accounting', 'Интеграция с товароучёткой', '+3 часа', true);
-  addAddon('kkt_prepare_marking', 'Подготовка кассового оборудования для работы с маркировкой', '+3 часа', hasRetailSegment && hasKkt);
+  addAddon('kkt_prepare_marking', 'Подготовка кассового оборудования для работы с маркировкой', '+3 часа', showKktPrepareMarking);
 
   secAddons.appendChild(optsAddons);
   revealAppend(secAddons, 'addons', (state.segments || []).length > 0, checklistExtra);

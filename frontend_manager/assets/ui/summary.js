@@ -95,7 +95,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   const pkgView = resolvePackage(pkg);
   // Шапка
   el.segBadge.textContent = segText();
-  const totals = managerTotals || { base_hours: 0, addons_hours: 0, total_hours: 0, total_rub: 0, addons: [] };
+  const totals = managerTotals || { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: [], kktPrepareHours: 0 } };
 
   if (!pkgView) {
     // Сбрасываем заголовок (и возможную кнопку «подробнее»)
@@ -113,6 +113,8 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
     if (el.pkgHours) el.pkgHours.textContent = '—';
     if (el.addonsHours) el.addonsHours.textContent = '—';
     if (el.totalHours) el.totalHours.textContent = '—';
+    if (el.kktPrepHours) el.kktPrepHours.textContent = '—';
+    if (el.kktPrepHours) el.kktPrepHours.closest('.kv')?.setAttribute('hidden', '');
     if (el.addonsList) renderKVList(el.addonsList, [], 'hours');
     renderList(el.pkgDetailed, []);
     renderKVList(el.servicesBreakdown, [], 'svc');
@@ -208,16 +210,25 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   el.sumSupport.textContent = fmtRub(costs.support || 0);
   el.sumServices.textContent = fmtRub(calc.rub || 0);
   el.sumLic.textContent = fmtRub(calc.licRub || 0);
-  el.sumTotal.textContent = fmtRub(totals.total_rub || costs.total || 0);
-  if (el.sumHours) el.sumHours.textContent = `${totals.total_hours || 0} ч`;
-  if (el.pkgHours) el.pkgHours.textContent = `${totals.base_hours || 0} ч`;
-  if (el.addonsHours) el.addonsHours.textContent = `${totals.addons_hours || 0} ч`;
-  if (el.totalHours) el.totalHours.textContent = `${totals.total_hours || 0} ч`;
+  el.sumTotal.textContent = fmtRub(totals.totalRub || costs.total || 0);
+  if (el.sumHours) el.sumHours.textContent = `${totals.totalHours || 0} ч`;
+  if (el.pkgHours) el.pkgHours.textContent = `${totals.packageHours || 0} ч`;
+  if (el.addonsHours) el.addonsHours.textContent = `${totals.addonHours || 0} ч`;
+  if (el.totalHours) el.totalHours.textContent = `${totals.totalHours || 0} ч`;
+  if (el.kktPrepHours) {
+    const kktPrep = Number(totals.breakdown?.kktPrepareHours || 0);
+    el.kktPrepHours.textContent = `${kktPrep} ч`;
+    el.kktPrepHours.closest('.kv')?.toggleAttribute('hidden', kktPrep <= 0);
+  }
   if (el.addonsList) {
-    const items = (totals.addons || []).map(item => ({
+    const items = (totals.breakdown?.addons || []).map(item => ({
       label: item.label,
       hours: item.hours,
     }));
+    const kktPrep = Number(totals.breakdown?.kktPrepareHours || 0);
+    if (kktPrep > 0) {
+      items.push({ label: 'Подготовка кассы', hours: kktPrep });
+    }
     renderKVList(el.addonsList, items, 'hours');
   }
 

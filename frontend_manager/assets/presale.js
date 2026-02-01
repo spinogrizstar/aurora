@@ -22,7 +22,7 @@ export function buildPresaleText() {
   const kktCnt = kktCount();
   const dc = deviceCounts();
   const typeMap = new Map((KKT_TYPES || []).map(t => [t.id, t.label]));
-  const kktLines = (state.kkt || []).map((x, i) => `${i + 1}) ${typeMap.get(x.type) || 'Прочие ККТ'}`);
+  const kktTypeLabel = typeMap.get(state.kkt?.type) || 'Прочие ККТ';
 
   const segLow = (state.segments || []).map(x => String(x).toLowerCase());
   const isProducer = segLow.some(s => s.includes('производ'));
@@ -34,7 +34,7 @@ export function buildPresaleText() {
     `Сегменты: ${segText()}`,
     `Пакет: ${prelim ? 'предварительно ' : ''}${pkg?.name || '—'}`,
     `ККТ: ${kktCnt} (используется: ${state.uses_kkt ? 'да' : 'нет'})`,
-    ...(kktLines.length ? ['Модели ККТ:', ...kktLines] : []),
+    ...(kktCnt > 0 ? [`Тип ККТ: ${kktTypeLabel}`] : []),
     `Юрлица: ${state.org_count}`,
     `Устройства: Сканеры ×${dc.scanners}, ТСД ×${dc.tsd}` + ((dc.tsd && state.tsd_collective) ? ' (коллективная работа)' : ''),
     ...(isProducer ? [

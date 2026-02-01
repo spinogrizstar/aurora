@@ -18,14 +18,14 @@ export let lastResult = {
   pkg: null,
   calc: { points: 0, rub: 0, licRub: 0, serviceItems: [], licItems: [] },
   costs: { base: 0, diag: 0, support: 0, total: 0 },
-  managerTotals: { base_hours: 0, addons_hours: 0, total_hours: 0, total_rub: 0, addons: [] },
+  managerTotals: { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: [], kktPrepareHours: 0 } },
   hint: '',
 };
 
 function _emptyState(hintText) {
   const calc = { points: 0, rub: 0, licRub: 0, serviceItems: [], licItems: [] };
   const costs = { base: 0, diag: 0, support: 0, total: 0 };
-  const managerTotals = { base_hours: 0, addons_hours: 0, total_hours: 0, total_rub: 0, addons: [] };
+  const managerTotals = { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: [], kktPrepareHours: 0 } };
   const hint = hintText || 'Выберите тип клиента слева — и мы покажем пакет, состав работ и расчёт.';
   lastResult = { prelim: false, pkg: null, calc, costs, managerTotals, hint };
   renderFromCalc(null, calc, false, costs, hint, managerTotals);
@@ -39,12 +39,14 @@ function _localUpdate() {
     return;
   }
   const prelim = needDiagnostics();
-  const managerTotals = calcManagerTotals(pkg);
+  const DATA = getDataSync();
+  const corePackages = DATA?.core_packages?.packages || [];
+  const managerTotals = calcManagerTotals(state, DATA, corePackages);
   const costs = {
-    base: managerTotals.base_hours * 4950,
+    base: managerTotals.packageHours * 4950,
     diag: 0,
     support: 0,
-    total: managerTotals.total_rub,
+    total: managerTotals.totalRub,
   };
   let hint = prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.';
   lastResult = { prelim, pkg, calc, costs, managerTotals, hint };
