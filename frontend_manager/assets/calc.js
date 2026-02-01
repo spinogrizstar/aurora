@@ -160,11 +160,15 @@ function _resolveCoreSegmentKey(pkg) {
   return '';
 }
 
+function _corePackageQuoteHours(pkg) {
+  const hours = Number(pkg?.quote_hours || 0);
+  if (hours) return hours;
+  return Number(pkg?.total_points || 0);
+}
+
 function _corePackagePrice(pkg) {
-  const price = Number(pkg?.price_rub || pkg?.price || 0);
-  if (price) return price;
-  const total = Number(pkg?.total_points || 0);
-  return total ? total * CORE_PRICE_PER_POINT : 0;
+  const quoteHours = _corePackageQuoteHours(pkg);
+  return quoteHours ? quoteHours * CORE_PRICE_PER_POINT : 0;
 }
 
 function _normalizeCorePackage(pkg) {
@@ -172,6 +176,7 @@ function _normalizeCorePackage(pkg) {
   return {
     ...pkg,
     name: _normalizeCoreDisplayName(pkg.title || pkg.name || '—'),
+    quote_hours: _corePackageQuoteHours(pkg),
     price: _corePackagePrice(pkg),
   };
 }

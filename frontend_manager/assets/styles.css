@@ -80,6 +80,43 @@
   .opt.on .chk{border-color:rgba(52,211,153,.75);background:rgba(52,211,153,.18)}
   .opt.on .chk svg{opacity:1;transform:scale(1)}
 
+  /* быстрый выбор пакета */
+  .packageGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+  .packageCard{
+    text-align:left;
+    padding:16px;
+    border-radius:18px;
+    border:1px solid rgba(255,255,255,.16);
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.05));
+    color:var(--text);
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+  }
+  .packageCard:hover{transform:translateY(-2px);background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.06))}
+  .packageCard.on{
+    border-color:rgba(125,211,252,.45);
+    background:linear-gradient(180deg,rgba(125,211,252,.18),rgba(167,139,250,.12));
+    box-shadow:0 16px 40px rgba(0,0,0,.28), 0 0 0 3px rgba(125,211,252,.12);
+  }
+  .packageTitleRow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+  .packageTitle{font-weight:800;font-size:14px}
+  .packageHours{
+    font-size:12px;
+    padding:4px 8px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.08);
+    color:rgba(255,255,255,.9);
+    white-space:nowrap;
+  }
+  .packagePrice{font-size:22px;font-weight:900;letter-spacing:-.02em}
+  @media (max-width:760px){
+    .packageGrid{grid-template-columns:1fr}
+  }
+
   /* Поля ввода внутри строки .opt (контакты и похожие блоки)
      Заметка: без этих правил браузер рисует «белые системные» инпуты. */
   .opt .inp,.opt .ta{
@@ -189,6 +226,17 @@
   .row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
   .card{margin-top:12px;padding:14px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.05)}
   .card h3{margin:0 0 8px 0;font-size:14px}
+  .pkgMeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .pkgHours{
+    font-size:12px;
+    padding:4px 8px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.08);
+    color:rgba(255,255,255,.9);
+    white-space:nowrap;
+  }
+  .pkgPrice{font-size:18px;font-weight:900}
   .pillRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .pill{font-size:12px;color:rgba(255,255,255,.80);background:rgba(255,255,255,.08);border:1px solid var(--line);padding:6px 10px;border-radius:999px}
   .list{margin:0;padding-left:18px;color:var(--muted);line-height:1.5}
