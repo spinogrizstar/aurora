@@ -374,6 +374,9 @@
   .kktList{margin-top:10px;display:flex;flex-direction:column;gap:10px}
   .kktRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .kktRow .dd{min-width:240px}
+  .kktTypeRight{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-start}
+  .kktTypeRow .pillToggle{padding:8px 12px;font-size:12px}
+  .kktCountRow .stepper{min-width:130px;justify-content:space-between}
   .kktHint{
     font-size:12px;
     color:var(--muted);

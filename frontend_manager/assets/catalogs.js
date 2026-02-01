@@ -9,8 +9,8 @@
 
 export const KKT_TYPES = [
   { id: 'atol', label: 'АТОЛ', prep_hours: 2 },
-  { id: 'smart_terminal', label: 'Смарт-терминалы (Эвотор/Сигма/MS POS)', prep_hours: 3 },
-  { id: 'other', label: 'Прочие ККТ (Штрих и т.д.)', prep_hours: 2 },
+  { id: 'smart', label: 'Смарт-терминал (Эвотор/Сигма/MS POS и т.п.)', prep_hours: 3 },
+  { id: 'other', label: 'Прочие ККТ (Штрих и т.п.)', prep_hours: 2 },
 ];
 
 export const DEVICE_CATALOG = {
@@ -68,7 +68,7 @@ function segText(){
   return (state.segments && state.segments.length) ? state.segments.join(' + ') : '—';
 }
 function kktCount(){
-  return Array.isArray(state.kkt) ? state.kkt.length : 0;
+  return Number(state.kkt?.count || 0);
 }
 function deviceCounts(){
   // new counters

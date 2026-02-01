@@ -30,6 +30,7 @@ export const el = {
   sumHours: document.getElementById('sumHours'),
   pkgHours: document.getElementById('pkgHours'),
   addonsHours: document.getElementById('addonsHours'),
+  kktPrepHours: document.getElementById('kktPrepHours'),
   totalHours: document.getElementById('totalHours'),
   addonsList: document.getElementById('addonsList'),
 

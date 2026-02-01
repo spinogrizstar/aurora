@@ -110,45 +110,54 @@ export function calcServicesAndLicenses() {
   return { serviceItems, licItems, points, rub, licRub };
 }
 
-export function calcManagerTotals(pkg) {
-  const DATA = getDataSync();
-  const base_hours = Number(pkg?.quote_hours || pkg?.total_points || 0);
-  const addons = [];
+export function calcManagerTotals(currentState, data, corePackages) {
+  const DATA = data || getDataSync();
+  const packages = Array.isArray(corePackages)
+    ? corePackages
+    : (DATA?.core_packages?.packages || []);
+  const selectedId = String(currentState?.selectedPackageId || '');
+  const selectedPkg = packages.find(pkg => String(pkg?.id || pkg?.segment_key || '') === selectedId) || null;
+  const packageHours = Number(selectedPkg?.quote_hours || selectedPkg?.total_points || 0);
 
   const types = Array.isArray(KKT_TYPES) && KKT_TYPES.length
     ? KKT_TYPES
     : [{ id: 'other', label: 'Прочие ККТ', prep_hours: 2 }];
   const typeMap = new Map(types.map(t => [t.id, t]));
-  const kktCounts = new Map();
-  (state.kkt || []).forEach(item => {
-    const type = typeMap.get(item?.type) || types[0];
-    const key = type.id;
-    kktCounts.set(key, (kktCounts.get(key) || 0) + 1);
-  });
-  kktCounts.forEach((count, key) => {
-    const type = typeMap.get(key) || types[0];
-    const hours = count * Number(type?.prep_hours || 2);
-    if (hours > 0) {
-      addons.push({ label: `Подготовка ККТ: ${type?.label || 'Прочие'} ×${count}`, hours });
-    }
-  });
+  const selectedType = typeMap.get(currentState?.kkt?.type) || types[0];
+  const kktCountValue = Number(currentState?.kkt?.count || 0);
+  const kktPreparePerUnit = Number(selectedType?.prep_hours || 2);
+  const kktPrepareHours = kktCountValue * kktPreparePerUnit;
 
-  if (state.addons?.reg_lk_cz_retail) {
+  const addons = [];
+  if (currentState?.addons?.reg_lk_cz_retail) {
     addons.push({ label: 'Рега в ЛК ЧЗ (розница)', hours: 1 });
   }
-  if (state.addons?.integration_to_accounting) {
+  if (currentState?.addons?.integration_to_accounting) {
     addons.push({ label: 'Интеграция с товароучёткой', hours: 3 });
   }
-  if (state.addons?.kkt_prepare_marking) {
+  if (currentState?.addons?.kkt_prepare_marking) {
     addons.push({ label: 'Подготовка кассового оборудования для работы с маркировкой', hours: 3 });
   }
 
-  const addons_hours = addons.reduce((sum, item) => sum + Number(item.hours || 0), 0);
-  const total_hours = base_hours + addons_hours;
+  const addonHoursBase = addons.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+  const addonHours = addonHoursBase + kktPrepareHours;
+  const totalHours = packageHours + addonHours;
   const rubPerHour = Number(DATA.rub_per_point || CORE_PRICE_PER_POINT);
-  const total_rub = total_hours * rubPerHour;
+  const totalRub = totalHours * rubPerHour;
 
-  return { base_hours, addons_hours, total_hours, total_rub, addons };
+  return {
+    packageHours,
+    addonHours,
+    totalHours,
+    totalRub,
+    breakdown: {
+      addons,
+      kktPrepareHours,
+      kktPreparePerUnit,
+      kktTypeLabel: selectedType?.label || 'Прочие ККТ',
+      kktCount: kktCountValue,
+    },
+  };
 }
 
 function _findPkg(seg, preferKeywords) {

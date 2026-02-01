@@ -10,9 +10,11 @@ export const state = {
   // 1) Сегменты (можно выбрать несколько)
   segments: [],
 
-  // 2) ККТ: список выбранных касс (без моделей).
-  // Формат элемента: { type: 'atol' | 'smart_terminal' | 'other' }
-  kkt: [],
+  // 2) ККТ: выбранный тип и количество касс.
+  kkt: {
+    type: null, // 'atol' | 'smart' | 'other'
+    count: 0,
+  },
   uses_kkt: true,
   kkt_rereg: true,
   needs_rr: true,
