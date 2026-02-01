@@ -28,7 +28,13 @@ export function renderKVList(ul, items, kind) {
     const a = document.createElement('span');
     a.textContent = it.label;
     const b = document.createElement('span');
-    b.textContent = kind === 'lic' ? fmtRub(it.rub) : `+${it.pts} балл.`;
+    if (kind === 'lic') {
+      b.textContent = fmtRub(it.rub);
+    } else if (kind === 'hours') {
+      b.textContent = `+${it.hours} ч`;
+    } else {
+      b.textContent = `+${it.pts} балл.`;
+    }
     li.appendChild(a);
     li.appendChild(b);
     ul.appendChild(li);
@@ -85,10 +91,11 @@ function buildGroupDetails(groups) {
   return items;
 }
 
-export function renderFromCalc(pkg, calc, prelim, costs, hint) {
+export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   const pkgView = resolvePackage(pkg);
   // Шапка
   el.segBadge.textContent = segText();
+  const totals = managerTotals || { base_hours: 0, addons_hours: 0, total_hours: 0, total_rub: 0, addons: [] };
 
   if (!pkgView) {
     // Сбрасываем заголовок (и возможную кнопку «подробнее»)
@@ -102,6 +109,11 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint) {
     el.sumServices.textContent = '0 ₽';
     el.sumLic.textContent = '0 ₽';
     el.sumTotal.textContent = '0 ₽';
+    if (el.sumHours) el.sumHours.textContent = '0 ч';
+    if (el.pkgHours) el.pkgHours.textContent = '0 ч';
+    if (el.addonsHours) el.addonsHours.textContent = '0 ч';
+    if (el.totalHours) el.totalHours.textContent = '0 ч';
+    if (el.addonsList) renderKVList(el.addonsList, [], 'hours');
     renderList(el.pkgDetailed, []);
     renderKVList(el.servicesBreakdown, [], 'svc');
     renderKVList(el.licBreakdown, [], 'lic');
@@ -196,7 +208,18 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint) {
   el.sumSupport.textContent = fmtRub(costs.support || 0);
   el.sumServices.textContent = fmtRub(calc.rub || 0);
   el.sumLic.textContent = fmtRub(calc.licRub || 0);
-  el.sumTotal.textContent = fmtRub(costs.total || 0);
+  el.sumTotal.textContent = fmtRub(totals.total_rub || costs.total || 0);
+  if (el.sumHours) el.sumHours.textContent = `${totals.total_hours || 0} ч`;
+  if (el.pkgHours) el.pkgHours.textContent = `${totals.base_hours || 0} ч`;
+  if (el.addonsHours) el.addonsHours.textContent = `${totals.addons_hours || 0} ч`;
+  if (el.totalHours) el.totalHours.textContent = `${totals.total_hours || 0} ч`;
+  if (el.addonsList) {
+    const items = (totals.addons || []).map(item => ({
+      label: item.label,
+      hours: item.hours,
+    }));
+    renderKVList(el.addonsList, items, 'hours');
+  }
 
   renderKVList(el.servicesBreakdown, calc.serviceItems || [], 'svc');
   renderKVList(el.licBreakdown, calc.licItems || [], 'lic');

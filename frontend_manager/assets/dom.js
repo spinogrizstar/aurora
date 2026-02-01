@@ -27,6 +27,11 @@ export const el = {
   sumLic: document.getElementById('sumLic'),
   licBreakdown: document.getElementById('licBreakdown'),
   sumTotal: document.getElementById('sumTotal'),
+  sumHours: document.getElementById('sumHours'),
+  pkgHours: document.getElementById('pkgHours'),
+  addonsHours: document.getElementById('addonsHours'),
+  totalHours: document.getElementById('totalHours'),
+  addonsList: document.getElementById('addonsList'),
 
   // Кнопки
   copyBtn: document.getElementById('copyBtn'),

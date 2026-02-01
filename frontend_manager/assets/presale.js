@@ -9,6 +9,7 @@ import { state } from './state.js';
 import { fmtRub, segText, kktCount, deviceCounts, devicesPayload } from './helpers.js';
 import { el } from './dom.js';
 import { lastResult } from './update.js';
+import { KKT_TYPES } from './catalogs.js';
 
 export function buildPresaleText() {
   const pkg = lastResult?.pkg;
@@ -20,7 +21,8 @@ export function buildPresaleText() {
 
   const kktCnt = kktCount();
   const dc = deviceCounts();
-  const kktLines = (state.kkt || []).map((x, i) => `${i + 1}) ${x.vendor || '—'} / ${x.model || '—'}`);
+  const typeMap = new Map((KKT_TYPES || []).map(t => [t.id, t.label]));
+  const kktLines = (state.kkt || []).map((x, i) => `${i + 1}) ${typeMap.get(x.type) || 'Прочие ККТ'}`);
 
   const segLow = (state.segments || []).map(x => String(x).toLowerCase());
   const isProducer = segLow.some(s => s.includes('производ'));
