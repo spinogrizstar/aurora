@@ -13,7 +13,7 @@ import { state } from '../state.js';
 import { getDataSync } from '../data.js';
 import { KKT_CATALOG, DEVICE_CATALOG, CZ_GROUPS } from '../catalogs.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
-import { clamp } from '../helpers.js';
+import { clamp, fmtRub } from '../helpers.js';
 import { mkDropdown } from '../components/dropdown.js';
 import { attachPopover } from '../components/popover.js';
 import { openInfoModal } from '../components/info_modal.js';
@@ -41,29 +41,53 @@ export function renderChecklist(update){
   checklistMain.innerHTML = '';
   checklistExtra.innerHTML = '';
 
-  // 1) Сегменты (мультивыбор)
+  // 1) Быстрый выбор пакета (4 карточки)
   const sec1 = document.createElement('div');
   sec1.className='section';
-  sec1.innerHTML = `<div class="secTitle"><h3>Сегмент</h3><span class="tag">ветка</span></div>`;
-  const opts1 = document.createElement('div'); opts1.className='opts';
+  sec1.innerHTML = `<div class="secTitle"><h3>Быстрый выбор пакета</h3><span class="tag">сегмент</span></div>`;
+  const opts1 = document.createElement('div'); opts1.className='packageGrid';
 
-  const allSegs = Object.keys(DATA.segments || {});
-  allSegs.forEach(s=>{
-    const row = document.createElement('div');
-    const on = (state.segments||[]).includes(s);
-    row.className = 'opt' + (on ? ' on' : '');
-    row.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="label"><div class="t">${s}</div><div class="d">Выбери один или несколько</div></div>`;
-    row.onclick=()=>{
-      const arr = state.segments||[];
-      const idx = arr.indexOf(s);
-      if(idx>=0) arr.splice(idx,1); else arr.push(s);
-      // Важно: рисуем сразу, чтобы галочка ставилась без задержек.
+  const corePkgs = Array.isArray(DATA.core_packages?.packages) ? DATA.core_packages.packages : [];
+  const pkgByKey = (key) => corePkgs.find(p => p.segment_key === key || p.id === key);
+  const packages = [
+    { key: 'retail_only', title: 'Только розница', segments: ['Розница'], quote_hours: 9 },
+    { key: 'wholesale_only', title: 'Только опт', segments: ['Опт'], quote_hours: 7 },
+    { key: 'producer_only', title: 'Только производитель/импортёр', segments: ['Производитель/Импортёр'], quote_hours: 12 },
+    { key: 'producer_retail', title: 'Производитель + розница', segments: ['Производитель/Импортёр', 'Розница'], quote_hours: 18 },
+  ];
+
+  const segs = (state.segments || []).map(s => String(s).toLowerCase());
+  const isRetail = segs.some(s => s.includes('розниц'));
+  const isWholesale = segs.some(s => s.includes('опт'));
+  const isProducer = segs.some(s => s.includes('производ'));
+  let activeKey = '';
+  if (isRetail && !isWholesale && !isProducer) activeKey = 'retail_only';
+  if (isWholesale && !isRetail && !isProducer) activeKey = 'wholesale_only';
+  if (isProducer && !isRetail && !isWholesale) activeKey = 'producer_only';
+  if (isProducer && isRetail && !isWholesale) activeKey = 'producer_retail';
+
+  packages.forEach(pkgCfg => {
+    const pkg = pkgByKey(pkgCfg.key) || {};
+    const title = pkg.title || pkgCfg.title;
+    const quoteHours = Number(pkg.quote_hours || pkg.total_points || pkgCfg.quote_hours || 0);
+    const price = quoteHours * 4950;
+
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = `packageCard${activeKey === pkgCfg.key ? ' on' : ''}`;
+    card.innerHTML = `
+      <div class="packageTitleRow">
+        <div class="packageTitle">${title}</div>
+        <div class="packageHours">${quoteHours} ч</div>
+      </div>
+      <div class="packagePrice">${fmtRub(price)}</div>
+    `;
+    card.onclick = () => {
+      state.segments = [...pkgCfg.segments];
       renderChecklist(update);
-      // Пересчёт справа — асинхронный, не блокирует UI.
       update();
     };
-    opts1.appendChild(row);
+    opts1.appendChild(card);
   });
   sec1.appendChild(opts1);
   checklistMain.appendChild(sec1);

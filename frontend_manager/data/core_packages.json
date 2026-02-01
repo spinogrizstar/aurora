@@ -4,6 +4,7 @@
       "id": "retail_only",
       "title": "Только розница",
       "segment_key": "retail_only",
+      "quote_hours": 9,
       "total_points": 13,
       "price_rub": 64350,
       "groups": [
@@ -51,6 +52,7 @@
       "id": "wholesale_only",
       "title": "Только опт",
       "segment_key": "wholesale_only",
+      "quote_hours": 7,
       "total_points": 7,
       "price_rub": 34650,
       "groups": [
@@ -92,8 +94,9 @@
     },
     {
       "id": "producer_only",
-      "title": "Только производитель/импортер",
+      "title": "Только производитель/импортёр",
       "segment_key": "producer_only",
+      "quote_hours": 12,
       "total_points": 12,
       "price_rub": 59400,
       "groups": [
@@ -140,6 +143,7 @@
       "id": "producer_retail",
       "title": "Производитель + розница",
       "segment_key": "producer_retail",
+      "quote_hours": 18,
       "total_points": 18,
       "price_rub": 89100,
       "groups": [

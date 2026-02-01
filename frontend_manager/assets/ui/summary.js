@@ -41,11 +41,10 @@ function resolvePackage(pkg) {
   const corePkgs = DATA.core_packages?.packages || [];
   const name = pkg.title || pkg.name;
   const normalizeName = (value) => String(value || '').replace(/прозводитель/gi, 'Производитель');
+  const quoteHours = (p) => Number(p?.quote_hours || p?.total_points || 0);
   const priceFallback = (p) => {
-    const base = Number(p?.price_rub || p?.price || 0);
-    if (base) return base;
-    const total = Number(p?.total_points || 0);
-    return total ? total * 4950 : 0;
+    const hours = quoteHours(p);
+    return hours ? hours * 4950 : 0;
   };
   if (Array.isArray(corePkgs) && name) {
     const match = corePkgs.find(p => p.id === pkg.id || p.title === name);
@@ -54,6 +53,7 @@ function resolvePackage(pkg) {
         ...pkg,
         ...match,
         name: normalizeName(match.title || match.name || name),
+        quote_hours: quoteHours(match),
         price: priceFallback(match) || Number(pkg.price || 0),
       };
     }
@@ -227,6 +227,25 @@ function _renderPackageTitle(text, pkg) {
 
   // Если пакета нет — не показываем кнопку.
   if (!pkg) return;
+
+  const hours = Number(pkg?.quote_hours || pkg?.total_points || 0);
+  if (hours) {
+    const meta = document.createElement('div');
+    meta.className = 'pkgMeta';
+
+    const hoursBadge = document.createElement('span');
+    hoursBadge.className = 'pkgHours';
+    hoursBadge.textContent = `${hours} ч`;
+    meta.appendChild(hoursBadge);
+
+    const price = Number(pkg?.price || 0);
+    const priceBadge = document.createElement('span');
+    priceBadge.className = 'pkgPrice';
+    priceBadge.textContent = fmtRub(price);
+    meta.appendChild(priceBadge);
+
+    el.pkgTitle.appendChild(meta);
+  }
 
   const hasGroups = Array.isArray(pkg.groups) && pkg.groups.length;
   const raw = hasGroups ? 'ok' : (pkg.detail || pkg.inc || '').trim();
