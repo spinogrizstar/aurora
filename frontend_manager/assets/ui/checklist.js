@@ -66,18 +66,7 @@ export function renderChecklist(update){
     { key: 'producer_retail', title: 'Производитель + розница', segments: ['Производитель/Импортёр', 'Розница'], quote_hours: 18 },
   ];
 
-  const segs = (state.segments || []).map(s => String(s).toLowerCase());
-  const isRetail = segs.some(s => s.includes('розниц'));
-  const isWholesale = segs.some(s => s.includes('опт'));
-  const isProducer = segs.some(s => s.includes('производ'));
   let activeKey = state.selectedPackageId || '';
-  if (!activeKey) {
-    if (isRetail && !isWholesale && !isProducer) activeKey = 'retail_only';
-    if (isWholesale && !isRetail && !isProducer) activeKey = 'wholesale_only';
-    if (isProducer && !isRetail && !isWholesale) activeKey = 'producer_only';
-    if (isProducer && isRetail && !isWholesale) activeKey = 'producer_retail';
-    if (activeKey) state.selectedPackageId = activeKey;
-  }
 
   packages.forEach(pkgCfg => {
     const pkg = pkgByKey(pkgCfg.key) || {};
