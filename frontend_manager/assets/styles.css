@@ -1,6 +1,6 @@
 /* Стили интерфейса. Правь тут, а не в index.html */
 
-  :root{--bg:#0b1220;--card:rgba(255,255,255,.06);--line:rgba(255,255,255,.10);--text:rgba(255,255,255,.92);--muted:rgba(255,255,255,.65);--shadow:0 18px 60px rgba(0,0,0,.45);--r2:22px;--font:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  :root{--bg:#0a1324;--card:rgba(255,255,255,.12);--line:rgba(255,255,255,.18);--text:rgba(255,255,255,.97);--muted:rgba(255,255,255,.78);--shadow:0 18px 60px rgba(0,0,0,.45);--r2:22px;--font:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
   *{box-sizing:border-box}
   body{margin:0;font-family:var(--font);color:var(--text);min-height:100vh;background:
     radial-gradient(1200px 600px at 15% 0%, rgba(167,139,250,.28), transparent 60%),
@@ -13,7 +13,7 @@
   .top{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
   h1{margin:0;font-size:34px;line-height:1.1;letter-spacing:-.02em}
   .subtitle{margin-top:8px;color:var(--muted);max-width:1020px}
-  .badge{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--muted)}
+  .badge{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid var(--line);color:var(--text)}
   /*
     Сетка по ТЗ:
       1) главное (чек-лист)
@@ -56,9 +56,9 @@
         "result";
     }
   }
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--shadow);min-width:0}
+  .panel{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.08));border:1px solid var(--line);border-radius:var(--r2);box-shadow:var(--shadow);min-width:0}
   .hd{padding:16px 16px 12px;border-bottom:1px solid var(--line)}
-  .hd h2{margin:0;font-size:16px;color:rgba(255,255,255,.88)}
+  .hd h2{margin:0;font-size:16px;color:rgba(255,255,255,.97)}
   .bd{padding:14px 16px 16px}
   .mini{font-size:12.5px;color:var(--muted);line-height:1.4}
   /* Плавное раскрытие/сворачивание секций.
@@ -71,11 +71,11 @@
   .section.collapsed{max-height:0;opacity:0;transform:translateY(-8px);margin-top:0;padding-top:0;border-top:none;overflow:hidden}
   .secTitle{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .secTitle h3{margin:0;font-size:14px;letter-spacing:-.01em}
-  .tag{font-size:12px;color:rgba(255,255,255,.80);background:rgba(255,255,255,.08);border:1px solid var(--line);padding:6px 10px;border-radius:999px}
+  .tag{font-size:12px;color:rgba(255,255,255,.92);background:rgba(255,255,255,.14);border:1px solid var(--line);padding:6px 10px;border-radius:999px}
   .opts{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
-  .opt{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.05);transition:transform .18s ease, background .18s ease}
-  .opt:hover{transform:translateY(-1px);background:rgba(255,255,255,.08)}
-  .chk{flex:0 0 auto;width:22px;height:22px;border-radius:7px;border:2px solid rgba(255,255,255,.35);display:grid;place-items:center;margin-top:1px}
+  .opt{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.10);transition:transform .18s ease, background .18s ease}
+  .opt:hover{transform:translateY(-1px);background:rgba(255,255,255,.16)}
+  .chk{flex:0 0 auto;width:22px;height:22px;border-radius:7px;border:2px solid rgba(255,255,255,.55);display:grid;place-items:center;margin-top:1px}
   .chk svg{width:16px;height:16px;opacity:0;transform:scale(.6);transition:opacity .15s ease,transform .15s ease}
   .opt.on .chk{border-color:rgba(52,211,153,.75);background:rgba(52,211,153,.18)}
   .opt.on .chk svg{opacity:1;transform:scale(1)}
@@ -87,7 +87,7 @@
     padding:16px;
     border-radius:18px;
     border:1px solid rgba(255,255,255,.16);
-    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.05));
+    background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.08));
     color:var(--text);
     cursor:pointer;
     display:flex;
@@ -95,7 +95,7 @@
     gap:10px;
     transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
   }
-  .packageCard:hover{transform:translateY(-2px);background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.06))}
+  .packageCard:hover{transform:translateY(-2px);background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,.10))}
   .packageCard.on{
     border-color:rgba(125,211,252,.45);
     background:linear-gradient(180deg,rgba(125,211,252,.18),rgba(167,139,250,.12));
