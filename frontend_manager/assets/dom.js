@@ -10,6 +10,7 @@ export const el = {
   checklistExtra: document.getElementById('checklistExtra'),
 
   // Summary (правая панель)
+  recRow: document.getElementById('recRow'),
   segBadge: document.getElementById('segBadge'),
   pkgTitle: document.getElementById('pkgTitle'),
   pkgPills: document.getElementById('pkgPills'),

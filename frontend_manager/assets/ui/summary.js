@@ -119,6 +119,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
     renderList(el.pkgDetailed, []);
     renderKVList(el.servicesBreakdown, [], 'svc');
     renderKVList(el.licBreakdown, [], 'lic');
+    if (el.recRow) el.recRow.hidden = false;
     el.recHint.textContent = hint || 'Выбери сегмент слева — и мы покажем пакет и расчёт.';
     el.projAlert.style.display = 'none';
 
@@ -138,6 +139,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
     (prelim ? 'Пакет (предварительно): ' : 'Пакет: ') + (pkgView.name || '—'),
     pkgView,
   );
+  if (el.recRow) el.recRow.hidden = true;
   const whoParts = [];
   if (pkgView.who) whoParts.push(`Для кого: ${pkgView.who}`);
   if (pkgView.total_points) whoParts.push(`Баллы пакета: ${pkgView.total_points}`);
@@ -217,7 +219,10 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   if (el.totalHours) el.totalHours.textContent = `${totals.totalHours || 0} ч`;
   if (el.kktPrepHours) {
     const kktPrep = Number(totals.breakdown?.kktPrepareHours || 0);
-    el.kktPrepHours.textContent = `${kktPrep} ч`;
+    const kktCountValue = Number(totals.breakdown?.kktCount || 0);
+    const perUnit = Number(totals.breakdown?.kktPreparePerUnit || 0);
+    const detail = (kktCountValue > 0 && perUnit > 0) ? ` (${kktCountValue} касс × ${perUnit} ч)` : '';
+    el.kktPrepHours.textContent = `${kktPrep} ч${detail}`;
     el.kktPrepHours.closest('.kv')?.toggleAttribute('hidden', kktPrep <= 0);
   }
   if (el.addonsList) {

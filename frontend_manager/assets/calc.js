@@ -139,9 +139,8 @@ export function calcManagerTotals(currentState, data, corePackages) {
     addons.push({ label: 'Подготовка кассового оборудования для работы с маркировкой', hours: 3 });
   }
 
-  const addonHoursBase = addons.reduce((sum, item) => sum + Number(item.hours || 0), 0);
-  const addonHours = addonHoursBase + kktPrepareHours;
-  const totalHours = packageHours + addonHours;
+  const addonHours = addons.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+  const totalHours = packageHours + addonHours + kktPrepareHours;
   const rubPerHour = Number(DATA.rub_per_point || CORE_PRICE_PER_POINT);
   const totalRub = totalHours * rubPerHour;
 
