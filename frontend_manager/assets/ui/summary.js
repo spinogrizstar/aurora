@@ -4,7 +4,7 @@
 // ------------------------------------------------------------
 
 import { el } from '../dom.js';
-import { fmtRub, splitToBullets, segText, kktCount, deviceCounts, hasWholesaleOrProducer, hasProducer } from '../helpers.js';
+import { fmtRub, splitToBullets, segText, kktCount, deviceCounts } from '../helpers.js';
 import { needDiagnostics, pointsToRub } from '../calc.js';
 import { state } from '../state.js';
 import { getDataSync } from '../data.js';
@@ -28,13 +28,13 @@ export function renderKVList(ul, items, kind) {
     const a = document.createElement('span');
     a.textContent = it.label;
     const b = document.createElement('span');
-    if (kind === 'lic') {
-      b.textContent = fmtRub(it.rub);
-    } else if (kind === 'hours') {
-      b.textContent = `+${it.hours} ч`;
-    } else {
-      b.textContent = `+${it.pts} балл.`;
-    }
+  if (kind === 'lic') {
+    b.textContent = fmtRub(it.rub);
+  } else if (kind === 'svc') {
+    b.textContent = fmtRub(pointsToRub(it.pts));
+  } else if (kind === 'hours') {
+    b.textContent = `+${it.hours} ч`;
+  }
     li.appendChild(a);
     li.appendChild(b);
     ul.appendChild(li);
@@ -77,8 +77,7 @@ function getSelectedCorePackage() {
 
 function buildGroupSummary(groups) {
   return (groups || []).map(g => {
-    const pts = Number(g.points || 0);
-    const base = `${g.name}${pts ? ` — ${pts} балл.` : ''}`;
+    const base = g.name;
     return g.note ? `${base} (${g.note})` : base;
   });
 }
@@ -86,11 +85,10 @@ function buildGroupSummary(groups) {
 function buildGroupDetails(groups) {
   const items = [];
   (groups || []).forEach(g => {
-    const header = `${g.name}${g.points ? ` — ${g.points} балл.` : ''}`;
+    const header = `${g.name}`;
     if (Array.isArray(g.details) && g.details.length) {
       g.details.forEach(d => {
-        const pts = Number(d.points || 0);
-        items.push(`${header}: ${d.text}${pts ? ` — ${pts} балл.` : ''}`);
+        items.push(`${header}: ${d.text}`);
       });
     } else {
       items.push(header);
@@ -111,6 +109,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
     _renderPackageTitle('Пакет: —', null);
     el.pkgWho.textContent = '';
     el.pkgPills.innerHTML = '';
+    el.pkgPills.style.display = 'none';
     el.diagBanner.style.display = 'none';
     el.sumBase.textContent = '0 ₽';
     el.sumDiag.textContent = '0 ₽';
@@ -151,47 +150,13 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   if (el.recRow) el.recRow.hidden = true;
   const whoParts = [];
   if (pkgView.who) whoParts.push(`Для кого: ${pkgView.who}`);
-  if (pkgView.total_points) whoParts.push(`Баллы пакета: ${pkgView.total_points}`);
-  if (costs?.base) whoParts.push(`Цена пакета: ${fmtRub(costs.base)}`);
+  const dc = deviceCounts();
+  whoParts.push(`Сканеры: ${dc.scanners || 0} · ТСД: ${dc.tsd || 0}`);
   el.pkgWho.textContent = whoParts.join(' · ');
 
   // Плашки
   el.pkgPills.innerHTML = '';
-  const dc = deviceCounts();
-  // 1С (информационно)
-  let onecPill = '';
-  try {
-    const DATA = getDataSync();
-    const cfgs = Array.isArray(DATA.onec_configs) ? DATA.onec_configs : [];
-    const name = cfgs.find(c => c.id === state.onec?.config)?.name || (state.onec?.config || '—');
-    const act = (state.onec?.actual === false) ? 'неактуальная' : 'актуальная';
-    onecPill = `1С: ${name} · ${act}`;
-  } catch (e) {
-    // если data.js не отдал — просто молчим
-  }
-  const devParts = [];
-  if (dc.scanners) devParts.push(`Сканеры: ${dc.scanners}`);
-  if (dc.tsd) devParts.push(`ТСД: ${dc.tsd}`);
-  if (!devParts.length) devParts.push('Устройства: 0');
-
-  const kktPrepHours = Number(totals.breakdown?.kktPrepareHours || 0);
-
-  [
-    `Часы пакета: ${totals.packageHours || 0} ч`,
-    `Часы допов: ${totals.addonHours || 0} ч`,
-    kktPrepHours > 0 ? `Подготовка кассы: ${kktPrepHours} ч` : '',
-    `Всего часов: ${totals.totalHours || 0} ч`,
-    `ККТ: ${kktCount()} · Юрлица: ${state.org_count}`,
-    devParts.join(' · '),
-    onecPill || '',
-    prelim ? 'ККТ неизвестна' : 'ККТ подтверждена',
-  ].forEach(p => {
-    if (!p) return;
-    const d = document.createElement('div');
-    d.className = 'pill';
-    d.textContent = p;
-    el.pkgPills.appendChild(d);
-  });
+  el.pkgPills.style.display = 'none';
 
   // Детализация пакета
   if (Array.isArray(pkgView.groups) && pkgView.groups.length) {
@@ -203,7 +168,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
         li.style.cursor = 'pointer';
         li.title = 'Нажмите, чтобы увидеть детали группы';
         li.onclick = () => {
-          const items = (group.details || []).map(d => `${d.text}${d.points ? ` — ${d.points} балл.` : ''}`);
+          const items = (group.details || []).map(d => `${d.text}`);
           openInfoModal(group.name || 'Группа работ', {
             desc: group.note || '',
             items,
@@ -251,8 +216,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   renderKVList(el.licBreakdown, calc.licItems || [], 'lic');
 
   el.recHint.textContent = hint || (prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.');
-  const customIntegrationNote = String(state.custom_integration_comment || state.custom_integration_note || '').trim();
-  el.projAlert.style.display = (state.custom_integration || customIntegrationNote) ? 'block' : 'none';
+  el.projAlert.style.display = state.custom_integration ? 'block' : 'none';
 
   // «Почему такая стоимость?» — открывает понятную раскладку.
   _wireWhyButton(pkgView, calc, costs);
@@ -277,25 +241,6 @@ function _renderPackageTitle(text, pkg) {
 
   // Если пакета нет — не показываем кнопку.
   if (!pkg) return;
-
-  const hours = Number(pkg?.quote_hours || pkg?.total_points || 0);
-  if (hours) {
-    const meta = document.createElement('div');
-    meta.className = 'pkgMeta';
-
-    const hoursBadge = document.createElement('span');
-    hoursBadge.className = 'pkgHours';
-    hoursBadge.textContent = `${hours} ч`;
-    meta.appendChild(hoursBadge);
-
-    const price = Number(pkg?.price || 0);
-    const priceBadge = document.createElement('span');
-    priceBadge.className = 'pkgPrice';
-    priceBadge.textContent = fmtRub(price);
-    meta.appendChild(priceBadge);
-
-    el.pkgTitle.appendChild(meta);
-  }
 
   const hasGroups = Array.isArray(pkg.groups) && pkg.groups.length;
   const raw = hasGroups ? 'ok' : (pkg.detail || pkg.inc || '').trim();
@@ -383,14 +328,13 @@ function _wireWhyButton(pkg, calc, costs) {
 
     items.push('────────');
     if ((calc.serviceItems || []).length) {
-      items.push(`Доп.баллы: ${calc.points || 0} × ${fmtRub(rubPerPoint)} = ${fmtRub(calc.rub || 0)} (внутр.)`);
+      items.push(`Доп.работы: ${fmtRub(calc.rub || 0)} (внутр.)`);
       (calc.serviceItems || []).forEach(it => {
-        const pts = Number(it.pts || 0);
-        const rub = pts * rubPerPoint;
-        items.push(`${it.label} → +${pts} балл. = ${fmtRub(rub)} (внутр.)`);
+        const rub = Number(it.pts || 0) * rubPerPoint;
+        items.push(`${it.label} → ${fmtRub(rub)} (внутр.)`);
       });
     } else {
-      items.push('Доп.баллы: 0');
+      items.push('Доп.работы: 0');
     }
 
     items.push('────────');

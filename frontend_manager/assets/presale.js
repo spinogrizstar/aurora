@@ -7,6 +7,7 @@
 
 import { state } from './state.js';
 import { fmtRub, segText, kktCount, deviceCounts, devicesPayload } from './helpers.js';
+import { pointsToRub } from './calc.js';
 import { el } from './dom.js';
 import { lastResult } from './update.js';
 import { KKT_TYPES } from './catalogs.js';
@@ -49,7 +50,7 @@ export function buildPresaleText() {
 
   if (prelim) lines.push(`- Диагностика ККТ: ${fmtRub(diag)}`);
   if (support) lines.push(`- Поддержка 5 дней: ${fmtRub(support)}`);
-  (calc?.serviceItems || []).forEach(x => lines.push(`- Услуги: ${x.label} (+${x.pts} балл.)`));
+  (calc?.serviceItems || []).forEach(x => lines.push(`- Услуги: ${x.label} (${fmtRub(pointsToRub(x.pts))})`));
   (calc?.licItems || []).forEach(x => lines.push(`- Лицензии: ${x.label} (${fmtRub(x.rub)})`));
 
   const c = state.contacts || {};

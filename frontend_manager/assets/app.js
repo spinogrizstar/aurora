@@ -54,7 +54,6 @@ function applyManagerLayout() {
   hide(el.matrixBtn);
   hide(el.whyBtn);
   hide(el.diagBanner);
-  hide(el.projAlert);
 
   hide(el.pkgDetailed?.closest('.card'));
   hide(document.getElementById('sumBase')?.closest('.card'));

@@ -575,7 +575,7 @@ export function renderChecklist(update){
   const rowSup = document.createElement('div');
   rowSup.className='opt' + (state.support ? ' on' : '');
   rowSup.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="label"><div class="t">${DATA.support_label || 'Поддержка'}</div><div class="d">+${DATA.support_points || 0} баллов</div></div>`;
+    <div class="label"><div class="t">${DATA.support_label || 'Поддержка'}</div><div class="d">учитывается в расчёте</div></div>`;
   rowSup.onclick=()=>{ state.support=!state.support; renderChecklist(update); update(); };
   optsSup.appendChild(rowSup);
   secSup.appendChild(optsSup);
