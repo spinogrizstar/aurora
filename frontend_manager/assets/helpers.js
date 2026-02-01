@@ -25,6 +25,15 @@ export function splitToBullets(text) {
 }
 
 export function segText() {
+  const map = {
+    retail_only: 'Розница',
+    wholesale_only: 'Опт',
+    producer_only: 'Производитель',
+    producer_retail: 'Производитель+розница',
+  };
+  if (state.selectedPackageId) {
+    return map[state.selectedPackageId] || '—';
+  }
   return (state.segments || []).length ? state.segments.join(' + ') : '—';
 }
 

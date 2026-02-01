@@ -67,6 +67,14 @@ function resolvePackage(pkg) {
   return pkg;
 }
 
+function getSelectedCorePackage() {
+  const selectedId = String(state.selectedPackageId || '');
+  if (!selectedId) return null;
+  const DATA = getDataSync();
+  const corePkgs = Array.isArray(DATA.core_packages?.packages) ? DATA.core_packages.packages : [];
+  return corePkgs.find(pkg => String(pkg?.id || pkg?.segment_key || '') === selectedId) || null;
+}
+
 function buildGroupSummary(groups) {
   return (groups || []).map(g => {
     const pts = Number(g.points || 0);
@@ -92,7 +100,8 @@ function buildGroupDetails(groups) {
 }
 
 export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
-  const pkgView = resolvePackage(pkg);
+  const selectedPkg = getSelectedCorePackage();
+  const pkgView = resolvePackage(selectedPkg);
   // Шапка
   el.segBadge.textContent = segText();
   const totals = managerTotals || { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: [], kktPrepareHours: 0 } };
@@ -230,10 +239,6 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
       label: item.label,
       hours: item.hours,
     }));
-    const kktPrep = Number(totals.breakdown?.kktPrepareHours || 0);
-    if (kktPrep > 0) {
-      items.push({ label: 'Подготовка кассы', hours: kktPrep });
-    }
     renderKVList(el.addonsList, items, 'hours');
   }
 

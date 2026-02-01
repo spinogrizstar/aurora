@@ -8,7 +8,7 @@
 // ------------------------------------------------------------
 
 import { state } from './state.js';
-import { calcServicesAndLicenses, choosePackage, needDiagnostics, calcManagerTotals } from './calc.js';
+import { calcServicesAndLicenses, needDiagnostics, calcManagerTotals } from './calc.js';
 import { getDataSync } from './data.js';
 import { renderFromCalc } from './ui/summary.js';
 
@@ -32,15 +32,16 @@ function _emptyState(hintText) {
 }
 
 function _localUpdate() {
-  const calc = calcServicesAndLicenses();
-  const { pkg } = choosePackage(calc.points);
-  if (!pkg) {
-    _emptyState();
-    return;
-  }
-  const prelim = needDiagnostics();
   const DATA = getDataSync();
   const corePackages = DATA?.core_packages?.packages || [];
+  const selectedId = String(state.selectedPackageId || '');
+  const selectedPkg = corePackages.find(pkg => String(pkg?.id || pkg?.segment_key || '') === selectedId) || null;
+  if (!selectedPkg) {
+    _emptyState('Выберите тип клиента слева — и мы покажем пакет, состав работ и расчёт.');
+    return;
+  }
+  const calc = calcServicesAndLicenses();
+  const prelim = needDiagnostics();
   const managerTotals = calcManagerTotals(state, DATA, corePackages);
   const costs = {
     base: managerTotals.packageHours * 4950,
@@ -49,8 +50,8 @@ function _localUpdate() {
     total: managerTotals.totalRub,
   };
   let hint = prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.';
-  lastResult = { prelim, pkg, calc, costs, managerTotals, hint };
-  renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals);
+  lastResult = { prelim, pkg: selectedPkg, calc, costs, managerTotals, hint };
+  renderFromCalc(selectedPkg, calc, prelim, costs, hint, managerTotals);
 }
 
 export async function update() {
