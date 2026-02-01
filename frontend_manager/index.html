@@ -168,5 +168,35 @@
 </div>
 
 <script type="module" src="assets/app.js"></script>
+<script>
+  setTimeout(() => {
+    const booted = window.__AURORA_APP_BOOTED;
+    const ready = window.__AURORA_APP_READY;
+    if (booted && ready) return;
+
+    const boxes = [document.getElementById('checklistMain'), document.getElementById('checklistExtra')].filter(Boolean);
+    if (!boxes.length) return;
+
+    const message = [
+      'Похоже, страница открыта напрямую с диска (file://) или скрипты не загрузились.',
+      'Открой через локальный сервер:',
+      '- запусти start_localhost.bat в корне проекта',
+      '- или: cd frontend_manager && python -m http.server 5173',
+      '- затем открой http://localhost:5173/',
+      '',
+      'Открой F12 → Console'
+    ].join('\n');
+
+    const html = `
+      <div class="alert red" style="display:block;font-size:16px;line-height:1.4;padding:16px;">
+        <b>Не удалось запустить интерфейс</b>
+        <div class="small" style="margin-top:10px;white-space:pre-wrap;">${message}</div>
+      </div>
+    `;
+    boxes.forEach((box) => {
+      box.innerHTML = html;
+    });
+  }, 1000);
+</script>
 </body>
 </html>
