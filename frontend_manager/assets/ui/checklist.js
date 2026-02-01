@@ -285,10 +285,10 @@ export function renderChecklist(update){
   secAddons.innerHTML = `<div class="secTitle"><h3>Доп.работы</h3><span class="tag">опции</span></div>`;
   const optsAddons = document.createElement('div'); optsAddons.className='opts';
 
-  const isRetail = hasRetail();
+  const hasRetailSegment = hasRetail();
   const hasKkt = kktCount() > 0;
-  if (!isRetail && state.addons?.reg_lk_cz_retail) state.addons.reg_lk_cz_retail = false;
-  if (!(isRetail && hasKkt) && state.addons?.kkt_prepare_marking) state.addons.kkt_prepare_marking = false;
+  if (!hasRetailSegment && state.addons?.reg_lk_cz_retail) state.addons.reg_lk_cz_retail = false;
+  if (!(hasRetailSegment && hasKkt) && state.addons?.kkt_prepare_marking) state.addons.kkt_prepare_marking = false;
 
   const addAddon = (key, title, desc, show = true)=>{
     if (!show) return;
@@ -304,9 +304,9 @@ export function renderChecklist(update){
     optsAddons.appendChild(row);
   };
 
-  addAddon('reg_lk_cz_retail', 'Рега в ЛК ЧЗ (розница)', '+1 час', isRetail);
+  addAddon('reg_lk_cz_retail', 'Рега в ЛК ЧЗ (розница)', '+1 час', hasRetailSegment);
   addAddon('integration_to_accounting', 'Интеграция с товароучёткой', '+3 часа', true);
-  addAddon('kkt_prepare_marking', 'Подготовка кассового оборудования для работы с маркировкой', '+3 часа', isRetail && hasKkt);
+  addAddon('kkt_prepare_marking', 'Подготовка кассового оборудования для работы с маркировкой', '+3 часа', hasRetailSegment && hasKkt);
 
   secAddons.appendChild(optsAddons);
   revealAppend(secAddons, 'addons', (state.segments || []).length > 0, checklistExtra);
