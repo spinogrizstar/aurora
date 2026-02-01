@@ -9,12 +9,19 @@ export const state = {
   // 1) Сегменты (можно выбрать несколько)
   segments: [],
 
-  // 2) ККТ: список выбранных касс.
-  // Формат элемента: { vendor: 'АТОЛ', model: '91Ф' }
+  // 2) ККТ: список выбранных касс (без моделей).
+  // Формат элемента: { type: 'atol' | 'smart_terminal' | 'other' }
   kkt: [],
   uses_kkt: true,
   kkt_rereg: true,
   needs_rr: true,
+
+  // Доп.работы (галочки)
+  addons: {
+    reg_lk_cz_retail: false,
+    integration_to_accounting: false,
+    kkt_prepare_marking: false,
+  },
 
   // 4) Устройства: два счётчика (можно мешать)
   device_scanner: 0,

@@ -13,6 +13,7 @@
 import { getDataSync } from './data.js';
 import { state } from './state.js';
 import { deviceCounts, kktCount, hasProducer, hasWholesaleOrProducer } from './helpers.js';
+import { KKT_TYPES } from './catalogs.js';
 
 const CORE_PRICE_PER_POINT = 4950;
 
@@ -107,6 +108,47 @@ export function calcServicesAndLicenses() {
   const rub = pointsToRub(points);
   const licRub = licItems.reduce((s, x) => s + Number(x.rub || 0), 0);
   return { serviceItems, licItems, points, rub, licRub };
+}
+
+export function calcManagerTotals(pkg) {
+  const DATA = getDataSync();
+  const base_hours = Number(pkg?.quote_hours || pkg?.total_points || 0);
+  const addons = [];
+
+  const types = Array.isArray(KKT_TYPES) && KKT_TYPES.length
+    ? KKT_TYPES
+    : [{ id: 'other', label: 'Прочие ККТ', prep_hours: 2 }];
+  const typeMap = new Map(types.map(t => [t.id, t]));
+  const kktCounts = new Map();
+  (state.kkt || []).forEach(item => {
+    const type = typeMap.get(item?.type) || types[0];
+    const key = type.id;
+    kktCounts.set(key, (kktCounts.get(key) || 0) + 1);
+  });
+  kktCounts.forEach((count, key) => {
+    const type = typeMap.get(key) || types[0];
+    const hours = count * Number(type?.prep_hours || 2);
+    if (hours > 0) {
+      addons.push({ label: `Подготовка ККТ: ${type?.label || 'Прочие'} ×${count}`, hours });
+    }
+  });
+
+  if (state.addons?.reg_lk_cz_retail) {
+    addons.push({ label: 'Рега в ЛК ЧЗ (розница)', hours: 1 });
+  }
+  if (state.addons?.integration_to_accounting) {
+    addons.push({ label: 'Интеграция с товароучёткой', hours: 3 });
+  }
+  if (state.addons?.kkt_prepare_marking) {
+    addons.push({ label: 'Подготовка кассового оборудования для работы с маркировкой', hours: 3 });
+  }
+
+  const addons_hours = addons.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+  const total_hours = base_hours + addons_hours;
+  const rubPerHour = Number(DATA.rub_per_point || CORE_PRICE_PER_POINT);
+  const total_rub = total_hours * rubPerHour;
+
+  return { base_hours, addons_hours, total_hours, total_rub, addons };
 }
 
 function _findPkg(seg, preferKeywords) {

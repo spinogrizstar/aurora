@@ -11,9 +11,9 @@
 import { el } from '../dom.js';
 import { state } from '../state.js';
 import { getDataSync } from '../data.js';
-import { KKT_CATALOG, DEVICE_CATALOG, CZ_GROUPS } from '../catalogs.js';
+import { KKT_TYPES, DEVICE_CATALOG, CZ_GROUPS } from '../catalogs.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
-import { clamp, fmtRub } from '../helpers.js';
+import { clamp, fmtRub, hasRetail, kktCount } from '../helpers.js';
 import { mkDropdown } from '../components/dropdown.js';
 import { attachPopover } from '../components/popover.js';
 import { openInfoModal } from '../components/info_modal.js';
@@ -25,7 +25,7 @@ import { openInfoModal } from '../components/info_modal.js';
 // галочка ставилась через ~1 сек и казалось, что сайт лагает.
 // Теперь: перерисовываем сразу, а для скрываемых секций делаем
 // «анимацию выхода» (см. revealAppend ниже).
-let _prevVis = { onec:false, kkt:false, devices:false, orgs:false, products:false, scenarios:false, support:false, contacts:false };
+let _prevVis = { onec:false, kkt:false, addons:false, devices:false, orgs:false, products:false, scenarios:false, support:false, contacts:false };
 
 // Главный рендер чек-листа.
 // update() передаём снаружи, чтобы избежать циклических импортов.
@@ -44,7 +44,7 @@ export function renderChecklist(update){
   // 1) Быстрый выбор пакета (4 карточки)
   const sec1 = document.createElement('div');
   sec1.className='section';
-  sec1.innerHTML = `<div class="secTitle"><h3>Быстрый выбор пакета</h3><span class="tag">сегмент</span></div>`;
+  sec1.innerHTML = `<div class="secTitle"><h3>Выбор типа клиента</h3><span class="tag">пакет</span></div>`;
   const opts1 = document.createElement('div'); opts1.className='packageGrid';
 
   const corePkgs = Array.isArray(DATA.core_packages?.packages) ? DATA.core_packages.packages : [];
@@ -94,7 +94,7 @@ export function renderChecklist(update){
 
   // Если сегмент ещё не выбран — дальше ничего не показываем.
   if(!(state.segments||[]).length){
-    _prevVis = { onec:false, kkt:false, devices:false, orgs:false, products:false, scenarios:false, support:false, contacts:false };
+    _prevVis = { onec:false, kkt:false, addons:false, devices:false, orgs:false, products:false, scenarios:false, support:false, contacts:false };
     checklistExtra.innerHTML = `<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Выбери сегмент слева — здесь появятся доп.факторы.</div>`;
     return;
   }
@@ -202,10 +202,10 @@ export function renderChecklist(update){
   addBtn.type='button';
   addBtn.innerHTML = `+ <span>Добавить ККТ</span>`;
   addBtn.onclick=()=>{
-    const vendors = Object.keys(KKT_CATALOG);
-    const v0 = vendors[0] || 'Другое';
-    const m0 = (KKT_CATALOG[v0]||[])[0] || 'Другая модель';
-    state.kkt.push({vendor:v0, model:m0});
+    const firstType = KKT_TYPES[0]?.id || 'other';
+    state.kkt.push({ type: firstType });
+    const scanners = Number(state.device_scanner || 0);
+    state.device_scanner = clamp(scanners + 1, 0, 99);
     renderChecklist(update);
     update();
   };
@@ -219,29 +219,25 @@ export function renderChecklist(update){
     const row = document.createElement('div');
     row.className='kktRow';
 
-    const vendors = Object.keys(KKT_CATALOG).map(v=>({value:v,label:v}));
-    const v0 = item.vendor && KKT_CATALOG[item.vendor] ? item.vendor : (vendors[0]?.value || 'Другое');
+    const types = Array.isArray(KKT_TYPES) && KKT_TYPES.length
+      ? KKT_TYPES
+      : [{ id: 'other', label: 'Прочие ККТ', prep_hours: 2 }];
+    const typeItems = types.map(t => ({ value: t.id, label: t.label }));
+    const currentType = types.some(t => t.id === item.type) ? item.type : types[0].id;
 
-    const ddVendor = mkDropdown({
-      items: vendors,
-      value: v0,
+    const info = types.find(t => t.id === currentType) || types[0];
+    const hint = document.createElement('div');
+    hint.className = 'kktHint';
+    hint.textContent = `Подготовка: +${Number(info?.prep_hours || 2)}ч`;
+    const ddType = mkDropdown({
+      items: typeItems,
+      value: currentType,
       onChange: (v)=>{
-        item.vendor = v;
-        const models = (KKT_CATALOG[v]||['Другая модель']).map(m=>({value:m,label:m}));
-        const first = models[0]?.value || 'Другая модель';
-        item.model = first;
-        ddModel._setItems(models);
-        ddModel._setValue(first);
+        item.type = v;
+        const info = types.find(t => t.id === v) || types[0];
+        hint.textContent = `Подготовка: +${Number(info?.prep_hours || 2)}ч`;
         update();
       }
-    });
-
-    const models0 = (KKT_CATALOG[v0]||['Другая модель']).map(m=>({value:m,label:m}));
-    const m0 = item.model && (KKT_CATALOG[v0]||[]).includes(item.model) ? item.model : (models0[0]?.value || 'Другая модель');
-    const ddModel = mkDropdown({
-      items: models0,
-      value: m0,
-      onChange: (m)=>{ item.model = m; update(); }
     });
 
     // Кнопка удаления строки — в стиле «красивых» квадратных кнопок
@@ -252,14 +248,46 @@ export function renderChecklist(update){
     del.title='Убрать эту ККТ';
     del.onclick=()=>{ state.kkt.splice(idx,1); renderChecklist(update); update(); };
 
-    row.appendChild(ddVendor);
-    row.appendChild(ddModel);
+    row.appendChild(ddType);
+    row.appendChild(hint);
     row.appendChild(del);
     list.appendChild(row);
   });
   box2.appendChild(list);
   sec2.appendChild(box2);
   revealAppend(sec2, 'kkt', vis.kkt, checklistExtra);
+
+  // 2.5) Доп.работы
+  const secAddons = document.createElement('div');
+  secAddons.className='section';
+  secAddons.innerHTML = `<div class="secTitle"><h3>Доп.работы</h3><span class="tag">опции</span></div>`;
+  const optsAddons = document.createElement('div'); optsAddons.className='opts';
+
+  const isRetail = hasRetail();
+  const hasKkt = kktCount() > 0;
+  if (!isRetail && state.addons?.reg_lk_cz_retail) state.addons.reg_lk_cz_retail = false;
+  if (!(isRetail && hasKkt) && state.addons?.kkt_prepare_marking) state.addons.kkt_prepare_marking = false;
+
+  const addAddon = (key, title, desc, show = true)=>{
+    if (!show) return;
+    const row = document.createElement('div');
+    row.className = 'opt' + (state.addons?.[key] ? ' on' : '');
+    row.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="label"><div class="t">${title}</div><div class="d">${desc}</div></div>`;
+    row.onclick = () => {
+      state.addons[key] = !state.addons[key];
+      renderChecklist(update);
+      update();
+    };
+    optsAddons.appendChild(row);
+  };
+
+  addAddon('reg_lk_cz_retail', 'Рега в ЛК ЧЗ (розница)', '+1 час', isRetail);
+  addAddon('integration_to_accounting', 'Интеграция с товароучёткой', '+3 часа', true);
+  addAddon('kkt_prepare_marking', 'Подготовка кассового оборудования для работы с маркировкой', '+3 часа', isRetail && hasKkt);
+
+  secAddons.appendChild(optsAddons);
+  revealAppend(secAddons, 'addons', (state.segments || []).length > 0, checklistExtra);
 
   // 3) Устройства (сканеры/ТСД)
   const secDev = document.createElement('div');

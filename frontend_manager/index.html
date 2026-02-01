@@ -34,6 +34,10 @@
       <!-- Верх — итог и действия (фиксируем) -->
       <div class="stickyTop">
         <div class="total"><div>Итого</div><div class="v" id="sumTotal">0 ₽</div></div>
+        <div class="totalMeta">
+          <div class="small">Итого часов</div>
+          <div class="v" id="sumHours">0 ч</div>
+        </div>
 
         <div class="row" style="justify-content:flex-end;margin-top:10px;">
           <button class="btnMini" id="whyBtn" type="button" style="display:none;">Почему такая стоимость?</button>
@@ -69,6 +73,15 @@
         <h3 id="pkgTitle">Пакет: —</h3>
         <div class="pillRow" id="pkgPills"></div>
         <div class="small" id="pkgWho" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>Итого по часам</h3>
+        <div class="kv"><span class="chip ok">Часы пакета</span><strong id="pkgHours">0 ч</strong></div>
+        <div class="kv" style="margin-top:10px;"><span class="chip warn">Часы допов</span><strong id="addonsHours">0 ч</strong></div>
+        <div class="kv" style="margin-top:10px;"><span class="chip ok">Всего часов</span><strong id="totalHours">0 ч</strong></div>
+        <div class="mini" style="margin-top:12px;">Включённые доп.работы:</div>
+        <ul class="list" id="addonsList"></ul>
       </div>
 
       <div class="card" style="display:none">

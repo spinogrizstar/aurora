@@ -8,11 +8,8 @@
 // ------------------------------------------------------------
 
 import { state } from './state.js';
-import { devicesPayload, segText } from './helpers.js';
-import { calcServicesAndLicenses, choosePackage, buildCosts, needDiagnostics } from './calc.js';
+import { calcServicesAndLicenses, choosePackage, needDiagnostics, calcManagerTotals } from './calc.js';
 import { renderFromCalc } from './ui/summary.js';
-
-let _reqSeq = 0;
 
 // Последний результат — нужен для «Скопировать КП / Запросить пресейл»
 export let lastResult = {
@@ -20,15 +17,17 @@ export let lastResult = {
   pkg: null,
   calc: { points: 0, rub: 0, licRub: 0, serviceItems: [], licItems: [] },
   costs: { base: 0, diag: 0, support: 0, total: 0 },
+  managerTotals: { base_hours: 0, addons_hours: 0, total_hours: 0, total_rub: 0, addons: [] },
   hint: '',
 };
 
 function _emptyState() {
   const calc = { points: 0, rub: 0, licRub: 0, serviceItems: [], licItems: [] };
   const costs = { base: 0, diag: 0, support: 0, total: 0 };
+  const managerTotals = { base_hours: 0, addons_hours: 0, total_hours: 0, total_rub: 0, addons: [] };
   const hint = 'Выбери сегмент слева — и мы покажем пакет, состав работ и расчёт.';
-  lastResult = { prelim: false, pkg: null, calc, costs, hint };
-  renderFromCalc(null, calc, false, costs, hint);
+  lastResult = { prelim: false, pkg: null, calc, costs, managerTotals, hint };
+  renderFromCalc(null, calc, false, costs, hint, managerTotals);
 }
 
 function _localUpdate() {
@@ -39,10 +38,16 @@ function _localUpdate() {
     return;
   }
   const prelim = needDiagnostics();
-  const costs = buildCosts(pkg, calc);
+  const managerTotals = calcManagerTotals(pkg);
+  const costs = {
+    base: managerTotals.base_hours * 4950,
+    diag: 0,
+    support: 0,
+    total: managerTotals.total_rub,
+  };
   let hint = prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.';
-  lastResult = { prelim, pkg, calc, costs, hint };
-  renderFromCalc(pkg, calc, prelim, costs, hint);
+  lastResult = { prelim, pkg, calc, costs, managerTotals, hint };
+  renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals);
 }
 
 export async function update() {
@@ -51,47 +56,5 @@ export async function update() {
     _emptyState();
     return;
   }
-
-  const my = ++_reqSeq;
-  try {
-    const r = await fetch('/api/v5/calculate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...state,
-        devices: devicesPayload(),
-      }),
-    });
-
-    if (!r.ok) throw new Error(await r.text());
-    const res = await r.json();
-    if (my !== _reqSeq) return;
-
-    const pkg = res.package;
-    const calc = {
-      points: res.calc.points,
-      rub: res.calc.rub,
-      licRub: res.calc.licRub,
-      serviceItems: res.calc.serviceItems || [],
-      licItems: res.calc.licItems || [],
-    };
-    const prelim = false; // диагностику не навязываем
-    const costs = {
-      base: res.costs.base_rub,
-      diag: 0,
-      support: res.costs.support_rub,
-      total: res.costs.total_rub,
-    };
-    let hint = res.hint || 'Пакет и сумма рассчитаны по чек‑листу.';
-    const warnText = 'Комбо нестандартное, выбран ближайший пакет.';
-    if (hint.startsWith(warnText)) {
-      hint = hint.slice(warnText.length).trim() || 'Пакет и сумма рассчитаны по чек‑листу.';
-    }
-
-    lastResult = { prelim, pkg, calc, costs, hint };
-    renderFromCalc(pkg, calc, prelim, costs, hint);
-  } catch (e) {
-    console.warn('API v5 недоступен, считаю локально:', e);
-    _localUpdate();
-  }
+  _localUpdate();
 }
