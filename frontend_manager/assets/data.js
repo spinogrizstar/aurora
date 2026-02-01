@@ -9,16 +9,24 @@
 // ------------------------------------------------------------
 
 let _DATA = null;
+const DATA_URL = new URL('../data/data.json', import.meta.url);
+const CORE_PACKAGES_URL = new URL('../data/core_packages.json', import.meta.url);
 
 export async function loadData() {
   if (_DATA) return _DATA;
-  const res = await fetch('/data/data.json', { cache: 'no-store' });
-  if (!res.ok) {
-    throw new Error('Не удалось загрузить /data/data.json');
-  }
-  _DATA = await res.json();
   try {
-    const coreRes = await fetch('/data/core_packages.json', { cache: 'no-store' });
+    const res = await fetch(DATA_URL, { cache: 'no-store' });
+    if (!res.ok) {
+      _DATA = { __loadError: `Не удалось загрузить ${DATA_URL.pathname}` };
+      return _DATA;
+    }
+    _DATA = await res.json();
+  } catch (err) {
+    _DATA = { __loadError: `Ошибка загрузки ${DATA_URL.pathname}` };
+    return _DATA;
+  }
+  try {
+    const coreRes = await fetch(CORE_PACKAGES_URL, { cache: 'no-store' });
     if (coreRes.ok) {
       _DATA.core_packages = await coreRes.json();
     }

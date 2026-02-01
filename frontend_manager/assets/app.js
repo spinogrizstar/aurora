@@ -79,7 +79,7 @@ init().catch((err)=>{
       <b>Ошибка загрузки интерфейса</b>
       <div class="small" style="margin-top:8px;white-space:pre-wrap;">${escapeHtml(err?.message || err)}</div>
       <div class="small" style="margin-top:10px;opacity:.9;">
-        Быстрая проверка: открой <b>/data/data.json</b> — файл должен открываться.
+        Быстрая проверка: открой <b>frontend_manager/data/data.json</b> — файл должен открываться.
         Если он не открывается, значит проект распакован не полностью или не в ту папку.
       </div>
     </div>

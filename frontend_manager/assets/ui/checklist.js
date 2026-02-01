@@ -41,6 +41,16 @@ export function renderChecklist(update){
   checklistMain.innerHTML = '';
   checklistExtra.innerHTML = '';
 
+  if (DATA?.__loadError) {
+    const err = document.createElement('div');
+    err.className = 'alert red';
+    err.style.display = 'block';
+    err.innerHTML = `<b>Данные не загрузились</b><div class="small" style="margin-top:8px;">${DATA.__loadError}</div>`;
+    checklistMain.appendChild(err);
+    checklistExtra.innerHTML = '<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Проверьте, что папка <b>data</b> доступна рядом с index.html.</div>';
+    return;
+  }
+
   // 1) Быстрый выбор пакета (4 карточки)
   const sec1 = document.createElement('div');
   sec1.className='section';
@@ -60,11 +70,14 @@ export function renderChecklist(update){
   const isRetail = segs.some(s => s.includes('розниц'));
   const isWholesale = segs.some(s => s.includes('опт'));
   const isProducer = segs.some(s => s.includes('производ'));
-  let activeKey = '';
-  if (isRetail && !isWholesale && !isProducer) activeKey = 'retail_only';
-  if (isWholesale && !isRetail && !isProducer) activeKey = 'wholesale_only';
-  if (isProducer && !isRetail && !isWholesale) activeKey = 'producer_only';
-  if (isProducer && isRetail && !isWholesale) activeKey = 'producer_retail';
+  let activeKey = state.selectedPackageId || '';
+  if (!activeKey) {
+    if (isRetail && !isWholesale && !isProducer) activeKey = 'retail_only';
+    if (isWholesale && !isRetail && !isProducer) activeKey = 'wholesale_only';
+    if (isProducer && !isRetail && !isWholesale) activeKey = 'producer_only';
+    if (isProducer && isRetail && !isWholesale) activeKey = 'producer_retail';
+    if (activeKey) state.selectedPackageId = activeKey;
+  }
 
   packages.forEach(pkgCfg => {
     const pkg = pkgByKey(pkgCfg.key) || {};
@@ -84,6 +97,15 @@ export function renderChecklist(update){
     `;
     card.onclick = () => {
       state.segments = [...pkgCfg.segments];
+      state.selectedPackageId = pkgCfg.key;
+      const hours = quoteHours;
+      const totalRub = hours * 4950;
+      console.log('[Aurora] package selected', {
+        selectedPackageId: state.selectedPackageId,
+        segments: state.segments,
+        hours,
+        totalRub,
+      });
       renderChecklist(update);
       update();
     };
@@ -95,7 +117,7 @@ export function renderChecklist(update){
   // Если сегмент ещё не выбран — дальше ничего не показываем.
   if(!(state.segments||[]).length){
     _prevVis = { onec:false, kkt:false, addons:false, devices:false, orgs:false, products:false, scenarios:false, support:false, contacts:false };
-    checklistExtra.innerHTML = `<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Выбери сегмент слева — здесь появятся доп.факторы.</div>`;
+    checklistExtra.innerHTML = `<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Выберите тип клиента слева — здесь появятся доп.факторы.</div>`;
     return;
   }
 

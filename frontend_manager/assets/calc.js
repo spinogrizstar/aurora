@@ -288,6 +288,13 @@ function _choosePackageForSegment(seg, points) {
 }
 
 export function choosePackage(points) {
+  if (state.selectedPackageId) {
+    const corePkgs = _getCorePackages();
+    const direct = corePkgs.find(pkg => String(pkg?.id || pkg?.segment_key || '') === state.selectedPackageId);
+    if (direct) {
+      return { pkg: _normalizeCorePackage(direct), warning: '' };
+    }
+  }
   const core = _chooseCorePackage();
   if (core.pkg) return core;
 
