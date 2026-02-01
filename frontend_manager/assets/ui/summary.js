@@ -108,11 +108,11 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
     el.sumSupport.textContent = '0 ₽';
     el.sumServices.textContent = '0 ₽';
     el.sumLic.textContent = '0 ₽';
-    el.sumTotal.textContent = '0 ₽';
-    if (el.sumHours) el.sumHours.textContent = '0 ч';
-    if (el.pkgHours) el.pkgHours.textContent = '0 ч';
-    if (el.addonsHours) el.addonsHours.textContent = '0 ч';
-    if (el.totalHours) el.totalHours.textContent = '0 ч';
+    el.sumTotal.textContent = 'Выберите тип клиента';
+    if (el.sumHours) el.sumHours.textContent = '—';
+    if (el.pkgHours) el.pkgHours.textContent = '—';
+    if (el.addonsHours) el.addonsHours.textContent = '—';
+    if (el.totalHours) el.totalHours.textContent = '—';
     if (el.addonsList) renderKVList(el.addonsList, [], 'hours');
     renderList(el.pkgDetailed, []);
     renderKVList(el.servicesBreakdown, [], 'svc');

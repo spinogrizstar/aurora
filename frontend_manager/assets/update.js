@@ -9,6 +9,7 @@
 
 import { state } from './state.js';
 import { calcServicesAndLicenses, choosePackage, needDiagnostics, calcManagerTotals } from './calc.js';
+import { getDataSync } from './data.js';
 import { renderFromCalc } from './ui/summary.js';
 
 // Последний результат — нужен для «Скопировать КП / Запросить пресейл»
@@ -21,11 +22,11 @@ export let lastResult = {
   hint: '',
 };
 
-function _emptyState() {
+function _emptyState(hintText) {
   const calc = { points: 0, rub: 0, licRub: 0, serviceItems: [], licItems: [] };
   const costs = { base: 0, diag: 0, support: 0, total: 0 };
   const managerTotals = { base_hours: 0, addons_hours: 0, total_hours: 0, total_rub: 0, addons: [] };
-  const hint = 'Выбери сегмент слева — и мы покажем пакет, состав работ и расчёт.';
+  const hint = hintText || 'Выберите тип клиента слева — и мы покажем пакет, состав работ и расчёт.';
   lastResult = { prelim: false, pkg: null, calc, costs, managerTotals, hint };
   renderFromCalc(null, calc, false, costs, hint, managerTotals);
 }
@@ -51,9 +52,14 @@ function _localUpdate() {
 }
 
 export async function update() {
+  const DATA = getDataSync();
+  if (DATA?.__loadError) {
+    _emptyState('Данные не загрузились. Проверьте папку data/*.json — интерфейс работает, но без расчёта.');
+    return;
+  }
   // Пока сегмент не выбран — показываем пустое состояние.
-  if (!(state.segments || []).length) {
-    _emptyState();
+  if (!(state.segments || []).length || !state.selectedPackageId) {
+    _emptyState('Выберите тип клиента слева — и мы покажем пакет, состав работ и расчёт.');
     return;
   }
   _localUpdate();
