@@ -7,6 +7,9 @@
 - Состояние: `frontend_manager/assets/state.js`.
 - Расчёты: `frontend_manager/assets/calc.js`.
 
+## Запуск менеджера
+`frontend_manager/index.html` нельзя открывать напрямую через `file://` (двойной клик). Запускайте через HTTP (`start_localhost.bat` или `python -m http.server`), иначе модульные скрипты могут не загрузиться.
+
 ## Версия и чейнджлог
 - Текущая версия хранится в `VERSION.txt`.
 - После каждого изменения увеличивай версию:

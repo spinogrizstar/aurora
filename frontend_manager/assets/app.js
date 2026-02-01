@@ -24,6 +24,8 @@ import { initServiceGraphModal } from './ui/service_graph.js';
 import { el } from './dom.js';
 
 async function init() {
+  window.__AURORA_APP_BOOTED = true;
+
   // 1) Данные
   await loadData();
 
@@ -37,6 +39,7 @@ async function init() {
   // 3) Рендер + первый расчёт
   renderChecklist(update);
   await update();
+  window.__AURORA_APP_READY = true;
 }
 
 function applyManagerLayout() {

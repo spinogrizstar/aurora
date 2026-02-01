@@ -54,6 +54,9 @@ AURORA_USER=admin AURORA_PASS=secret \
 - `/manager` — менеджерский UI
 - `/admin` — админка
 
+## Важно про запуск менеджера
+`frontend_manager/index.html` нельзя открывать двойным кликом (через `file://`). Используйте HTTP‑запуск через `start_localhost.bat` или `python -m http.server`, иначе модульные скрипты и `fetch` могут не работать.
+
 ## API
 - `POST /calculate`
 - `GET /health`
