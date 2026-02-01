@@ -11,7 +11,7 @@
   <div class="top">
     <div>
       <h1>Менеджер — чек-лист → пакет + стоимость (v5)</h1>
-      <div class="subtitle">Перечень работ берём <b>из матрицы пакетов</b> (поле «Состав работ (детально)»). Никаких часов: только баллы сложности и понятные опции.</div>
+      <div class="subtitle">Перечень работ берём <b>из матрицы пакетов</b> (поле «Состав работ (детально)»). Показываем часы и итоговую стоимость без внутренних сущностей.</div>
     </div>
     <div class="badge">Матрица: <b>детализация включена</b></div>
   </div>
@@ -34,11 +34,6 @@
       <!-- Верх — итог и действия (фиксируем) -->
       <div class="stickyTop">
         <div class="total"><div>Итого</div><div class="v" id="sumTotal">0 ₽</div></div>
-        <div class="totalMeta">
-          <div class="small">Итого часов</div>
-          <div class="v" id="sumHours">0 ч</div>
-        </div>
-
         <div class="row" style="justify-content:flex-end;margin-top:10px;">
           <button class="btnMini" id="whyBtn" type="button" style="display:none;">Почему такая стоимость?</button>
           <button class="btnMini" id="matrixBtn" type="button" style="display:none;">Матрица услуг</button>
@@ -52,7 +47,6 @@
           <button class="btn" id="wordBtn" style="display:none">Скачать Word</button>
         </div>
 
-        <div class="small" style="margin-top:10px;">* Баллы конвертируются во внутреннюю стоимость. Клиенту коэффициенты не раскрываем.</div>
       </div>
 
       <!-- Ниже — детали и расчёт -->
@@ -97,8 +91,8 @@
         <div class="kv" style="margin-top:10px;"><span class="chip ok">Поддержка 5 дней</span><strong id="sumSupport">0 ₽</strong></div>
 
         <div class="section" style="margin-top:14px;padding-top:14px;">
-          <div class="secTitle"><h3 style="font-size:13px;">Услуги (баллы сложности)</h3><span class="tag">прозрачно</span></div>
-          <div class="sumline"><span>Доп.баллы</span><strong id="sumServices">0 ₽</strong></div>
+          <div class="secTitle"><h3 style="font-size:13px;">Услуги (доп.работы)</h3><span class="tag">прозрачно</span></div>
+          <div class="sumline"><span>Доп.работы</span><strong id="sumServices">0 ₽</strong></div>
           <ul class="list" id="servicesBreakdown"></ul>
           <div class="mini" style="margin-top:10px;">Ниже считаются только <b>доп.объекты</b> (2-я касса, 2-й сканер и т.п.).</div>
         </div>
