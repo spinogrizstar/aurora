@@ -368,22 +368,46 @@
   .ddItem:hover{background:rgba(255,255,255,.10)}
   .ddItem.on{background:rgba(125,211,252,.12)}
 
-  /* ККТ: строки и кнопки добавления (чтобы не «разваливалось»)
-     Если нужно поправить размеры/отступы — делай это здесь. */
-  .kktAddRow{margin-top:10px}
-  .kktList{margin-top:10px;display:flex;flex-direction:column;gap:10px}
-  .kktRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-  .kktRow .dd{min-width:240px}
-  .kktTypeRight{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-start}
-  .kktTypeRow .pillToggle{padding:8px 12px;font-size:12px}
-  .kktCountRow .stepper{min-width:130px;justify-content:space-between}
-  .kktHint{
-    font-size:12px;
-    color:var(--muted);
-    padding:6px 10px;
-    border-radius:12px;
-    border:1px dashed rgba(255,255,255,.14);
-    background:rgba(255,255,255,.04);
+  /* ККТ: компактная карточка */
+  .kktCard{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    padding:12px;
+    border-radius:16px;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.10);
+  }
+  .kktCardRow{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .kktRowLabel{
+    font-weight:800;
+    min-width:80px;
+    padding-top:2px;
+  }
+  .kktRowContent{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    flex:1;
+    min-width:220px;
+  }
+  .kktPills{display:flex;flex-wrap:wrap;gap:6px}
+  .kktPill{height:34px;padding:0 10px;font-size:11px}
+  .kktMeta{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+  .kktMeta.isHidden{display:none}
+  .kktMetaDesc{color:rgba(255,255,255,.55)}
+  .kktCountRow .stepper{min-width:120px;justify-content:space-between}
+  @media(max-width:640px){
+    .kktCardRow{flex-direction:column;align-items:flex-start}
+    .kktRowContent{width:100%;min-width:0}
+    .kktCountRow .stepper{width:100%}
+    .kktRowLabel{min-width:0}
   }
 
   /* producer product groups */

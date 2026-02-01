@@ -200,7 +200,7 @@ export function renderChecklist(update){
   // 2) ККТ (только для розницы)
   const sec2 = document.createElement('div');
   sec2.className='section';
-  sec2.innerHTML = `<div class="secTitle"><h3>ККТ</h3><span class="tag">кассы</span></div>`;
+  sec2.innerHTML = `<div class="secTitle"><h3>ККТ</h3></div>`;
   const box2 = document.createElement('div'); box2.className='opts';
   box2.style.marginTop='10px';
 
@@ -212,42 +212,75 @@ export function renderChecklist(update){
     state.kkt.type = types[0]?.id || 'other';
   }
 
-  const typeRow = document.createElement('div');
-  typeRow.className = 'opt kktTypeRow';
-  typeRow.innerHTML = `<div class="label"><div class="t">Тип ККТ</div><div class="d">Выберите тип кассы</div></div>`;
-  const typeRight = document.createElement('div');
-  typeRight.className = 'optRight kktTypeRight';
+  const card = document.createElement('div');
+  card.className = 'kktCard';
 
-  const hint = document.createElement('div');
-  hint.className = 'kktHint';
-  const renderHint = () => {
+  const shortLabels = { atol: 'АТОЛ', smart: 'Смарт', other: 'Прочие' };
+
+  const typeRow = document.createElement('div');
+  typeRow.className = 'kktCardRow kktTypeRow';
+  const typeLabel = document.createElement('div');
+  typeLabel.className = 'kktRowLabel';
+  typeLabel.textContent = 'Тип ККТ';
+
+  const typeRight = document.createElement('div');
+  typeRight.className = 'kktRowContent';
+  const pillWrap = document.createElement('div');
+  pillWrap.className = 'kktPills';
+
+  const meta = document.createElement('div');
+  meta.className = 'kktMeta';
+  const typeDesc = document.createElement('div');
+  typeDesc.className = 'kktMetaLine kktMetaDesc';
+  const prepLine = document.createElement('div');
+  prepLine.className = 'kktMetaLine kktPrep';
+  meta.appendChild(typeDesc);
+  meta.appendChild(prepLine);
+
+  const renderMeta = () => {
+    if (!state.kkt.type) {
+      meta.classList.add('isHidden');
+      typeDesc.textContent = '';
+      prepLine.textContent = '';
+      return;
+    }
     const current = types.find(t => t.id === state.kkt.type) || types[0];
-    hint.textContent = `Подготовка: +${Number(current?.prep_hours || 2)}ч/кассу`;
+    typeDesc.textContent = current?.label || '';
+    prepLine.textContent = `Подготовка: +${Number(current?.prep_hours || 2)}ч/кассу`;
+    meta.classList.remove('isHidden');
   };
 
   types.forEach(t => {
     const btn = document.createElement('button');
-    btn.className = 'pillToggle';
+    btn.className = 'pillToggle kktPill';
     btn.type = 'button';
-    btn.textContent = t.label;
+    btn.textContent = shortLabels[t.id] || t.label;
+    btn.title = t.label;
     btn.classList.toggle('on', state.kkt.type === t.id);
     btn.onclick = () => {
       state.kkt.type = t.id;
-      Array.from(typeRight.querySelectorAll('.pillToggle')).forEach(b => b.classList.remove('on'));
+      Array.from(pillWrap.querySelectorAll('.pillToggle')).forEach(b => b.classList.remove('on'));
       btn.classList.add('on');
-      renderHint();
+      renderMeta();
       update();
     };
-    typeRight.appendChild(btn);
+    pillWrap.appendChild(btn);
   });
-  renderHint();
-  typeRight.appendChild(hint);
+  renderMeta();
+
+  typeRight.appendChild(pillWrap);
+  typeRight.appendChild(meta);
+  typeRow.appendChild(typeLabel);
   typeRow.appendChild(typeRight);
-  box2.appendChild(typeRow);
+  card.appendChild(typeRow);
 
   const countRow = document.createElement('div');
-  countRow.className = 'opt kktCountRow';
-  countRow.innerHTML = `<div class="label"><div class="t">Касс</div><div class="d">Количество</div></div>`;
+  countRow.className = 'kktCardRow kktCountRow';
+  const countLabel = document.createElement('div');
+  countLabel.className = 'kktRowLabel';
+  countLabel.textContent = 'Касс';
+  const countRight = document.createElement('div');
+  countRight.className = 'kktRowContent';
   const step = document.createElement('div'); step.className = 'stepper';
   const minus = document.createElement('button'); minus.className = 'btnTiny'; minus.type = 'button'; minus.textContent = '−';
   const num = document.createElement('div'); num.className = 'stepNum'; num.textContent = String(state.kkt.count || 0);
@@ -268,6 +301,7 @@ export function renderChecklist(update){
       state.device_scanner = clamp(Math.max(scanners, state.kkt.count), 0, 99);
     }
     if (!hadType) {
+      renderMeta();
       renderChecklist(update);
       update();
       return;
@@ -276,8 +310,11 @@ export function renderChecklist(update){
     update();
   };
   step.appendChild(minus); step.appendChild(num); step.appendChild(plus);
-  countRow.appendChild(step);
-  box2.appendChild(countRow);
+  countRight.appendChild(step);
+  countRow.appendChild(countLabel);
+  countRow.appendChild(countRight);
+  card.appendChild(countRow);
+  box2.appendChild(card);
   sec2.appendChild(box2);
   revealAppend(sec2, 'kkt', vis.kkt, checklistExtra);
 
