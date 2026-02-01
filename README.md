@@ -16,6 +16,7 @@
    - `start_lan.bat` — доступно в домашней сети
    - `start_secure_localhost.bat` — localhost с паролем
    - `start_secure_lan.bat` — LAN с паролем
+   - `start_caddy_host.bat` — Caddy + backend в одном клике (см. ниже)
    - `start.bat` — меню со всеми вариантами
 
 Открой в браузере: `http://127.0.0.1:8000/`
@@ -67,6 +68,37 @@ AURORA_USER=admin AURORA_PASS=secret \
 - Запуск (localhost): `python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000`
 - Запуск (LAN): `python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000`
 
+## Caddy + запуск в один .bat
+Если Caddy лежит в `C:\caddy\caddy.exe`, а `Caddyfile` — в `C:\caddy\Caddyfile`, можно запускать всё одним файлом:
+
+- `start_caddy_host.bat`:
+  - Стартует Caddy.
+  - Стартует backend на `0.0.0.0:8000`.
+  - Через ~30 секунд делает запрос к `https://cheklistbit.ru` и пишет в CMD, работает сайт или нет.
+
+Если пути отличаются, открой `start_caddy_host.bat` и поправь:
+```
+set "PROJECT_DIR=D:\paket"
+set "CADDY_EXE=C:\caddy\caddy.exe"
+set "CADDYFILE=C:\caddy\Caddyfile"
+```
+
+## Как обновлять проект с GitHub (PyCharm/терминал)
+Открой терминал в PyCharm и выполни:
+
+```bat
+cd /d D:\paket
+git status
+git pull --rebase origin main
+```
+
+Если есть локальные изменения и `git pull` ругается, можно временно спрятать их:
+```bat
+git stash
+git pull --rebase origin main
+git stash pop
+```
+
 ## Планы
 - Поддерживать README актуальным при каждом изменении поведения/запуска.
 - Расширить документацию по правилам расчёта и примерам запросов.
@@ -76,4 +108,3 @@ AURORA_USER=admin AURORA_PASS=secret \
 - При каждом изменении запуска, зависимостей, эндпоинтов или UI — обновляйте соответствующие разделы.
 - Если меняются шаги установки/запуска, обновляйте **Быстрый старт** и **Частые команды**.
 - При добавлении новых модулей/страниц — обновляйте **Доступные страницы**.
-
