@@ -1,19 +1,79 @@
 # Aurora Checklist
 
-Мини‑проект: **FastAPI** (backend) + простая страница (frontend), раздаётся одним сервером.
+Мини‑проект: **FastAPI** (backend) + статичные фронтенды, раздаётся одним сервером.
+
+## Требования
+- Python 3.10+ (рекомендуется).
+- Windows (для .bat), либо любой ОС для запуска через `uvicorn`.
 
 ## Быстрый старт (Windows)
-1) `pip install -r requirements.txt`
+1) Установить зависимости:
+   ```bat
+   pip install -r requirements.txt
+   ```
 2) Запуск:
-- `start_localhost.bat` — только на этом ПК
-- `start_lan.bat` — доступно в домашней сети
+   - `start_localhost.bat` — доступ только на этом ПК
+   - `start_lan.bat` — доступно в домашней сети
+   - `start_secure_localhost.bat` — localhost с паролем
+   - `start_secure_lan.bat` — LAN с паролем
+   - `start.bat` — меню со всеми вариантами
 
 Открой в браузере: `http://127.0.0.1:8000/`
 
+## Запуск через командную строку (Linux/macOS/Windows)
+```bash
+python -m pip install -r requirements.txt
+python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Для доступа из LAN:
+```bash
+python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+## Парольная защита (BasicAuth)
+Если задать переменные окружения `AURORA_USER` и `AURORA_PASS`, сервер включает BasicAuth для всех маршрутов, кроме `/health`.
+
+Пример (Windows PowerShell):
+```powershell
+$env:AURORA_USER = "admin"
+$env:AURORA_PASS = "secret"
+python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Пример (bash):
+```bash
+AURORA_USER=admin AURORA_PASS=secret \
+  python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+## Доступные страницы
+- `/` — выбор роли (root UI)
+- `/client` — клиентский UI
+- `/manager` — менеджерский UI
+- `/admin` — админка
+
 ## API
 - `POST /calculate`
+- `GET /health`
 
-Пример JSON:
+Пример JSON для `/calculate`:
 ```json
 {"cashboxes": 3, "support": true}
 ```
+
+## Частые команды
+- Установка зависимостей: `python -m pip install -r requirements.txt`
+- Запуск (localhost): `python -m uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000`
+- Запуск (LAN): `python -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000`
+
+## Планы
+- Поддерживать README актуальным при каждом изменении поведения/запуска.
+- Расширить документацию по правилам расчёта и примерам запросов.
+- Добавить/обновить тесты и smoke‑проверки при изменениях в логике.
+
+## Как обновлять README
+- При каждом изменении запуска, зависимостей, эндпоинтов или UI — обновляйте соответствующие разделы.
+- Если меняются шаги установки/запуска, обновляйте **Быстрый старт** и **Частые команды**.
+- При добавлении новых модулей/страниц — обновляйте **Доступные страницы**.
+
