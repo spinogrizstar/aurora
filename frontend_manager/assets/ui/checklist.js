@@ -11,12 +11,11 @@
 import { el } from '../dom.js';
 import { state } from '../state.js';
 import { getDataSync } from '../data.js';
-import { DEVICE_CATALOG, CZ_GROUPS } from '../catalogs.js';
+import { CZ_GROUPS } from '../catalogs.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
-import { clamp, fmtRub, hasRetail, kktCount } from '../helpers.js';
+import { clamp, fmtRub } from '../helpers.js';
 import { mkDropdown } from '../components/dropdown.js';
-import { attachPopover } from '../components/popover.js';
-import { openInfoModal } from '../components/info_modal.js';
+import { applyPackagePreset, syncAutoServiceQuantities } from '../services.js';
 
 // Чтобы блоки “появлялись/убирались” анимацией, но при этом чекбоксы
 // реагировали МГНОВЕННО (без задержек после клика).
@@ -25,7 +24,7 @@ import { openInfoModal } from '../components/info_modal.js';
 // галочка ставилась через ~1 сек и казалось, что сайт лагает.
 // Теперь: перерисовываем сразу, а для скрываемых секций делаем
 // «анимацию выхода» (см. revealAppend ниже).
-let _prevVis = { onec:false, kkt:false, addons:false, devices:false, orgs:false, products:false, scenarios:false, support:false, contacts:false };
+let _prevVis = { onec:false, equipment:false, products:false, contacts:false, custom:false };
 
 // Главный рендер чек-листа.
 // update() передаём снаружи, чтобы избежать циклических импортов.
@@ -50,6 +49,13 @@ export function renderChecklist(update){
     checklistExtra.innerHTML = '<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Проверьте, что папка <b>data</b> доступна рядом с index.html.</div>';
     return;
   }
+
+  const getTotalKktCount = () => {
+    const regular = Number(state.kkt?.regularCount || 0);
+    const smart = Number(state.kkt?.smartCount || 0);
+    const other = Number(state.kkt?.otherCount || 0);
+    return regular + smart + other;
+  };
 
   // 1) Быстрый выбор пакета (4 карточки)
   const sec1 = document.createElement('div');
@@ -87,6 +93,15 @@ export function renderChecklist(update){
     card.onclick = () => {
       state.segments = [...pkgCfg.segments];
       state.selectedPackageId = pkgCfg.key;
+      state.scannersManuallySet = false;
+      if (getTotalKktCount() === 0) {
+        state.kkt.regularCount = 1;
+      }
+      if (!state.scannersManuallySet) {
+        state.device_scanner = Math.max(Number(state.device_scanner || 0), getTotalKktCount());
+      }
+      applyPackagePreset(pkgCfg.key);
+      syncAutoServiceQuantities();
       const hours = quoteHours;
       const totalRub = hours * 4950;
       console.log('[Aurora] package selected', {
@@ -105,7 +120,7 @@ export function renderChecklist(update){
 
   // Если сегмент ещё не выбран — дальше ничего не показываем.
   if(!(state.segments||[]).length){
-    _prevVis = { onec:false, kkt:false, addons:false, devices:false, orgs:false, products:false, scenarios:false, support:false, contacts:false };
+    _prevVis = { onec:false, equipment:false, products:false, contacts:false, custom:false };
     checklistExtra.innerHTML = `<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Выберите тип клиента слева — здесь появятся доп.факторы.</div>`;
     return;
   }
@@ -144,12 +159,6 @@ export function renderChecklist(update){
 
   // Что именно показывать
   const vis = visibilityFromState();
-  const getTotalKktCount = () => {
-    const regular = Number(state.kkt?.regularCount || 0);
-    const smart = Number(state.kkt?.smartCount || 0);
-    const other = Number(state.kkt?.otherCount || 0);
-    return regular + smart + other;
-  };
 
   // 1.5) Учётная система (1С)
   const secOneC = document.createElement('div');
@@ -203,10 +212,10 @@ export function renderChecklist(update){
   secOneC.appendChild(optsOneC);
   revealAppend(secOneC, 'onec', vis.onec, checklistMain);
 
-  // 2) ККТ
+  // 2) Оборудование (ККТ + сканеры)
   const sec2 = document.createElement('div');
   sec2.className='section';
-  sec2.innerHTML = `<div class="secTitle"><h3>ККТ</h3></div>`;
+  sec2.innerHTML = `<div class="secTitle"><h3>Оборудование</h3><span class="tag">счётчики</span></div>`;
   const box2 = document.createElement('div'); box2.className='opts';
   box2.style.marginTop='10px';
 
@@ -219,28 +228,28 @@ export function renderChecklist(update){
     {
       key: 'regularCount',
       title: 'Обычная касса (ФР/ККТ)',
-      note: 'Подготовка: +2ч/кассу',
+      note: 'Фактор для авто‑qty услуг',
       prepHours: 2,
       tooltip: 'ФР/обычная ККТ на ПК (драйвер/ФР). Подготовка обычно 2 часа.',
     },
     {
       key: 'smartCount',
       title: 'Смарт-терминал',
-      note: 'Подготовка: +3ч/кассу',
+      note: 'Фактор для авто‑qty услуг',
       prepHours: 3,
       tooltip: 'Эвотор/Сигма/MS POS и аналоги. Подготовка обычно 3 часа.',
     },
     {
       key: 'otherCount',
       title: 'Другая касса',
-      note: 'Подготовка: +2ч/кассу',
+      note: 'Фактор для авто‑qty услуг',
       prepHours: 2,
       tooltip: 'Штрих и прочие. Если нестандарт — отмечайте «Нестандарт/интеграции».',
     },
   ];
 
   const ensureScannerMin = (prevTotal, nextTotal) => {
-    if (nextTotal > prevTotal) {
+    if (nextTotal > prevTotal && !state.scannersManuallySet) {
       const scanners = Number(state.device_scanner || 0);
       state.device_scanner = clamp(Math.max(scanners, nextTotal), 0, 99);
     }
@@ -274,6 +283,7 @@ export function renderChecklist(update){
       state.kkt[type.key] = clamp((state.kkt[type.key] || 0) - 1, 0, 99);
       refresh();
       ensureScannerMin(prevTotal, getTotalKktCount());
+      syncAutoServiceQuantities();
       update();
     };
     plus.onclick = () => {
@@ -281,6 +291,7 @@ export function renderChecklist(update){
       state.kkt[type.key] = clamp((state.kkt[type.key] || 0) + 1, 0, 99);
       refresh();
       ensureScannerMin(prevTotal, getTotalKktCount());
+      syncAutoServiceQuantities();
       update();
     };
     step.appendChild(minus); step.appendChild(num); step.appendChild(plus);
@@ -291,173 +302,37 @@ export function renderChecklist(update){
   });
 
   box2.appendChild(card);
-  sec2.appendChild(box2);
-  revealAppend(sec2, 'kkt', vis.kkt, checklistExtra);
 
-  // 2.5) Доп.работы
-  const secAddons = document.createElement('div');
-  secAddons.className='section';
-  secAddons.innerHTML = `<div class="secTitle"><h3>Доп.работы</h3><span class="tag">опции</span></div>`;
-  const optsAddons = document.createElement('div'); optsAddons.className='opts';
-
-  const retailPackageIds = new Set(['retail_only', 'producer_retail']);
-  const hasRetailSegment = hasRetail() || retailPackageIds.has(String(state.selectedPackageId || ''));
-  const hasKkt = kktCount() > 0;
-  const showRegLk = hasRetailSegment;
-  const showKktPrepareMarking = hasRetailSegment || hasKkt;
-  if (!showRegLk && state.addons?.reg_lk_cz_retail) state.addons.reg_lk_cz_retail = false;
-  if (!showKktPrepareMarking && state.addons?.kkt_prepare_marking) state.addons.kkt_prepare_marking = false;
-
-  const addAddon = (key, title, desc, show = true)=>{
-    if (!show) return;
-    const row = document.createElement('div');
-    row.className = 'opt' + (state.addons?.[key] ? ' on' : '');
-    row.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="label"><div class="t">${title}</div><div class="d">${desc}</div></div>`;
-    row.onclick = () => {
-      state.addons[key] = !state.addons[key];
-      renderChecklist(update);
-      update();
-    };
-    optsAddons.appendChild(row);
-  };
-
-  addAddon('reg_lk_cz_retail', 'Рега в ЛК ЧЗ (розница)', '+1 час', showRegLk);
-  addAddon('integration_to_accounting', 'Интеграция с товароучёткой', '+3 часа', true);
-  addAddon('kkt_prepare_marking', 'Подготовка кассового оборудования для работы с маркировкой', '+3 часа', showKktPrepareMarking);
-
-  secAddons.appendChild(optsAddons);
-  revealAppend(secAddons, 'addons', (state.segments || []).length > 0, checklistExtra);
-
-  // 3) Устройства (сканеры/ТСД)
-  const secDev = document.createElement('div');
-  secDev.className='section';
-  secDev.innerHTML = `<div class="secTitle"><h3>Устройства</h3><span class="tag">счётчики</span></div>`;
-  const optsDev = document.createElement('div'); optsDev.className='opts';
-
-  const mkStepper = (title, getV, setV)=>{
-    const wrap = document.createElement('div'); wrap.className='opt';
-    wrap.innerHTML = `<div class="label"><div class="t">${title}</div><div class="d">Количество</div></div>`;
-    const step = document.createElement('div'); step.className='stepper';
-    const minus = document.createElement('button'); minus.className='btnTiny'; minus.type='button'; minus.textContent='−';
-    const num = document.createElement('div'); num.className='stepNum'; num.textContent=String(getV());
-    const plus = document.createElement('button'); plus.className='btnTiny'; plus.type='button'; plus.textContent='+';
-    const refresh = ()=>{ num.textContent = String(getV()); };
-    minus.onclick=()=>{ setV(getV()-1); refresh(); update(); };
-    plus.onclick=()=>{ setV(getV()+1); refresh(); update(); };
-    step.appendChild(minus); step.appendChild(num); step.appendChild(plus);
-    wrap.appendChild(step);
-    return wrap;
-  };
-
-  optsDev.appendChild(mkStepper('Сканеры (доп.)', ()=>Number(state.device_scanner||0), v=>{
-    const minScanners = getTotalKktCount();
-    state.device_scanner = clamp(v, minScanners, 99);
-  }));
-  optsDev.appendChild(mkStepper('ТСД (доп.)', ()=>Number(state.device_tsd||0), v=>{
-    state.device_tsd = clamp(v,0,99);
-    // Отображение мини-плана Клеверенса и доп.опций зависит от кол-ва ТСД,
-    // поэтому при изменении сразу перерисовываем чек-лист.
-    if (Number(state.device_tsd||0) <= 0) state.tsd_collective = false;
-    renderChecklist(update);
+  const scannerRow = document.createElement('div');
+  scannerRow.className = 'opt';
+  scannerRow.innerHTML = `<div class="label"><div class="t">Сканеры</div><div class="d">Количество (может быть меньше касс)</div></div>`;
+  const scannerStep = document.createElement('div'); scannerStep.className = 'stepper';
+  const scannerMinus = document.createElement('button'); scannerMinus.className = 'btnTiny'; scannerMinus.type = 'button'; scannerMinus.textContent = '−';
+  const scannerNum = document.createElement('div'); scannerNum.className = 'stepNum'; scannerNum.textContent = String(state.device_scanner || 0);
+  const scannerPlus = document.createElement('button'); scannerPlus.className = 'btnTiny'; scannerPlus.type = 'button'; scannerPlus.textContent = '+';
+  const refreshScanner = () => { scannerNum.textContent = String(state.device_scanner || 0); };
+  scannerMinus.onclick = () => {
+    state.scannersManuallySet = true;
+    state.device_scanner = clamp((state.device_scanner || 0) - 1, 0, 99);
+    refreshScanner();
+    syncAutoServiceQuantities();
     update();
-  }));
+  };
+  scannerPlus.onclick = () => {
+    state.scannersManuallySet = true;
+    state.device_scanner = clamp((state.device_scanner || 0) + 1, 0, 99);
+    refreshScanner();
+    syncAutoServiceQuantities();
+    update();
+  };
+  scannerStep.appendChild(scannerMinus);
+  scannerStep.appendChild(scannerNum);
+  scannerStep.appendChild(scannerPlus);
+  scannerRow.appendChild(scannerStep);
+  box2.appendChild(scannerRow);
 
-  // коллективная работа для Клеверенса — показываем только когда есть ТСД.
-  // Иначе пользователь тыкает «галку», а сумма не меняется (потому что ТСД=0).
-  if (Number(state.device_tsd || 0) > 0) {
-    const cl = document.createElement('div');
-    cl.className='opt' + (state.tsd_collective ? ' on' : '');
-    cl.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="label"><div class="t">Клеверенс: коллективная работа</div><div class="d">+25 000 ₽ × кол-во ТСД</div></div>`;
-    cl.onclick=()=>{ state.tsd_collective = !state.tsd_collective; renderChecklist(update); update(); };
-    optsDev.appendChild(cl);
-
-    // Мини-планы Клеверенса (информационно)
-    const plans = Array.isArray(DATA.cleverence_plans) ? DATA.cleverence_plans : [];
-    if (plans.length) {
-      // Подготовим опции для выпадашки
-      const items = plans.map(p => ({ value: p.id, label: p.name }));
-      // Если в state лежит неизвестное значение — нормализуем
-      if (!items.some(i => i.value === state.cleverence_plan)) state.cleverence_plan = items[0].value;
-
-      const planRow = document.createElement('div');
-      planRow.className='opt';
-      planRow.innerHTML = `<div class="label"><div class="t">План Клеверенса</div><div class="d">Что входит (подсказка)
-      </div></div>`;
-
-      const right = document.createElement('div');
-      right.style.display='flex';
-      right.style.gap='8px';
-      right.style.alignItems='center';
-
-      const dd = mkDropdown({
-        items,
-        value: state.cleverence_plan,
-        onChange: (v)=>{ state.cleverence_plan = v; update(); }
-      });
-
-      const info = document.createElement('button');
-      info.className='iconBtn';
-      info.type='button';
-      info.textContent='i';
-      info.title='Посмотреть, что входит'
-      info.onclick = () => {
-        const selected = plans.find(p => p.id === state.cleverence_plan) || plans[0];
-        openInfoModal(selected.name, { desc: selected.desc || '', items: selected.includes || [] });
-      };
-
-      // На ПК показываем состав плана при наведении.
-      attachPopover(info, () => {
-        const selected = plans.find(p => p.id === state.cleverence_plan) || plans[0];
-        return {
-          title: selected.name,
-          desc: selected.desc || '',
-          items: selected.includes || [],
-        };
-      });
-
-      right.appendChild(dd);
-      right.appendChild(info);
-      planRow.appendChild(right);
-      optsDev.appendChild(planRow);
-    }
-  } else {
-    state.tsd_collective = false;
-  }
-
-  secDev.appendChild(optsDev);
-  revealAppend(secDev, 'devices', vis.devices, checklistExtra);
-
-  // 4) Юрлица (показываем в ветках, где это нужно)
-  const secWh = document.createElement('div');
-  secWh.className='section';
-  secWh.innerHTML = `<div class="secTitle"><h3>Юрлица</h3><span class="tag">кол-во</span></div>`;
-  const optsWh = document.createElement('div'); optsWh.className='opts';
-
-  const chkOrg = document.createElement('div');
-  chkOrg.className = 'opt' + (state.multi_orgs ? ' on' : '');
-  chkOrg.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="label"><div class="t">Несколько юрлиц</div><div class="d">Появится счётчик</div></div>`;
-  chkOrg.onclick=()=>{ state.multi_orgs = !state.multi_orgs; if(!state.multi_orgs) state.org_count = 1; renderChecklist(update); update(); };
-  optsWh.appendChild(chkOrg);
-
-  if(state.multi_orgs){
-    const row = document.createElement('div');
-    row.className='opt';
-    row.innerHTML = `<div class="label"><div class="t">Количество юрлиц</div><div class="d">1..99</div></div>`;
-    const step = document.createElement('div'); step.className='stepper';
-    const minus = document.createElement('button'); minus.className='btnTiny'; minus.type='button'; minus.textContent='−'; minus.id='orgMinus';
-    const num = document.createElement('div'); num.className='stepNum'; num.textContent=String(state.org_count||1); num.id='orgNum';
-    const plus = document.createElement('button'); plus.className='btnTiny'; plus.type='button'; plus.textContent='+'; plus.id='orgPlus';
-    minus.onclick=()=>{ state.org_count = clamp((state.org_count||1)-1,1,99); num.textContent=String(state.org_count); update(); };
-    plus.onclick=()=>{ state.org_count = clamp((state.org_count||1)+1,1,99); num.textContent=String(state.org_count); update(); };
-    step.appendChild(minus); step.appendChild(num); step.appendChild(plus);
-    row.appendChild(step);
-    optsWh.appendChild(row);
-  }
-  secWh.appendChild(optsWh);
-  revealAppend(secWh, 'orgs', vis.orgs, checklistMain);
+  sec2.appendChild(box2);
+  revealAppend(sec2, 'equipment', vis.equipment, checklistExtra);
 
   // 5) Продукция (только производитель)
   const secProd = document.createElement('div');
@@ -556,47 +431,20 @@ export function renderChecklist(update){
   secProd.appendChild(optsProd);
   revealAppend(secProd, 'products', vis.products, checklistMain);
 
-  // 6) Сценарии
-  const sec4 = document.createElement('div');
-  sec4.className='section';
-  sec4.innerHTML = `<div class="secTitle"><h3>Сценарии</h3><span class="tag">галочки</span></div>
+  // 6) Нестандарт/интеграции (маркер пресейла)
+  const secCustom = document.createElement('div');
+  secCustom.className='section';
+  secCustom.innerHTML = `<div class="secTitle"><h3>Нестандарт/интеграции</h3><span class="tag">маркер</span></div>
     <div class="mini markerNote">Маркер проекта (не влияет на итоговую стоимость).</div>`;
-  const opts4 = document.createElement('div'); opts4.className='opts';
-
-  const mkOpt = (flag, title, desc, isVisible=true)=>{
-    if(!isVisible) return;
-    const row = document.createElement('div');
-    row.className = 'opt' + (state[flag] ? ' on' : '');
-    row.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="label"><div class="t">${title}</div><div class="d">${desc}</div></div>`;
-    row.onclick=()=>{ state[flag] = !state[flag]; renderChecklist(update); update(); };
-    opts4.appendChild(row);
-  };
-
-  mkOpt('has_edo','ЭДО подключено','маркер по ЭДО (только опт/производство)');
-  mkOpt('needs_rework','Остатки/перемаркировка/вывод','маркер сложных операций');
-  // Агрегация — только для опта/производителя (по твоему правилу)
-  mkOpt('needs_aggregation','Агрегация/КИТУ','маркер (только опт/производство)', vis.wholesaleAgg);
-  mkOpt('big_volume','Большие объёмы','маркер объёмов/автоматизации');
-  mkOpt('producer_codes','Заказ/нанесение кодов','маркер (только производитель/импортёр)', vis.products);
-  mkOpt('custom_integration','Нестандарт/интеграции','маркер проекта (не влияет на итоговую стоимость)');
-
-  sec4.appendChild(opts4);
-  revealAppend(sec4, 'scenarios', vis.scenarios, checklistExtra);
-
-  // 7) Поддержка
-  const secSup = document.createElement('div');
-  secSup.className='section';
-  secSup.innerHTML = `<div class="secTitle"><h3>Поддержка</h3><span class="tag">опция</span></div>`;
-  const optsSup = document.createElement('div'); optsSup.className='opts';
-  const rowSup = document.createElement('div');
-  rowSup.className='opt' + (state.support ? ' on' : '');
-  rowSup.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="label"><div class="t">${DATA.support_label || 'Поддержка'}</div><div class="d">учитывается в расчёте</div></div>`;
-  rowSup.onclick=()=>{ state.support=!state.support; renderChecklist(update); update(); };
-  optsSup.appendChild(rowSup);
-  secSup.appendChild(optsSup);
-  revealAppend(secSup, 'support', vis.support, checklistExtra);
+  const optsCustom = document.createElement('div'); optsCustom.className='opts';
+  const rowCustom = document.createElement('div');
+  rowCustom.className = 'opt' + (state.custom_integration ? ' on' : '');
+  rowCustom.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="label"><div class="t">Нестандарт/интеграции</div><div class="d">маркер проекта (без влияния на часы)</div></div>`;
+  rowCustom.onclick=()=>{ state.custom_integration = !state.custom_integration; renderChecklist(update); update(); };
+  optsCustom.appendChild(rowCustom);
+  secCustom.appendChild(optsCustom);
+  revealAppend(secCustom, 'custom', vis.custom, checklistExtra);
 
   // 8) Данные + цель
   const sec7 = document.createElement('div');

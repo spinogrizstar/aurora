@@ -244,6 +244,27 @@
   .sumline strong{color:rgba(255,255,255,.92)}
   .total{margin-top:12px;padding:14px;border-radius:16px;background:linear-gradient(90deg,rgba(125,211,252,.16),rgba(167,139,250,.14));border:1px solid rgba(125,211,252,.22);display:flex;align-items:center;justify-content:space-between;gap:10px}
   .total .v{font-size:22px;font-weight:900}
+  .servicesHead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .toggle input{accent-color:#7dd3fc}
+  .servicesList{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+  .serviceGroup{border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.05)}
+  .serviceGroupHead{width:100%;border:none;background:transparent;color:var(--text);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;font-weight:800;cursor:pointer}
+  .serviceGroupChevron{opacity:.6;transition:transform .2s ease}
+  .serviceGroup.collapsed .serviceGroupChevron{transform:rotate(-90deg)}
+  .serviceGroupList{display:flex;flex-direction:column;gap:10px;padding:10px 12px 14px;border-top:1px dashed var(--line)}
+  .serviceGroup.collapsed .serviceGroupList{display:none}
+  .serviceRow{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(90px,.6fr) auto minmax(80px,.4fr);gap:10px;align-items:center}
+  .serviceTitle{font-weight:700;display:flex;align-items:center;gap:8px}
+  .serviceAuto{font-size:11px;color:var(--muted);border:1px dashed var(--line);padding:2px 6px;border-radius:999px}
+  .serviceUnit{font-size:12px;color:var(--muted)}
+  .serviceTotal{font-weight:800;text-align:right}
+  .servicesTotals{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+  @media(max-width:720px){
+    .serviceRow{grid-template-columns:1fr}
+    .serviceTotal{text-align:left}
+    .serviceRow .stepper{width:100%;justify-content:space-between}
+  }
   .totalMeta{margin-top:8px;padding:10px 12px;border-radius:14px;border:1px dashed rgba(255,255,255,.18);background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:space-between;gap:10px}
   .totalMeta .v{font-size:16px;font-weight:800}
   .btnRow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}

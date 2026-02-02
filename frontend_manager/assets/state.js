@@ -9,6 +9,11 @@ export const state = {
   selectedPackageId: '',
   // 1) Сегменты (можно выбрать несколько)
   segments: [],
+  services: [],
+  servicesDetailed: false,
+  servicesPackageId: '',
+  servicesGroupsCollapsed: {},
+  scannersManuallySet: false,
 
   // 2) ККТ: смесь типов (по количеству).
   kkt: {
@@ -19,13 +24,6 @@ export const state = {
   uses_kkt: true,
   kkt_rereg: true,
   needs_rr: true,
-
-  // Доп.работы (галочки)
-  addons: {
-    reg_lk_cz_retail: false,
-    integration_to_accounting: false,
-    kkt_prepare_marking: false,
-  },
 
   // 4) Устройства: два счётчика (можно мешать)
   device_scanner: 0,
@@ -48,20 +46,8 @@ export const state = {
     actual: true,
   },
 
-  // 5) Юрлица
-  multi_orgs: false,
-  org_count: 1,
-
   // 5) Сценарии / сложности
-  has_edo: true,
-  needs_rework: false,
-  needs_aggregation: false, // показываем только для опта/производства
-  big_volume: false,
-  producer_codes: false,
   custom_integration: false,
-
-  // 6) Поддержка
-  support: false,
 
   // 7) Контакты / цель
   contacts: {
