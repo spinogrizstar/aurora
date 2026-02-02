@@ -39,6 +39,7 @@ async function init() {
   // 3) Рендер + первый расчёт
   renderChecklist(update);
   await update();
+  window.__AURORA_APP_UPDATE = update;
   window.__AURORA_APP_READY = true;
 }
 

@@ -11,9 +11,9 @@
   <div class="top">
     <div>
       <h1>Менеджер — чек-лист → пакет + стоимость (v5)</h1>
-      <div class="subtitle">Перечень работ берём <b>из матрицы пакетов</b> (поле «Состав работ (детально)»). Показываем часы и итоговую стоимость без внутренних сущностей.</div>
+      <div class="subtitle">Пакет задаёт <b>пресет услуг</b>, количество услуг можно менять вручную. Итог считаем как сумму по услугам.</div>
     </div>
-    <div class="badge">Матрица: <b>детализация включена</b></div>
+    <div class="badge">Услуги: <b>пресеты + ручное количество</b></div>
   </div>
 
   <div class="grid" id="grid3">
@@ -71,37 +71,17 @@
       </div>
 
       <div class="card">
-        <h3>Итого по часам</h3>
-        <div class="kv"><span class="chip ok">Часы пакета</span><strong id="pkgHours">0 ч</strong></div>
-        <div class="kv" style="margin-top:10px;"><span class="chip warn">Часы допов</span><strong id="addonsHours">0 ч</strong></div>
-        <div class="kv" style="margin-top:10px;" hidden><span class="chip warn">Подготовка кассы</span><strong id="kktPrepHours">0 ч</strong></div>
-        <div class="kv" style="margin-top:10px;"><span class="chip ok">Всего часов</span><strong id="totalHours">0 ч</strong></div>
-        <div class="mini" style="margin-top:12px;">Включённые доп.работы:</div>
-        <ul class="list" id="addonsList"></ul>
-      </div>
-
-      <div class="card" style="display:none">
-        <h3>Что входит (детально)</h3>
-        <ul class="list" id="pkgDetailed"></ul>
-      </div>
-
-      <div class="card" style="display:none">
-        <h3>Расчёт</h3>
-        <div class="kv"><span class="chip ok">База пакета</span><strong id="sumBase">0 ₽</strong></div>
-        <div class="kv" style="margin-top:10px;"><span class="chip warn">Диагностика ККТ</span><strong id="sumDiag">0 ₽</strong></div>
-        <div class="kv" style="margin-top:10px;"><span class="chip ok">Поддержка 5 дней</span><strong id="sumSupport">0 ₽</strong></div>
-
-        <div class="section" style="margin-top:14px;padding-top:14px;">
-          <div class="secTitle"><h3 style="font-size:13px;">Услуги (доп.работы)</h3><span class="tag">прозрачно</span></div>
-          <div class="sumline"><span>Доп.работы</span><strong id="sumServices">0 ₽</strong></div>
-          <ul class="list" id="servicesBreakdown"></ul>
-          <div class="mini" style="margin-top:10px;">Ниже считаются только <b>доп.объекты</b> (2-я касса, 2-й сканер и т.п.).</div>
+        <div class="servicesHead">
+          <h3>Услуги</h3>
+          <label class="toggle">
+            <input type="checkbox" id="servicesToggle" />
+            <span>Детализация услуг</span>
+          </label>
         </div>
-
-        <div class="section">
-          <div class="secTitle"><h3 style="font-size:13px;">ПО и лицензии</h3><span class="tag">отдельно</span></div>
-          <div class="sumline"><span>Лицензии/ПО</span><strong id="sumLic">0 ₽</strong></div>
-          <ul class="list" id="licBreakdown"></ul>
+        <div class="servicesList" id="servicesList"></div>
+        <div class="servicesTotals">
+          <div class="sumline"><span>Всего часов</span><strong id="servicesTotalHours">0 ч</strong></div>
+          <div class="sumline"><span>Итого ₽</span><strong id="servicesTotalRub">0 ₽</strong></div>
         </div>
       </div>
     </div>

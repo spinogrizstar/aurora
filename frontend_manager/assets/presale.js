@@ -6,21 +6,18 @@
 // ------------------------------------------------------------
 
 import { state } from './state.js';
-import { fmtRub, segText, kktCount, kktCounts, deviceCounts, devicesPayload } from './helpers.js';
-import { pointsToRub } from './calc.js';
+import { fmtRub, segText, kktCount, deviceCounts, devicesPayload } from './helpers.js';
 import { el } from './dom.js';
 import { lastResult } from './update.js';
+import { calcServiceTotals } from './services.js';
 
 export function buildPresaleText() {
   const pkg = lastResult?.pkg;
-  const calc = lastResult?.calc;
   const prelim = lastResult?.prelim;
-  const diag = lastResult?.costs?.diag || 0;
-  const support = lastResult?.costs?.support || 0;
-  const total = lastResult?.costs?.total || 0;
+  const totals = calcServiceTotals(state.services || []);
+  const total = totals.totalRub || 0;
 
   const kktCnt = kktCount();
-  const kktByType = kktCounts();
   const dc = deviceCounts();
 
   const segLow = (state.segments || []).map(x => String(x).toLowerCase());
@@ -33,25 +30,20 @@ export function buildPresaleText() {
     `Сегменты: ${segText()}`,
     `Пакет: ${prelim ? 'предварительно ' : ''}${pkg?.name || '—'}`,
     `ККТ: ${kktCnt} (используется: ${state.uses_kkt ? 'да' : 'нет'})`,
-    ...(kktCnt > 0
-      ? [`ККТ по типам: обычные ${kktByType.regular}, смарт ${kktByType.smart}, другие ${kktByType.other}`]
-      : []),
-    `Юрлица: ${state.org_count}`,
-    `Устройства: Сканеры ×${dc.scanners}, ТСД ×${dc.tsd}` + ((dc.tsd && state.tsd_collective) ? ' (коллективная работа)' : ''),
+    `Сканеры: ${dc.scanners || 0}`,
     ...(isProducer ? [
       `Товарные группы (ЧЗ): ${prodCats.length ? prodCats.join(', ') : '—'}`,
       ...(prodComment ? ['Комментарий по продукции:', prodComment] : []),
     ] : []),
-    `Поддержка 5 дней: ${state.support ? 'да' : 'нет'}`,
     `Нестандарт/интеграции: ${state.custom_integration ? 'да' : 'нет'}`,
     '',
-    'Факторы стоимости:'
+    'Услуги и объём:'
   ];
 
-  if (prelim) lines.push(`- Диагностика ККТ: ${fmtRub(diag)}`);
-  if (support) lines.push(`- Поддержка 5 дней: ${fmtRub(support)}`);
-  (calc?.serviceItems || []).forEach(x => lines.push(`- Услуги: ${x.label} (${fmtRub(pointsToRub(x.pts))})`));
-  (calc?.licItems || []).forEach(x => lines.push(`- Лицензии: ${x.label} (${fmtRub(x.rub)})`));
+  (state.services || []).forEach(svc => {
+    const hours = Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0);
+    lines.push(`- ${svc.title}: ${svc.qty || 0} × ${svc.hoursPerUnit} ч = ${hours} ч`);
+  });
 
   const c = state.contacts || {};
   if ((c.legal_name || c.inn || c.contact_name || c.phone || c.email || c.desired_result)) {
@@ -64,7 +56,8 @@ export function buildPresaleText() {
     if (c.desired_result) lines.push('', 'Желаемый результат:', c.desired_result);
   }
 
-  lines.push('', `Итого (предварительно): ${fmtRub(total)}`);
+  lines.push('', `Всего часов: ${totals.totalHours || 0} ч`);
+  lines.push(`Итого (предварительно): ${fmtRub(total)}`);
   return lines.join('\n');
 }
 

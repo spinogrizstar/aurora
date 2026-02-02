@@ -60,7 +60,6 @@ export function deviceCounts() {
 }
 
 export function devicesPayload() {
-  // Для API отправляем массив устройств.
   const { scanners, tsd } = deviceCounts();
   const arr = [];
   for (let i = 0; i < scanners; i++) arr.push({ type: 'scanner' });
@@ -70,11 +69,6 @@ export function devicesPayload() {
 
 export function hasRetail() {
   return (state.segments || []).some(x => String(x).toLowerCase().includes('розниц'));
-}
-
-export function hasWholesaleOrProducer() {
-  const segs = (state.segments || []).map(x => String(x).toLowerCase());
-  return segs.some(s => s.includes('опт')) || segs.some(s => s.includes('производ'));
 }
 
 export function hasProducer() {

@@ -12,7 +12,7 @@
 
 import { getDataSync } from './data.js';
 import { state } from './state.js';
-import { deviceCounts, kktCount, hasProducer, hasWholesaleOrProducer } from './helpers.js';
+import { calcServiceTotals } from './services.js';
 
 const CORE_PRICE_PER_POINT = 4950;
 
@@ -35,132 +35,17 @@ function _segFlags() {
 }
 
 export function calcServicesAndLicenses() {
-  const DATA = getDataSync();
-  const pm = DATA.points_model || {};
-
-  const serviceItems = [];
-  const licItems = [];
-
-  const addSvc = (label, pts) => {
-    const p = Number(pts || 0);
-    if (p > 0) serviceItems.push({ label, pts: p });
-  };
-  const addLic = (label, rub) => {
-    const r = Number(rub || 0);
-    if (r > 0) licItems.push({ label, rub: r });
-  };
-
-  // --- ККТ ---
-  const kc = kktCount();
-  const extraKkt = Math.max(0, kc - 1);
-  if (state.kkt_rereg && extraKkt > 0) {
-    addSvc(`Доп.кассы: перерегистрация/подготовка ККТ (+${extraKkt})`, extraKkt * Number(pm.kkt_rereg_points_per_kkt || 0));
-  }
-  if (state.needs_rr && extraKkt > 0) {
-    addSvc(`Доп.кассы: Разрешительный режим (РР) (+${extraKkt})`, extraKkt * Number(pm.rr_points_per_kkt || 0));
-  }
-
-  // --- Юрлица ---
-  const extraOrg = Math.max(0, Number(state.org_count || 1) - 1);
-  if (extraOrg > 0) {
-    addSvc(`Доп.юрлица (+${extraOrg})`, extraOrg * Number(pm.org_points_per_extra || 0));
-  }
-
-  // --- Устройства ---
-  const dc = deviceCounts();
-  const extraScanner = Math.max(0, dc.scanners - 1);
-  if (extraScanner > 0) {
-    addSvc(`Доп.сканеры (+${extraScanner})`, extraScanner * Number(pm.scanner_setup_points_per_scanner || 0));
-  }
-
-  if (dc.tsd > 0) {
-    let rub = dc.tsd * Number(pm.tsd_license_rub || 0);
-    if (state.tsd_collective) rub += dc.tsd * Number(pm.collective_tsd_license_rub || 0);
-    addLic(
-      `Клеверенс: лицензия ТСД ×${dc.tsd}` + (state.tsd_collective ? ' + коллективная работа' : ''),
-      rub,
-    );
-  }
-
-  // --- Сегменты и сценарии ---
-  const { isWholesale, isProducer } = _segFlags();
-  if (!state.has_edo && (isWholesale || isProducer)) {
-    addSvc('Нет ЭДО (опт/производство)', Number(pm.no_edo_wholesale_points || 0));
-  }
-  if (state.needs_rework) {
-    addSvc('Остатки/перемаркировка/вывод из оборота', Number(pm.rework_points || 0));
-  }
-  if (state.needs_aggregation) {
-    addSvc('Агрегация/КИТУ', Number(pm.aggregation_points || 0));
-  }
-  if (state.big_volume) {
-    addSvc('Большие объёмы/автоматизация', Number(pm.big_volume_points || 0));
-  }
-  if (isProducer && state.producer_codes) {
-    addSvc('Заказ кодов/нанесение', Number(pm.producer_codes_points || 0));
-  }
-  if (state.custom_integration) {
-    addSvc('Нестандарт/интеграции (маркер проекта)', Number(pm.custom_project_marker_points || 0));
-  }
-
-  const points = serviceItems.reduce((s, x) => s + Number(x.pts || 0), 0);
-  const rub = pointsToRub(points);
-  const licRub = licItems.reduce((s, x) => s + Number(x.rub || 0), 0);
-  return { serviceItems, licItems, points, rub, licRub };
+  return { serviceItems: [], licItems: [], points: 0, rub: 0, licRub: 0 };
 }
 
-export function calcManagerTotals(currentState, data, corePackages) {
-  const DATA = data || getDataSync();
-  const packages = Array.isArray(corePackages)
-    ? corePackages
-    : (DATA?.core_packages?.packages || []);
-  const selectedId = String(currentState?.selectedPackageId || '');
-  const selectedPkg = packages.find(pkg => String(pkg?.id || pkg?.segment_key || '') === selectedId) || null;
-  const packageHours = Number(selectedPkg?.quote_hours || 0);
-  const dataError = !packageHours && selectedPkg
-    ? 'В данных пакета не задано quote_hours'
-    : '';
-
-  if (dataError) {
-    console.error('[Aurora] core package missing quote_hours', selectedPkg);
-  }
-
-  const regularCount = Number(currentState?.kkt?.regularCount || 0);
-  const smartCount = Number(currentState?.kkt?.smartCount || 0);
-  const otherCount = Number(currentState?.kkt?.otherCount || 0);
-  const kktHoursByType = {
-    regular: regularCount * 2,
-    smart: smartCount * 3,
-    other: otherCount * 2,
-  };
-  const kktPrepareHours = kktHoursByType.regular + kktHoursByType.smart + kktHoursByType.other;
-
-  const addons = {
-    reg_lk: currentState?.addons?.reg_lk_cz_retail ? 1 : 0,
-    integration: currentState?.addons?.integration_to_accounting ? 3 : 0,
-    kkt_prepare_marking: currentState?.addons?.kkt_prepare_marking ? 3 : 0,
-  };
-  const addonHours = Object.values(addons).reduce((sum, hours) => sum + Number(hours || 0), 0);
-  const totalHours = packageHours + addonHours + kktPrepareHours;
-  const rubPerHour = Number(DATA.rub_per_point || CORE_PRICE_PER_POINT);
-  const totalRub = totalHours * rubPerHour;
-
+export function calcManagerTotals(currentState) {
+  const totals = calcServiceTotals(currentState?.services || []);
+  const totalHours = totals.totalHours || 0;
+  const totalRub = totals.totalRub || 0;
   return {
-    packageHours,
-    addonHours,
     totalHours,
     totalRub,
-    error: dataError,
-    breakdown: {
-      addons,
-      kkt: {
-        regularCount,
-        smartCount,
-        otherCount,
-        hoursByType: kktHoursByType,
-        totalKktPrepareHours: kktPrepareHours,
-      },
-    },
+    error: '',
   };
 }
 
@@ -323,7 +208,7 @@ export function buildCosts(pkg, calc) {
   const DATA = getDataSync();
   const base = Number(pkg?.price || 0);
   const diag = needDiagnostics() ? Number(DATA.diag_price_rub || 0) : 0;
-  const support = state.support ? pointsToRub(Number(DATA.support_points || 0)) : 0;
+  const support = 0;
   const total = base + diag + support + Number(calc.rub || 0) + Number(calc.licRub || 0);
   return { base, diag, support, total };
 }

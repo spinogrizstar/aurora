@@ -5,14 +5,16 @@
 
 import { el } from '../dom.js';
 import { fmtRub, splitToBullets, segText, kktCount, deviceCounts } from '../helpers.js';
-import { needDiagnostics, pointsToRub } from '../calc.js';
+import { needDiagnostics } from '../calc.js';
 import { state } from '../state.js';
 import { getDataSync } from '../data.js';
 import { openInfoModal } from '../components/info_modal.js';
 import { openServiceGraphModal } from './service_graph.js';
 import { attachPopover } from '../components/popover.js';
+import { applyPackagePreset } from '../services.js';
 
 export function renderList(ul, items) {
+  if (!ul) return;
   ul.innerHTML = '';
   (items || []).forEach(t => {
     const li = document.createElement('li');
@@ -21,24 +23,141 @@ export function renderList(ul, items) {
   });
 }
 
-export function renderKVList(ul, items, kind) {
-  ul.innerHTML = '';
-  (items || []).forEach(it => {
-    const li = document.createElement('li');
-    const a = document.createElement('span');
-    a.textContent = it.label;
-    const b = document.createElement('span');
-  if (kind === 'lic') {
-    b.textContent = fmtRub(it.rub);
-  } else if (kind === 'svc') {
-    b.textContent = fmtRub(pointsToRub(it.pts));
-  } else if (kind === 'hours') {
-    b.textContent = `+${it.hours} ч`;
-  }
-    li.appendChild(a);
-    li.appendChild(b);
-    ul.appendChild(li);
+function fmtHours(value) {
+  const n = Number(value || 0);
+  return Number.isInteger(n) ? `${n} ч` : `${n.toFixed(1)} ч`;
+}
+
+function fmtHoursInline(value) {
+  const n = Number(value || 0);
+  return Number.isInteger(n) ? `${n}` : n.toFixed(1);
+}
+
+function groupServices(services) {
+  const grouped = new Map();
+  (services || []).forEach((svc) => {
+    const group = svc.group || 'Прочее';
+    if (!grouped.has(group)) grouped.set(group, []);
+    grouped.get(group).push(svc);
   });
+  return grouped;
+}
+
+function renderServicesList() {
+  if (!el.servicesList) return;
+  el.servicesList.innerHTML = '';
+
+  const grouped = groupServices(state.services || []);
+  grouped.forEach((items, group) => {
+    const groupWrap = document.createElement('div');
+    groupWrap.className = 'serviceGroup';
+
+    const header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'serviceGroupHead';
+    header.innerHTML = `<span>${group}</span><span class="serviceGroupChevron">▾</span>`;
+
+    const collapsed = !!state.servicesGroupsCollapsed?.[group];
+    groupWrap.classList.toggle('collapsed', collapsed);
+    header.onclick = () => {
+      state.servicesGroupsCollapsed = state.servicesGroupsCollapsed || {};
+      state.servicesGroupsCollapsed[group] = !state.servicesGroupsCollapsed[group];
+      renderServicesList();
+    };
+
+    const list = document.createElement('div');
+    list.className = 'serviceGroupList';
+
+    items.forEach((svc) => {
+      const row = document.createElement('div');
+      row.className = 'serviceRow';
+
+      const title = document.createElement('div');
+      title.className = 'serviceTitle';
+      title.textContent = svc.title;
+
+      if (svc.isAuto) {
+        const auto = document.createElement('span');
+        auto.className = 'serviceAuto';
+        auto.textContent = 'авто';
+        title.appendChild(auto);
+      }
+
+      const perUnit = document.createElement('div');
+      perUnit.className = 'serviceUnit';
+      perUnit.textContent = `${fmtHoursInline(svc.hoursPerUnit)} ч/ед`;
+
+      const stepper = document.createElement('div');
+      stepper.className = 'stepper';
+      const minus = document.createElement('button');
+      minus.type = 'button';
+      minus.className = 'btnTiny';
+      minus.textContent = '−';
+      const qty = document.createElement('div');
+      qty.className = 'stepNum';
+      qty.textContent = String(svc.qty || 0);
+      const plus = document.createElement('button');
+      plus.type = 'button';
+      plus.className = 'btnTiny';
+      plus.textContent = '+';
+
+      const updateQty = (delta) => {
+        const next = Math.max(0, Number(svc.qty || 0) + delta);
+        svc.qty = Math.trunc(next);
+        svc.manuallySet = true;
+        svc.isAuto = false;
+        qty.textContent = String(svc.qty);
+      };
+
+      minus.onclick = () => {
+        updateQty(-1);
+        if (window.__AURORA_APP_UPDATE) {
+          window.__AURORA_APP_UPDATE();
+        } else {
+          renderServicesTotals();
+        }
+      };
+      plus.onclick = () => {
+        updateQty(1);
+        if (window.__AURORA_APP_UPDATE) {
+          window.__AURORA_APP_UPDATE();
+        } else {
+          renderServicesTotals();
+        }
+      };
+
+      stepper.appendChild(minus);
+      stepper.appendChild(qty);
+      stepper.appendChild(plus);
+
+      const rowTotal = document.createElement('div');
+      rowTotal.className = 'serviceTotal';
+      const rowHours = Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0);
+      rowTotal.textContent = fmtHours(rowHours);
+
+      row.appendChild(title);
+      row.appendChild(perUnit);
+      row.appendChild(stepper);
+      row.appendChild(rowTotal);
+
+      list.appendChild(row);
+    });
+
+    groupWrap.appendChild(header);
+    groupWrap.appendChild(list);
+    el.servicesList.appendChild(groupWrap);
+  });
+}
+
+function renderServicesTotals() {
+  const totalHours = (state.services || []).reduce((sum, svc) => {
+    return sum + Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0);
+  }, 0);
+  const totalRub = totalHours * 4950;
+
+  if (el.servicesTotalHours) el.servicesTotalHours.textContent = fmtHours(totalHours);
+  if (el.servicesTotalRub) el.servicesTotalRub.textContent = fmtRub(totalRub);
+  if (el.sumTotal) el.sumTotal.textContent = fmtRub(totalRub);
 }
 
 function resolvePackage(pkg) {
@@ -102,7 +221,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   const pkgView = resolvePackage(selectedPkg);
   // Шапка
   el.segBadge.textContent = segText();
-  const totals = managerTotals || { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: {}, kkt: {} } };
+  const totals = managerTotals || { totalHours: 0, totalRub: 0, error: '' };
 
   if (!pkgView) {
     // Сбрасываем заголовок (и возможную кнопку «подробнее»)
@@ -111,22 +230,15 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
     el.pkgPills.innerHTML = '';
     el.pkgPills.style.display = 'none';
     el.diagBanner.style.display = 'none';
-    el.sumBase.textContent = '0 ₽';
-    el.sumDiag.textContent = '0 ₽';
-    el.sumSupport.textContent = '0 ₽';
-    el.sumServices.textContent = '0 ₽';
-    el.sumLic.textContent = '0 ₽';
     el.sumTotal.textContent = 'Выберите тип клиента';
-    if (el.sumHours) el.sumHours.textContent = '—';
-    if (el.pkgHours) el.pkgHours.textContent = '—';
-    if (el.addonsHours) el.addonsHours.textContent = '—';
-    if (el.totalHours) el.totalHours.textContent = '—';
-    if (el.kktPrepHours) el.kktPrepHours.textContent = '—';
-    if (el.kktPrepHours) el.kktPrepHours.closest('.kv')?.setAttribute('hidden', '');
-    if (el.addonsList) renderKVList(el.addonsList, [], 'hours');
+    if (el.servicesList) el.servicesList.innerHTML = '';
+    if (el.servicesTotalHours) el.servicesTotalHours.textContent = '—';
+    if (el.servicesTotalRub) el.servicesTotalRub.textContent = '—';
+    if (el.servicesToggle) {
+      el.servicesToggle.checked = !!state.servicesDetailed;
+      el.servicesToggle.disabled = true;
+    }
     renderList(el.pkgDetailed, []);
-    renderKVList(el.servicesBreakdown, [], 'svc');
-    renderKVList(el.licBreakdown, [], 'lic');
     if (el.recRow) el.recRow.hidden = false;
     el.recHint.textContent = hint || 'Выбери сегмент слева — и мы покажем пакет и расчёт.';
     el.projAlert.style.display = 'none';
@@ -155,7 +267,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   const whoParts = [];
   if (pkgView.who) whoParts.push(`Для кого: ${pkgView.who}`);
   const dc = deviceCounts();
-  whoParts.push(`Сканеры: ${dc.scanners || 0} · ТСД: ${dc.tsd || 0}`);
+  whoParts.push(`ККТ: ${kktCount()} · Сканеры: ${dc.scanners || 0}`);
   el.pkgWho.textContent = whoParts.join(' · ');
 
   // Плашки
@@ -163,66 +275,49 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   el.pkgPills.style.display = 'none';
 
   // Детализация пакета
-  if (Array.isArray(pkgView.groups) && pkgView.groups.length) {
-    el.pkgDetailed.innerHTML = '';
-    pkgView.groups.forEach(group => {
-      const li = document.createElement('li');
-      li.textContent = buildGroupSummary([group])[0] || group.name;
-      if (group.details && group.details.length) {
-        li.style.cursor = 'pointer';
-        li.title = 'Нажмите, чтобы увидеть детали группы';
-        li.onclick = () => {
-          const items = (group.details || []).map(d => `${d.text}`);
-          openInfoModal(group.name || 'Группа работ', {
-            desc: group.note || '',
-            items,
-          });
-        };
-      }
-      el.pkgDetailed.appendChild(li);
-    });
-  } else {
-    const det = splitToBullets(pkgView.detail);
-    renderList(el.pkgDetailed, det.length ? det : splitToBullets(pkgView.inc));
+  if (el.pkgDetailed) {
+    if (Array.isArray(pkgView.groups) && pkgView.groups.length) {
+      el.pkgDetailed.innerHTML = '';
+      pkgView.groups.forEach(group => {
+        const li = document.createElement('li');
+        li.textContent = buildGroupSummary([group])[0] || group.name;
+        if (group.details && group.details.length) {
+          li.style.cursor = 'pointer';
+          li.title = 'Нажмите, чтобы увидеть детали группы';
+          li.onclick = () => {
+            const items = (group.details || []).map(d => `${d.text}`);
+            openInfoModal(group.name || 'Группа работ', {
+              desc: group.note || '',
+              items,
+            });
+          };
+        }
+        el.pkgDetailed.appendChild(li);
+      });
+    } else {
+      const det = splitToBullets(pkgView.detail);
+      renderList(el.pkgDetailed, det.length ? det : splitToBullets(pkgView.inc));
+    }
   }
 
   // Диагностика (сейчас выключена)
   el.diagBanner.style.display = (needDiagnostics() ? 'block' : 'none');
 
   // Суммы
-  el.sumBase.textContent = fmtRub(costs.base);
-  el.sumDiag.textContent = fmtRub(costs.diag || 0);
-  el.sumSupport.textContent = fmtRub(costs.support || 0);
-  el.sumServices.textContent = fmtRub(calc.rub || 0);
-  el.sumLic.textContent = fmtRub(calc.licRub || 0);
-  el.sumTotal.textContent = fmtRub(totals.totalRub || costs.total || 0);
-  if (el.sumHours) el.sumHours.textContent = `${totals.totalHours || 0} ч`;
-  if (el.pkgHours) el.pkgHours.textContent = `${totals.packageHours || 0} ч`;
-  if (el.addonsHours) el.addonsHours.textContent = `${totals.addonHours || 0} ч`;
-  if (el.totalHours) el.totalHours.textContent = `${totals.totalHours || 0} ч`;
-  if (el.kktPrepHours) {
-    const kkt = totals.breakdown?.kkt || {};
-    const kktPrep = Number(kkt.totalKktPrepareHours || 0);
-    const parts = [];
-    if (Number(kkt.regularCount || 0) > 0) parts.push(`обыч: ${kkt.regularCount}×2ч`);
-    if (Number(kkt.smartCount || 0) > 0) parts.push(`смарт: ${kkt.smartCount}×3ч`);
-    if (Number(kkt.otherCount || 0) > 0) parts.push(`др: ${kkt.otherCount}×2ч`);
-    const detail = parts.length ? ` (${parts.join(', ')})` : '';
-    el.kktPrepHours.textContent = `${kktPrep} ч${detail}`;
-    el.kktPrepHours.closest('.kv')?.toggleAttribute('hidden', kktPrep <= 0);
-  }
-  if (el.addonsList) {
-    const addons = totals.breakdown?.addons || {};
-    const items = [
-      addons.reg_lk ? { label: 'Рега в ЛК ЧЗ (розница)', hours: addons.reg_lk } : null,
-      addons.integration ? { label: 'Интеграция с товароучёткой', hours: addons.integration } : null,
-      addons.kkt_prepare_marking ? { label: 'Подготовка кассового оборудования для работы с маркировкой', hours: addons.kkt_prepare_marking } : null,
-    ].filter(Boolean);
-    renderKVList(el.addonsList, items, 'hours');
+  el.sumTotal.textContent = fmtRub(totals.totalRub || 0);
+
+  if (el.servicesToggle) {
+    el.servicesToggle.checked = !!state.servicesDetailed;
+    el.servicesToggle.disabled = false;
+    el.servicesToggle.onchange = () => {
+      state.servicesDetailed = !!el.servicesToggle.checked;
+      applyPackagePreset(state.selectedPackageId);
+      if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
+    };
   }
 
-  renderKVList(el.servicesBreakdown, calc.serviceItems || [], 'svc');
-  renderKVList(el.licBreakdown, calc.licItems || [], 'lic');
+  renderServicesList();
+  renderServicesTotals();
 
   el.recHint.textContent = hint || (prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.');
   el.projAlert.style.display = state.custom_integration ? 'block' : 'none';
@@ -310,47 +405,21 @@ function _wireWhyButton(pkg, calc, costs, totals) {
       onecStr = `${name} (${act})`;
     } catch (e) {}
 
-    // Клеверенс-план (информационно)
-    let clevStr = '—';
-    try {
-      const plans = Array.isArray(DATA.cleverence_plans) ? DATA.cleverence_plans : [];
-      const p = plans.find(x => x.id === state.cleverence_plan);
-      clevStr = p ? p.name : (state.cleverence_plan || '—');
-    } catch (e) {}
-
     const dc = deviceCounts();
     const segs = (state.segments || []).join(', ') || '—';
-
-    // Сценарии/флаги (только включённые)
-    const flags = [];
-    if (state.support) flags.push('Поддержка 5 дней');
-    if (state.has_edo === false) flags.push('Нет ЭДО');
-    if (state.needs_rework) flags.push('Остатки/перемаркировка/вывод из оборота');
-    if (state.needs_aggregation) flags.push('Агрегация/КИТУ');
-    if (state.big_volume) flags.push('Большие объёмы/автоматизация');
-    if (state.producer_codes) flags.push('Заказ кодов/нанесение');
-    if (state.custom_integration) flags.push('Нестандарт/интеграции (похоже на проект)');
 
     const items = [];
     items.push(`Сегменты: ${segs}`);
     items.push(`1С: ${onecStr}`);
-    items.push(`Юрлица: ${Number(state.org_count || 1)} · ККТ: ${kktCount()}`);
-    items.push(`Устройства: сканеры ${dc.scanners || 0}, ТСД ${dc.tsd || 0}${state.tsd_collective ? ' (коллективная)' : ''}`);
-    if ((dc.tsd || 0) > 0) items.push(`Клеверенс (план): ${clevStr}`);
-    if (flags.length) items.push(`Флаги: ${flags.join(' · ')}`);
-
-    const kkt = totals?.breakdown?.kkt || {};
-    const kktParts = [];
-    if (Number(kkt.regularCount || 0) > 0) kktParts.push(`обыч: ${kkt.regularCount}×2ч`);
-    if (Number(kkt.smartCount || 0) > 0) kktParts.push(`смарт: ${kkt.smartCount}×3ч`);
-    if (Number(kkt.otherCount || 0) > 0) kktParts.push(`др: ${kkt.otherCount}×2ч`);
+    items.push(`ККТ: ${kktCount()} · Сканеры: ${dc.scanners || 0}`);
+    if (state.custom_integration) items.push('Маркер: нестандарт/интеграции');
 
     items.push('────────');
-    items.push(`Пакет: ${pkg.name || '—'} = ${totals?.packageHours || 0} ч`);
-    if (totals?.addonHours) items.push(`Доп.работы (галочки) = ${totals.addonHours} ч`);
-    if (totals?.breakdown?.kkt?.totalKktPrepareHours) {
-      items.push(`Подготовка кассы = ${totals.breakdown.kkt.totalKktPrepareHours} ч${kktParts.length ? ` (${kktParts.join(', ')})` : ''}`);
-    }
+    items.push(`Пакет: ${pkg.name || '—'}`);
+    (state.services || []).forEach(svc => {
+      const rowHours = Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0);
+      items.push(`- ${svc.title}: ${svc.qty || 0} × ${fmtHoursInline(svc.hoursPerUnit)} ч = ${fmtHoursInline(rowHours)} ч`);
+    });
 
     items.push('────────');
     items.push(`ИТОГО: ${totals?.totalHours || 0} ч × 4 950 ₽ = ${fmtRub(totals?.totalRub || 0)}`);
