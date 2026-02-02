@@ -11,7 +11,7 @@
 import { el } from '../dom.js';
 import { state } from '../state.js';
 import { getDataSync } from '../data.js';
-import { KKT_TYPES, DEVICE_CATALOG, CZ_GROUPS } from '../catalogs.js';
+import { DEVICE_CATALOG, CZ_GROUPS } from '../catalogs.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
 import { clamp, fmtRub, hasRetail, kktCount } from '../helpers.js';
 import { mkDropdown } from '../components/dropdown.js';
@@ -71,7 +71,7 @@ export function renderChecklist(update){
   packages.forEach(pkgCfg => {
     const pkg = pkgByKey(pkgCfg.key) || {};
     const title = pkg.title || pkgCfg.title;
-    const quoteHours = Number(pkg.quote_hours || pkg.total_points || pkgCfg.quote_hours || 0);
+    const quoteHours = Number(pkg.quote_hours || 0);
     const price = quoteHours * 4950;
 
     const card = document.createElement('button');
@@ -144,6 +144,12 @@ export function renderChecklist(update){
 
   // Что именно показывать
   const vis = visibilityFromState();
+  const getTotalKktCount = () => {
+    const regular = Number(state.kkt?.regularCount || 0);
+    const smart = Number(state.kkt?.smartCount || 0);
+    const other = Number(state.kkt?.otherCount || 0);
+    return regular + smart + other;
+  };
 
   // 1.5) Учётная система (1С)
   const secOneC = document.createElement('div');
@@ -197,123 +203,93 @@ export function renderChecklist(update){
   secOneC.appendChild(optsOneC);
   revealAppend(secOneC, 'onec', vis.onec, checklistMain);
 
-  // 2) ККТ (только для розницы)
+  // 2) ККТ
   const sec2 = document.createElement('div');
   sec2.className='section';
   sec2.innerHTML = `<div class="secTitle"><h3>ККТ</h3></div>`;
   const box2 = document.createElement('div'); box2.className='opts';
   box2.style.marginTop='10px';
 
-  const types = Array.isArray(KKT_TYPES) && KKT_TYPES.length
-    ? KKT_TYPES
-    : [{ id: 'other', label: 'Прочие ККТ', prep_hours: 2 }];
-  if (!state.kkt) state.kkt = { type: null, count: 0 };
-  if (state.kkt.type && !types.some(t => t.id === state.kkt.type)) {
-    state.kkt.type = types[0]?.id || 'other';
-  }
+  if (!state.kkt) state.kkt = { regularCount: 0, smartCount: 0, otherCount: 0 };
 
   const card = document.createElement('div');
   card.className = 'kktCard';
 
-  const shortLabels = { atol: 'АТОЛ', smart: 'Смарт', other: 'Прочие' };
+  const kktTypes = [
+    {
+      key: 'regularCount',
+      title: 'Обычная касса (ФР/ККТ)',
+      note: 'Подготовка: +2ч/кассу',
+      prepHours: 2,
+      tooltip: 'ФР/обычная ККТ на ПК (драйвер/ФР). Подготовка обычно 2 часа.',
+    },
+    {
+      key: 'smartCount',
+      title: 'Смарт-терминал',
+      note: 'Подготовка: +3ч/кассу',
+      prepHours: 3,
+      tooltip: 'Эвотор/Сигма/MS POS и аналоги. Подготовка обычно 3 часа.',
+    },
+    {
+      key: 'otherCount',
+      title: 'Другая касса',
+      note: 'Подготовка: +2ч/кассу',
+      prepHours: 2,
+      tooltip: 'Штрих и прочие. Если нестандарт — отмечайте «Нестандарт/интеграции».',
+    },
+  ];
 
-  const typeRow = document.createElement('div');
-  typeRow.className = 'kktCardRow kktTypeRow';
-  const typeLabel = document.createElement('div');
-  typeLabel.className = 'kktRowLabel';
-  typeLabel.textContent = 'Тип ККТ';
-
-  const typeRight = document.createElement('div');
-  typeRight.className = 'kktRowContent';
-  const pillWrap = document.createElement('div');
-  pillWrap.className = 'kktPills';
-
-  const meta = document.createElement('div');
-  meta.className = 'kktMeta';
-  const typeDesc = document.createElement('div');
-  typeDesc.className = 'kktMetaLine kktMetaDesc';
-  const prepLine = document.createElement('div');
-  prepLine.className = 'kktMetaLine kktPrep';
-  meta.appendChild(typeDesc);
-  meta.appendChild(prepLine);
-
-  const renderMeta = () => {
-    if (!state.kkt.type) {
-      meta.classList.add('isHidden');
-      typeDesc.textContent = '';
-      prepLine.textContent = '';
-      return;
+  const ensureScannerMin = (prevTotal, nextTotal) => {
+    if (nextTotal > prevTotal) {
+      const scanners = Number(state.device_scanner || 0);
+      state.device_scanner = clamp(Math.max(scanners, nextTotal), 0, 99);
     }
-    const current = types.find(t => t.id === state.kkt.type) || types[0];
-    typeDesc.textContent = current?.label || '';
-    prepLine.textContent = `Подготовка: +${Number(current?.prep_hours || 2)}ч/кассу`;
-    meta.classList.remove('isHidden');
   };
 
-  types.forEach(t => {
-    const btn = document.createElement('button');
-    btn.className = 'pillToggle kktPill';
-    btn.type = 'button';
-    btn.textContent = shortLabels[t.id] || t.label;
-    btn.title = t.label;
-    btn.classList.toggle('on', state.kkt.type === t.id);
-    btn.onclick = () => {
-      state.kkt.type = t.id;
-      Array.from(pillWrap.querySelectorAll('.pillToggle')).forEach(b => b.classList.remove('on'));
-      btn.classList.add('on');
-      renderMeta();
+  kktTypes.forEach((type) => {
+    const row = document.createElement('div');
+    row.className = 'kktCardRow kktCountRow';
+
+    const label = document.createElement('div');
+    label.className = 'kktRowLabel';
+    const title = document.createElement('div');
+    title.className = 'kktRowTitle';
+    title.textContent = type.title;
+    title.title = type.tooltip;
+    const note = document.createElement('div');
+    note.className = 'kktRowNote';
+    note.textContent = type.note;
+    label.appendChild(title);
+    label.appendChild(note);
+
+    const right = document.createElement('div');
+    right.className = 'kktRowContent';
+    const step = document.createElement('div'); step.className = 'stepper';
+    const minus = document.createElement('button'); minus.className = 'btnTiny'; minus.type = 'button'; minus.textContent = '−';
+    const num = document.createElement('div'); num.className = 'stepNum'; num.textContent = String(state.kkt?.[type.key] || 0);
+    const plus = document.createElement('button'); plus.className = 'btnTiny'; plus.type = 'button'; plus.textContent = '+';
+    const refresh = () => { num.textContent = String(state.kkt?.[type.key] || 0); };
+    minus.onclick = () => {
+      const prevTotal = getTotalKktCount();
+      state.kkt[type.key] = clamp((state.kkt[type.key] || 0) - 1, 0, 99);
+      refresh();
+      ensureScannerMin(prevTotal, getTotalKktCount());
       update();
     };
-    pillWrap.appendChild(btn);
-  });
-  renderMeta();
-
-  typeRight.appendChild(pillWrap);
-  typeRight.appendChild(meta);
-  typeRow.appendChild(typeLabel);
-  typeRow.appendChild(typeRight);
-  card.appendChild(typeRow);
-
-  const countRow = document.createElement('div');
-  countRow.className = 'kktCardRow kktCountRow';
-  const countLabel = document.createElement('div');
-  countLabel.className = 'kktRowLabel';
-  countLabel.textContent = 'Касс';
-  const countRight = document.createElement('div');
-  countRight.className = 'kktRowContent';
-  const step = document.createElement('div'); step.className = 'stepper';
-  const minus = document.createElement('button'); minus.className = 'btnTiny'; minus.type = 'button'; minus.textContent = '−';
-  const num = document.createElement('div'); num.className = 'stepNum'; num.textContent = String(state.kkt.count || 0);
-  const plus = document.createElement('button'); plus.className = 'btnTiny'; plus.type = 'button'; plus.textContent = '+';
-  const refresh = () => { num.textContent = String(state.kkt.count || 0); };
-  minus.onclick = () => {
-    state.kkt.count = clamp((state.kkt.count || 0) - 1, 0, 99);
-    refresh();
-    update();
-  };
-  plus.onclick = () => {
-    const prev = Number(state.kkt.count || 0);
-    state.kkt.count = clamp(prev + 1, 0, 99);
-    const hadType = !!state.kkt.type;
-    if (!state.kkt.type) state.kkt.type = types[0]?.id || 'other';
-    if (state.kkt.count > prev) {
-      const scanners = Number(state.device_scanner || 0);
-      state.device_scanner = clamp(Math.max(scanners, state.kkt.count), 0, 99);
-    }
-    if (!hadType) {
-      renderMeta();
-      renderChecklist(update);
+    plus.onclick = () => {
+      const prevTotal = getTotalKktCount();
+      state.kkt[type.key] = clamp((state.kkt[type.key] || 0) + 1, 0, 99);
+      refresh();
+      ensureScannerMin(prevTotal, getTotalKktCount());
       update();
-      return;
-    }
-    refresh();
-    update();
-  };
-  step.appendChild(minus); step.appendChild(num); step.appendChild(plus);
-  countRight.appendChild(step);
-  countRow.appendChild(countLabel);
-  countRow.appendChild(countRight);
-  card.appendChild(countRow);
+    };
+    step.appendChild(minus); step.appendChild(num); step.appendChild(plus);
+    right.appendChild(step);
+    row.appendChild(label);
+    row.appendChild(right);
+    card.appendChild(row);
+  });
+
   box2.appendChild(card);
   sec2.appendChild(box2);
   revealAppend(sec2, 'kkt', vis.kkt, checklistExtra);
@@ -374,7 +350,10 @@ export function renderChecklist(update){
     return wrap;
   };
 
-  optsDev.appendChild(mkStepper('Сканеры (доп.)', ()=>Number(state.device_scanner||0), v=>{ state.device_scanner = clamp(v,0,99);}));
+  optsDev.appendChild(mkStepper('Сканеры (доп.)', ()=>Number(state.device_scanner||0), v=>{
+    const minScanners = getTotalKktCount();
+    state.device_scanner = clamp(v, minScanners, 99);
+  }));
   optsDev.appendChild(mkStepper('ТСД (доп.)', ()=>Number(state.device_tsd||0), v=>{
     state.device_tsd = clamp(v,0,99);
     // Отображение мини-плана Клеверенса и доп.опций зависит от кол-ва ТСД,
@@ -580,7 +559,8 @@ export function renderChecklist(update){
   // 6) Сценарии
   const sec4 = document.createElement('div');
   sec4.className='section';
-  sec4.innerHTML = `<div class="secTitle"><h3>Сценарии</h3><span class="tag">галочки</span></div>`;
+  sec4.innerHTML = `<div class="secTitle"><h3>Сценарии</h3><span class="tag">галочки</span></div>
+    <div class="mini markerNote">Маркер проекта (не влияет на итоговую стоимость).</div>`;
   const opts4 = document.createElement('div'); opts4.className='opts';
 
   const mkOpt = (flag, title, desc, isVisible=true)=>{
@@ -593,13 +573,13 @@ export function renderChecklist(update){
     opts4.appendChild(row);
   };
 
-  mkOpt('has_edo','ЭДО подключено','если нет — добавим сложность (только опт/производство)');
-  mkOpt('needs_rework','Остатки/перемаркировка/вывод','доп.работы');
+  mkOpt('has_edo','ЭДО подключено','маркер по ЭДО (только опт/производство)');
+  mkOpt('needs_rework','Остатки/перемаркировка/вывод','маркер сложных операций');
   // Агрегация — только для опта/производителя (по твоему правилу)
-  mkOpt('needs_aggregation','Агрегация/КИТУ','только опт/производство', vis.wholesaleAgg);
-  mkOpt('big_volume','Большие объёмы','много документов/автоматизация');
-  mkOpt('producer_codes','Заказ/нанесение кодов','только производитель/импортёр', vis.products);
-  mkOpt('custom_integration','Нестандарт/интеграции','маркер проекта (уводим на пресейл)');
+  mkOpt('needs_aggregation','Агрегация/КИТУ','маркер (только опт/производство)', vis.wholesaleAgg);
+  mkOpt('big_volume','Большие объёмы','маркер объёмов/автоматизации');
+  mkOpt('producer_codes','Заказ/нанесение кодов','маркер (только производитель/импортёр)', vis.products);
+  mkOpt('custom_integration','Нестандарт/интеграции','маркер проекта (не влияет на итоговую стоимость)');
 
   sec4.appendChild(opts4);
   revealAppend(sec4, 'scenarios', vis.scenarios, checklistExtra);

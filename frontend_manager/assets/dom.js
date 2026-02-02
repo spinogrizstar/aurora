@@ -19,6 +19,7 @@ export const el = {
   recHint: document.getElementById('recHint'),
   diagBanner: document.getElementById('diagBanner'),
   projAlert: document.getElementById('projAlert'),
+  packageDataAlert: document.getElementById('packageDataAlert'),
 
   sumBase: document.getElementById('sumBase'),
   sumDiag: document.getElementById('sumDiag'),

@@ -10,10 +10,11 @@ export const state = {
   // 1) Сегменты (можно выбрать несколько)
   segments: [],
 
-  // 2) ККТ: выбранный тип и количество касс.
+  // 2) ККТ: смесь типов (по количеству).
   kkt: {
-    type: null, // 'atol' | 'smart' | 'other'
-    count: 0,
+    regularCount: 0,
+    smartCount: 0,
+    otherCount: 0,
   },
   uses_kkt: true,
   kkt_rereg: true,
