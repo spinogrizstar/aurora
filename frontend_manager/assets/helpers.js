@@ -38,7 +38,18 @@ export function segText() {
 }
 
 export function kktCount() {
-  return Number(state.kkt?.count || 0);
+  const regular = Number(state.kkt?.regularCount || 0);
+  const smart = Number(state.kkt?.smartCount || 0);
+  const other = Number(state.kkt?.otherCount || 0);
+  return regular + smart + other;
+}
+
+export function kktCounts() {
+  return {
+    regular: Number(state.kkt?.regularCount || 0),
+    smart: Number(state.kkt?.smartCount || 0),
+    other: Number(state.kkt?.otherCount || 0),
+  };
 }
 
 export function deviceCounts() {

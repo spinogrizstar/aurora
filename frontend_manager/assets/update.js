@@ -18,14 +18,14 @@ export let lastResult = {
   pkg: null,
   calc: { points: 0, rub: 0, licRub: 0, serviceItems: [], licItems: [] },
   costs: { base: 0, diag: 0, support: 0, total: 0 },
-  managerTotals: { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: [], kktPrepareHours: 0 } },
+  managerTotals: { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: {}, kkt: {} } },
   hint: '',
 };
 
 function _emptyState(hintText) {
   const calc = { points: 0, rub: 0, licRub: 0, serviceItems: [], licItems: [] };
   const costs = { base: 0, diag: 0, support: 0, total: 0 };
-  const managerTotals = { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: [], kktPrepareHours: 0 } };
+  const managerTotals = { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: {}, kkt: {} } };
   const hint = hintText || 'Выберите тип клиента слева — и мы покажем пакет, состав работ и расчёт.';
   lastResult = { prelim: false, pkg: null, calc, costs, managerTotals, hint };
   renderFromCalc(null, calc, false, costs, hint, managerTotals);

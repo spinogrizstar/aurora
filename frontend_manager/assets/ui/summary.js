@@ -47,7 +47,7 @@ function resolvePackage(pkg) {
   const corePkgs = DATA.core_packages?.packages || [];
   const name = pkg.title || pkg.name;
   const normalizeName = (value) => String(value || '').replace(/прозводитель/gi, 'Производитель');
-  const quoteHours = (p) => Number(p?.quote_hours || p?.total_points || 0);
+  const quoteHours = (p) => Number(p?.quote_hours || 0);
   const priceFallback = (p) => {
     const hours = quoteHours(p);
     return hours ? hours * 4950 : 0;
@@ -102,7 +102,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   const pkgView = resolvePackage(selectedPkg);
   // Шапка
   el.segBadge.textContent = segText();
-  const totals = managerTotals || { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: [], kktPrepareHours: 0 } };
+  const totals = managerTotals || { packageHours: 0, addonHours: 0, totalHours: 0, totalRub: 0, breakdown: { addons: {}, kkt: {} } };
 
   if (!pkgView) {
     // Сбрасываем заголовок (и возможную кнопку «подробнее»)
@@ -130,6 +130,10 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
     if (el.recRow) el.recRow.hidden = false;
     el.recHint.textContent = hint || 'Выбери сегмент слева — и мы покажем пакет и расчёт.';
     el.projAlert.style.display = 'none';
+    if (el.packageDataAlert) {
+      el.packageDataAlert.style.display = 'none';
+      el.packageDataAlert.textContent = '';
+    }
 
     // Кнопка «Почему такая стоимость?» скрыта, пока нет пакета.
     if (el.whyBtn) {
@@ -197,18 +201,23 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   if (el.addonsHours) el.addonsHours.textContent = `${totals.addonHours || 0} ч`;
   if (el.totalHours) el.totalHours.textContent = `${totals.totalHours || 0} ч`;
   if (el.kktPrepHours) {
-    const kktPrep = Number(totals.breakdown?.kktPrepareHours || 0);
-    const kktCountValue = Number(totals.breakdown?.kktCount || 0);
-    const perUnit = Number(totals.breakdown?.kktPreparePerUnit || 0);
-    const detail = (kktCountValue > 0 && perUnit > 0) ? ` (${kktCountValue} касс × ${perUnit} ч)` : '';
+    const kkt = totals.breakdown?.kkt || {};
+    const kktPrep = Number(kkt.totalKktPrepareHours || 0);
+    const parts = [];
+    if (Number(kkt.regularCount || 0) > 0) parts.push(`обыч: ${kkt.regularCount}×2ч`);
+    if (Number(kkt.smartCount || 0) > 0) parts.push(`смарт: ${kkt.smartCount}×3ч`);
+    if (Number(kkt.otherCount || 0) > 0) parts.push(`др: ${kkt.otherCount}×2ч`);
+    const detail = parts.length ? ` (${parts.join(', ')})` : '';
     el.kktPrepHours.textContent = `${kktPrep} ч${detail}`;
     el.kktPrepHours.closest('.kv')?.toggleAttribute('hidden', kktPrep <= 0);
   }
   if (el.addonsList) {
-    const items = (totals.breakdown?.addons || []).map(item => ({
-      label: item.label,
-      hours: item.hours,
-    }));
+    const addons = totals.breakdown?.addons || {};
+    const items = [
+      addons.reg_lk ? { label: 'Рега в ЛК ЧЗ (розница)', hours: addons.reg_lk } : null,
+      addons.integration ? { label: 'Интеграция с товароучёткой', hours: addons.integration } : null,
+      addons.kkt_prepare_marking ? { label: 'Подготовка кассового оборудования для работы с маркировкой', hours: addons.kkt_prepare_marking } : null,
+    ].filter(Boolean);
     renderKVList(el.addonsList, items, 'hours');
   }
 
@@ -217,9 +226,18 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
 
   el.recHint.textContent = hint || (prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.');
   el.projAlert.style.display = state.custom_integration ? 'block' : 'none';
+  if (el.packageDataAlert) {
+    if (totals.error) {
+      el.packageDataAlert.style.display = 'block';
+      el.packageDataAlert.textContent = totals.error;
+    } else {
+      el.packageDataAlert.style.display = 'none';
+      el.packageDataAlert.textContent = '';
+    }
+  }
 
   // «Почему такая стоимость?» — открывает понятную раскладку.
-  _wireWhyButton(pkgView, calc, costs);
+  _wireWhyButton(pkgView, calc, costs, totals);
 
   // «Матрица услуг» — показывает правила/условия, что именно сработало.
   _wireMatrixButton(pkgView, calc, costs);
@@ -271,7 +289,7 @@ function _renderPackageTitle(text, pkg) {
   el.pkgTitle.appendChild(btn);
 }
 
-function _wireWhyButton(pkg, calc, costs) {
+function _wireWhyButton(pkg, calc, costs, totals) {
   if (!el.whyBtn) return;
   if (document.body.classList.contains('managerSlim')) {
     el.whyBtn.style.display = 'none';
@@ -282,7 +300,6 @@ function _wireWhyButton(pkg, calc, costs) {
   // Переназначаем обработчик на каждый ререндер — так проще и надёжнее.
   el.whyBtn.onclick = () => {
     const DATA = getDataSync();
-    const rubPerPoint = Number(DATA.rub_per_point || 0);
 
     // 1С (информационно)
     let onecStr = '—';
@@ -322,38 +339,24 @@ function _wireWhyButton(pkg, calc, costs) {
     if ((dc.tsd || 0) > 0) items.push(`Клеверенс (план): ${clevStr}`);
     if (flags.length) items.push(`Флаги: ${flags.join(' · ')}`);
 
-    items.push('────────');
-    items.push(`Пакет: ${pkg.name || '—'} = ${fmtRub(costs.base || 0)}`);
-    if (costs.support) items.push(`Поддержка 5 дней = ${fmtRub(costs.support || 0)}`);
+    const kkt = totals?.breakdown?.kkt || {};
+    const kktParts = [];
+    if (Number(kkt.regularCount || 0) > 0) kktParts.push(`обыч: ${kkt.regularCount}×2ч`);
+    if (Number(kkt.smartCount || 0) > 0) kktParts.push(`смарт: ${kkt.smartCount}×3ч`);
+    if (Number(kkt.otherCount || 0) > 0) kktParts.push(`др: ${kkt.otherCount}×2ч`);
 
     items.push('────────');
-    if ((calc.serviceItems || []).length) {
-      items.push(`Доп.работы: ${fmtRub(calc.rub || 0)} (внутр.)`);
-      (calc.serviceItems || []).forEach(it => {
-        const rub = Number(it.pts || 0) * rubPerPoint;
-        items.push(`${it.label} → ${fmtRub(rub)} (внутр.)`);
-      });
-    } else {
-      items.push('Доп.работы: 0');
+    items.push(`Пакет: ${pkg.name || '—'} = ${totals?.packageHours || 0} ч`);
+    if (totals?.addonHours) items.push(`Доп.работы (галочки) = ${totals.addonHours} ч`);
+    if (totals?.breakdown?.kkt?.totalKktPrepareHours) {
+      items.push(`Подготовка кассы = ${totals.breakdown.kkt.totalKktPrepareHours} ч${kktParts.length ? ` (${kktParts.join(', ')})` : ''}`);
     }
 
     items.push('────────');
-    if ((calc.licItems || []).length) {
-      items.push(`ПО/лицензии: ${fmtRub(calc.licRub || 0)}`);
-      (calc.licItems || []).forEach(it => {
-        items.push(`${it.label} = ${fmtRub(Number(it.rub || 0))}`);
-      });
-    } else {
-      items.push('ПО/лицензии: 0');
-    }
-
-    items.push('────────');
-    items.push(
-      `ИТОГО: ${fmtRub(costs.base || 0)} + ${fmtRub(costs.support || 0)} + ${fmtRub(calc.rub || 0)} + ${fmtRub(calc.licRub || 0)} = ${fmtRub(costs.total || 0)}`
-    );
+    items.push(`ИТОГО: ${totals?.totalHours || 0} ч × 4 950 ₽ = ${fmtRub(totals?.totalRub || 0)}`);
 
     openInfoModal('Почему такая стоимость?', {
-      desc: 'Это внутренняя раскладка для менеджера: какие параметры выбраны и какие блоки суммы сработали.',
+      desc: 'Это внутренняя раскладка для менеджера: какие параметры выбраны и как посчитаны часы.',
       items,
     });
   };

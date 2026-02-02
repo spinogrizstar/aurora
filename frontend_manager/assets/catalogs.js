@@ -8,9 +8,9 @@
 // МЕНЯЕШЬ ТУТ -> интерфейс сразу подхватит.
 
 export const KKT_TYPES = [
-  { id: 'atol', label: 'АТОЛ', prep_hours: 2 },
+  { id: 'regular', label: 'Обычная касса (ФР/ККТ)', prep_hours: 2 },
   { id: 'smart', label: 'Смарт-терминал (Эвотор/Сигма/MS POS и т.п.)', prep_hours: 3 },
-  { id: 'other', label: 'Прочие ККТ (Штрих и т.п.)', prep_hours: 2 },
+  { id: 'other', label: 'Другая касса (Штрих и т.п.)', prep_hours: 2 },
 ];
 
 export const DEVICE_CATALOG = {

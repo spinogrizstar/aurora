@@ -1,7 +1,7 @@
 // ФАЙЛ: frontend/assets/visibility.js
 // ------------------------------------------------------------
 // Отвечает за то, какие блоки формы показывать.
-// Например: "ККТ" показываем только если выбрана "Розница".
+// Например: "ККТ" показываем после выбора сегмента.
 // ------------------------------------------------------------
 
 import { state } from './state.js';
@@ -14,7 +14,7 @@ export function visibilityFromState() {
   const hasSeg = (state.segments || []).length > 0;
   return {
     onec: hasSeg,
-    kkt: hasSeg && hasRetail(),
+    kkt: hasSeg,
     devices: hasSeg,
     // Юрлица могут понадобиться в любой ветке (в том числе в рознице).
     orgs: hasSeg,

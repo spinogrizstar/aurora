@@ -13,7 +13,6 @@
 import { getDataSync } from './data.js';
 import { state } from './state.js';
 import { deviceCounts, kktCount, hasProducer, hasWholesaleOrProducer } from './helpers.js';
-import { KKT_TYPES } from './catalogs.js';
 
 const CORE_PRICE_PER_POINT = 4950;
 
@@ -117,29 +116,31 @@ export function calcManagerTotals(currentState, data, corePackages) {
     : (DATA?.core_packages?.packages || []);
   const selectedId = String(currentState?.selectedPackageId || '');
   const selectedPkg = packages.find(pkg => String(pkg?.id || pkg?.segment_key || '') === selectedId) || null;
-  const packageHours = Number(selectedPkg?.quote_hours || selectedPkg?.total_points || 0);
+  const packageHours = Number(selectedPkg?.quote_hours || 0);
+  const dataError = !packageHours && selectedPkg
+    ? 'В данных пакета не задано quote_hours'
+    : '';
 
-  const types = Array.isArray(KKT_TYPES) && KKT_TYPES.length
-    ? KKT_TYPES
-    : [{ id: 'other', label: 'Прочие ККТ', prep_hours: 2 }];
-  const typeMap = new Map(types.map(t => [t.id, t]));
-  const selectedType = typeMap.get(currentState?.kkt?.type) || types[0];
-  const kktCountValue = Number(currentState?.kkt?.count || 0);
-  const kktPreparePerUnit = Number(selectedType?.prep_hours || 2);
-  const kktPrepareHours = kktCountValue * kktPreparePerUnit;
-
-  const addons = [];
-  if (currentState?.addons?.reg_lk_cz_retail) {
-    addons.push({ label: 'Рега в ЛК ЧЗ (розница)', hours: 1 });
-  }
-  if (currentState?.addons?.integration_to_accounting) {
-    addons.push({ label: 'Интеграция с товароучёткой', hours: 3 });
-  }
-  if (currentState?.addons?.kkt_prepare_marking) {
-    addons.push({ label: 'Подготовка кассового оборудования для работы с маркировкой', hours: 3 });
+  if (dataError) {
+    console.error('[Aurora] core package missing quote_hours', selectedPkg);
   }
 
-  const addonHours = addons.reduce((sum, item) => sum + Number(item.hours || 0), 0);
+  const regularCount = Number(currentState?.kkt?.regularCount || 0);
+  const smartCount = Number(currentState?.kkt?.smartCount || 0);
+  const otherCount = Number(currentState?.kkt?.otherCount || 0);
+  const kktHoursByType = {
+    regular: regularCount * 2,
+    smart: smartCount * 3,
+    other: otherCount * 2,
+  };
+  const kktPrepareHours = kktHoursByType.regular + kktHoursByType.smart + kktHoursByType.other;
+
+  const addons = {
+    reg_lk: currentState?.addons?.reg_lk_cz_retail ? 1 : 0,
+    integration: currentState?.addons?.integration_to_accounting ? 3 : 0,
+    kkt_prepare_marking: currentState?.addons?.kkt_prepare_marking ? 3 : 0,
+  };
+  const addonHours = Object.values(addons).reduce((sum, hours) => sum + Number(hours || 0), 0);
   const totalHours = packageHours + addonHours + kktPrepareHours;
   const rubPerHour = Number(DATA.rub_per_point || CORE_PRICE_PER_POINT);
   const totalRub = totalHours * rubPerHour;
@@ -149,12 +150,16 @@ export function calcManagerTotals(currentState, data, corePackages) {
     addonHours,
     totalHours,
     totalRub,
+    error: dataError,
     breakdown: {
       addons,
-      kktPrepareHours,
-      kktPreparePerUnit,
-      kktTypeLabel: selectedType?.label || 'Прочие ККТ',
-      kktCount: kktCountValue,
+      kkt: {
+        regularCount,
+        smartCount,
+        otherCount,
+        hoursByType: kktHoursByType,
+        totalKktPrepareHours: kktPrepareHours,
+      },
     },
   };
 }
@@ -211,9 +216,7 @@ function _resolveCoreSegmentKey(pkg) {
 }
 
 function _corePackageQuoteHours(pkg) {
-  const hours = Number(pkg?.quote_hours || 0);
-  if (hours) return hours;
-  return Number(pkg?.total_points || 0);
+  return Number(pkg?.quote_hours || 0);
 }
 
 function _corePackagePrice(pkg) {

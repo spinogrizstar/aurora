@@ -6,11 +6,10 @@
 // ------------------------------------------------------------
 
 import { state } from './state.js';
-import { fmtRub, segText, kktCount, deviceCounts, devicesPayload } from './helpers.js';
+import { fmtRub, segText, kktCount, kktCounts, deviceCounts, devicesPayload } from './helpers.js';
 import { pointsToRub } from './calc.js';
 import { el } from './dom.js';
 import { lastResult } from './update.js';
-import { KKT_TYPES } from './catalogs.js';
 
 export function buildPresaleText() {
   const pkg = lastResult?.pkg;
@@ -21,9 +20,8 @@ export function buildPresaleText() {
   const total = lastResult?.costs?.total || 0;
 
   const kktCnt = kktCount();
+  const kktByType = kktCounts();
   const dc = deviceCounts();
-  const typeMap = new Map((KKT_TYPES || []).map(t => [t.id, t.label]));
-  const kktTypeLabel = typeMap.get(state.kkt?.type) || 'Прочие ККТ';
 
   const segLow = (state.segments || []).map(x => String(x).toLowerCase());
   const isProducer = segLow.some(s => s.includes('производ'));
@@ -35,7 +33,9 @@ export function buildPresaleText() {
     `Сегменты: ${segText()}`,
     `Пакет: ${prelim ? 'предварительно ' : ''}${pkg?.name || '—'}`,
     `ККТ: ${kktCnt} (используется: ${state.uses_kkt ? 'да' : 'нет'})`,
-    ...(kktCnt > 0 ? [`Тип ККТ: ${kktTypeLabel}`] : []),
+    ...(kktCnt > 0
+      ? [`ККТ по типам: обычные ${kktByType.regular}, смарт ${kktByType.smart}, другие ${kktByType.other}`]
+      : []),
     `Юрлица: ${state.org_count}`,
     `Устройства: Сканеры ×${dc.scanners}, ТСД ×${dc.tsd}` + ((dc.tsd && state.tsd_collective) ? ' (коллективная работа)' : ''),
     ...(isProducer ? [

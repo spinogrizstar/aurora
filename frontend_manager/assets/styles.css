@@ -386,10 +386,13 @@
     flex-wrap:wrap;
   }
   .kktRowLabel{
-    font-weight:800;
-    min-width:80px;
-    padding-top:2px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    min-width:160px;
   }
+  .kktRowTitle{font-weight:800}
+  .kktRowNote{font-size:12px;color:var(--muted)}
   .kktRowContent{
     display:flex;
     flex-direction:column;
@@ -397,11 +400,6 @@
     flex:1;
     min-width:220px;
   }
-  .kktPills{display:flex;flex-wrap:wrap;gap:6px}
-  .kktPill{height:34px;padding:0 10px;font-size:11px}
-  .kktMeta{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
-  .kktMeta.isHidden{display:none}
-  .kktMetaDesc{color:rgba(255,255,255,.55)}
   .kktCountRow .stepper{min-width:120px;justify-content:space-between}
   @media(max-width:640px){
     .kktCardRow{flex-direction:column;align-items:flex-start}
@@ -439,6 +437,7 @@
   /* tiny spacing helpers */
   .mt10{margin-top:10px}
   .mt8{margin-top:8px}
+  .markerNote{margin-top:6px}
 
 
   /* give + buttons air */
