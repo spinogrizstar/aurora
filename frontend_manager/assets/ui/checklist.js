@@ -15,7 +15,7 @@ import { CZ_GROUPS } from '../catalogs.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
 import { clamp, fmtRub } from '../helpers.js';
 import { mkDropdown } from '../components/dropdown.js';
-import { applyPackagePreset, syncAutoServiceQuantities } from '../services.js';
+import { isEquipmentAvailable, onPackageChange, syncAutoServiceQuantities } from '../services.js';
 
 // Чтобы блоки “появлялись/убирались” анимацией, но при этом чекбоксы
 // реагировали МГНОВЕННО (без задержек после клика).
@@ -93,14 +93,7 @@ export function renderChecklist(update){
     card.onclick = () => {
       state.segments = [...pkgCfg.segments];
       state.selectedPackageId = pkgCfg.key;
-      if (getTotalKktCount() === 0) {
-        state.kkt.regularCount = 1;
-      }
-      if (!state.scannersManuallySet) {
-        state.device_scanner = Math.max(Number(state.device_scanner || 0), getTotalKktCount());
-      }
-      applyPackagePreset(pkgCfg.key);
-      syncAutoServiceQuantities();
+      onPackageChange(pkgCfg.key);
       const hours = quoteHours;
       const totalRub = hours * 4950;
       console.log('[Aurora] package selected', {
@@ -158,6 +151,7 @@ export function renderChecklist(update){
 
   // Что именно показывать
   const vis = visibilityFromState();
+  const equipmentAllowed = isEquipmentAvailable(state.selectedPackageId);
 
   // 1.5) Учётная система (1С)
   const secOneC = document.createElement('div');
@@ -332,6 +326,41 @@ export function renderChecklist(update){
 
   sec2.appendChild(box2);
   revealAppend(sec2, 'equipment', vis.equipment, checklistExtra);
+
+  const toggleEquipment = document.createElement('div');
+  toggleEquipment.className = 'section';
+  toggleEquipment.innerHTML = `<div class="secTitle"><h3>Оборудование</h3><span class="tag">опционально</span></div>`;
+  const toggleBox = document.createElement('div');
+  toggleBox.className = 'opts';
+  const toggleRow = document.createElement('div');
+  toggleRow.className = 'opt';
+  toggleRow.innerHTML = `<div class="label"><div class="t">Показать оборудование (если есть)</div><div class="d">Для опта/производителя по умолчанию скрыто</div></div>`;
+  const toggleRight = document.createElement('div');
+  const toggleBtn = document.createElement('button');
+  toggleBtn.type = 'button';
+  toggleBtn.className = 'pillToggle';
+  const paintToggle = () => {
+    toggleBtn.textContent = state.equipmentEnabled ? 'Включено' : 'Выключено';
+    toggleBtn.classList.toggle('on', !!state.equipmentEnabled);
+  };
+  paintToggle();
+  toggleBtn.onclick = () => {
+    state.equipmentEnabled = !state.equipmentEnabled;
+    if (!state.equipmentEnabled && !equipmentAllowed) {
+      state.kkt = { regularCount: 0, smartCount: 0, otherCount: 0 };
+      state.device_scanner = 0;
+      state.scannersManuallySet = false;
+    }
+    syncAutoServiceQuantities();
+    renderChecklist(update);
+    update();
+  };
+  toggleRight.appendChild(toggleBtn);
+  toggleRow.appendChild(toggleRight);
+  toggleBox.appendChild(toggleRow);
+  toggleEquipment.appendChild(toggleBox);
+  const showEquipToggle = (state.segments || []).length && !equipmentAllowed && !state.equipmentEnabled;
+  revealAppend(toggleEquipment, 'equipmentToggle', showEquipToggle, checklistExtra);
 
   // 5) Продукция (только производитель)
   const secProd = document.createElement('div');

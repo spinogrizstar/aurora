@@ -49,7 +49,7 @@ const DETAILED_PRESETS = {
     { id: 'lm_chz', title: 'ЛМ ЧЗ', hoursPerUnit: 2, qty: 1, group: 'Интеграция/учёт' },
     { id: 'kkt_firmware', title: 'Прошивка ККТ', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
     { id: 'fn_replace', title: 'Замена ФН', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
-    { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
     { id: 'kkt_connect', title: 'Подключение ККТ к товароучётке', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
   ],
@@ -58,7 +58,7 @@ const DETAILED_PRESETS = {
     { id: 'edo_setup', title: 'Настройка ЭДО', hoursPerUnit: 2, qty: 1, group: 'Интеграция/учёт' },
     { id: 'integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 2, qty: 1, group: 'Интеграция/учёт' },
     { id: 'lm_chz', title: 'ЛМ ЧЗ', hoursPerUnit: 2, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
     { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
   ],
   producer_only: [
@@ -70,7 +70,7 @@ const DETAILED_PRESETS = {
     { id: 'catalog_cards', title: 'Создание карточек товаров', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
     { id: 'kkt_firmware', title: 'Прошивка ККТ', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
     { id: 'fn_replace', title: 'Замена ФН', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
-    { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
     { id: 'kkt_connect', title: 'Подключение ККТ к товароучётке', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
   ],
@@ -83,7 +83,7 @@ const DETAILED_PRESETS = {
     { id: 'catalog_cards', title: 'Создание карточек товаров', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
     { id: 'kkt_firmware', title: 'Прошивка ККТ', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
     { id: 'fn_replace', title: 'Замена ФН', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
-    { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
     { id: 'kkt_connect', title: 'Подключение ККТ к товароучётке', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'kepa_order', title: 'Заказ КЭП', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'tsd_setup', title: 'Настройка ТСД', hoursPerUnit: 2, qty: 1, group: 'Оборудование/ККТ' },
@@ -92,51 +92,94 @@ const DETAILED_PRESETS = {
 };
 
 const AUTO_BY_SCANNER = new Set(['scanner_connect']);
+const EQUIPMENT_PACKAGES = new Set(['retail_only', 'producer_retail']);
 
-function _serviceDefaults(preset, scanners) {
+function _serviceDefaults(preset) {
   return (preset || []).map((service) => {
-    let qty = Number(service.qty ?? 0);
-    let isAuto = false;
-    if (AUTO_BY_SCANNER.has(service.id)) {
-      qty = scanners;
-      isAuto = true;
-    }
+    const qty = Number(service.qty ?? 0);
     return {
       ...service,
       qty,
-      isAuto,
+      isAuto: false,
       manuallySet: false,
     };
   });
 }
 
-export function getServicePreset(packageId, detailed, scanners) {
+export function isEquipmentAvailable(packageId) {
+  return EQUIPMENT_PACKAGES.has(String(packageId || ''));
+}
+
+export function getPresetServices(packageId, detailed) {
   const presets = detailed ? DETAILED_PRESETS : BASE_PRESETS;
-  return _serviceDefaults(presets[packageId] || [], scanners);
+  return _serviceDefaults(presets[packageId] || []);
+}
+
+export function getDefaultEquipment(packageId) {
+  return {
+    regularCount: 0,
+    smartCount: 0,
+    otherCount: 0,
+    scannersCount: 0,
+  };
+}
+
+export function applyAutoFromEquipment(services, equipment, packageId) {
+  const list = services || [];
+  const scanners = Number(equipment?.scannersCount || 0);
+  const autoEnabled = isEquipmentAvailable(packageId) || !!state.equipmentEnabled;
+  list.forEach((service) => {
+    if (service.manuallySet) return;
+    if (AUTO_BY_SCANNER.has(service.id)) {
+      service.qty = autoEnabled ? scanners : 0;
+      service.isAuto = autoEnabled && scanners > 0;
+    }
+  });
+  return list;
 }
 
 export function applyPackagePreset(packageId) {
-  const scanners = Number(state.device_scanner || 0);
-  state.services = getServicePreset(packageId, state.servicesDetailed, scanners);
+  if (!packageId) return;
+  const services = getPresetServices(packageId, state.servicesDetailed);
+  const equipment = {
+    ...getDefaultEquipment(packageId),
+    scannersCount: Number(state.device_scanner || 0),
+  };
+  state.services = applyAutoFromEquipment(services, equipment, packageId);
+  state.servicesPackageId = packageId;
+}
+
+export function onPackageChange(packageId) {
+  if (!packageId) return;
+  const equipmentDefault = getDefaultEquipment(packageId);
+  state.kkt = {
+    regularCount: equipmentDefault.regularCount,
+    smartCount: equipmentDefault.smartCount,
+    otherCount: equipmentDefault.otherCount,
+  };
+  state.device_scanner = equipmentDefault.scannersCount;
+  state.scannersManuallySet = false;
+  state.equipmentEnabled = isEquipmentAvailable(packageId);
+  const services = getPresetServices(packageId, state.servicesDetailed);
+  state.services = applyAutoFromEquipment(services, equipmentDefault, packageId);
   state.servicesPackageId = packageId;
 }
 
 export function ensureServicesForPackage(packageId) {
   if (!packageId) return;
   if (state.servicesPackageId !== packageId || !Array.isArray(state.services) || !state.services.length) {
-    applyPackagePreset(packageId);
+    onPackageChange(packageId);
   }
 }
 
 export function syncAutoServiceQuantities() {
-  const scanners = Number(state.device_scanner || 0);
-  (state.services || []).forEach((service) => {
-    if (service.manuallySet) return;
-    if (AUTO_BY_SCANNER.has(service.id)) {
-      service.qty = scanners;
-      service.isAuto = true;
-    }
-  });
+  const equipment = {
+    regularCount: Number(state.kkt?.regularCount || 0),
+    smartCount: Number(state.kkt?.smartCount || 0),
+    otherCount: Number(state.kkt?.otherCount || 0),
+    scannersCount: Number(state.device_scanner || 0),
+  };
+  state.services = applyAutoFromEquipment(state.services || [], equipment, state.selectedPackageId);
 }
 
 export function calcServiceTotals(services) {
