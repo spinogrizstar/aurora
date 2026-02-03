@@ -73,6 +73,8 @@ export function applyAutoFromEquipment(services, equipment, packageId) {
   const autoEnabled = isScannerAvailable(packageId) || !!state.equipmentEnabled;
   list.forEach((service) => {
     if (service.manuallySet) return;
+    const override = state.serviceOverrides?.[service.id];
+    if (override && override.qtyOverride !== null && override.qtyOverride !== undefined) return;
     if (AUTO_BY_SCANNER.has(service.id) && autoEnabled) {
       service.qty = scanners;
       service.isAuto = scanners > 0;

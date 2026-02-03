@@ -26,6 +26,7 @@ export const el = {
   servicesTotalHours: document.getElementById('servicesTotalHours'),
   servicesTotalRub: document.getElementById('servicesTotalRub'),
   sumTotal: document.getElementById('sumTotal'),
+  calcWarning: document.getElementById('calcWarning'),
 
   // Кнопки
   copyBtn: document.getElementById('copyBtn'),
