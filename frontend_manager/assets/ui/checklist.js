@@ -214,6 +214,7 @@ export function renderChecklist(update){
   box2.style.marginTop='10px';
 
   if (!state.kkt) state.kkt = { regularCount: 0, smartCount: 0, otherCount: 0 };
+  if (!state.equipment) state.equipment = { scannersCount: 0 };
 
   const card = document.createElement('div');
   card.className = 'kktCard';
@@ -244,8 +245,8 @@ export function renderChecklist(update){
 
   const ensureScannerMin = (prevTotal, nextTotal) => {
     if (nextTotal > prevTotal && !state.scannersManuallySet) {
-      const scanners = Number(state.device_scanner || 0);
-      state.device_scanner = clamp(Math.max(scanners, nextTotal), 0, 99);
+      const scanners = Number(state.equipment?.scannersCount || 0);
+      state.equipment.scannersCount = clamp(Math.max(scanners, nextTotal), 0, 99);
     }
   };
 
@@ -305,19 +306,19 @@ export function renderChecklist(update){
     scannerRow.innerHTML = `<div class="label"><div class="t">Сканеры</div><div class="d">Количество (может быть меньше касс)</div></div>`;
     const scannerStep = document.createElement('div'); scannerStep.className = 'stepper';
     const scannerMinus = document.createElement('button'); scannerMinus.className = 'btnTiny'; scannerMinus.type = 'button'; scannerMinus.textContent = '−';
-    const scannerNum = document.createElement('div'); scannerNum.className = 'stepNum'; scannerNum.textContent = String(state.device_scanner || 0);
+    const scannerNum = document.createElement('div'); scannerNum.className = 'stepNum'; scannerNum.textContent = String(state.equipment?.scannersCount || 0);
     const scannerPlus = document.createElement('button'); scannerPlus.className = 'btnTiny'; scannerPlus.type = 'button'; scannerPlus.textContent = '+';
-    const refreshScanner = () => { scannerNum.textContent = String(state.device_scanner || 0); };
+    const refreshScanner = () => { scannerNum.textContent = String(state.equipment?.scannersCount || 0); };
     scannerMinus.onclick = () => {
       state.scannersManuallySet = true;
-      state.device_scanner = clamp((state.device_scanner || 0) - 1, 0, 99);
+      state.equipment.scannersCount = clamp((state.equipment?.scannersCount || 0) - 1, 0, 99);
       refreshScanner();
       syncAutoServiceQuantities();
       update();
     };
     scannerPlus.onclick = () => {
       state.scannersManuallySet = true;
-      state.device_scanner = clamp((state.device_scanner || 0) + 1, 0, 99);
+      state.equipment.scannersCount = clamp((state.equipment?.scannersCount || 0) + 1, 0, 99);
       refreshScanner();
       syncAutoServiceQuantities();
       update();
@@ -353,7 +354,7 @@ export function renderChecklist(update){
     state.equipmentEnabled = !state.equipmentEnabled;
     if (!state.equipmentEnabled && !equipmentAllowed) {
       state.kkt = { regularCount: 0, smartCount: 0, otherCount: 0 };
-      state.device_scanner = 0;
+      state.equipment.scannersCount = 0;
       state.scannersManuallySet = false;
     }
     syncAutoServiceQuantities();

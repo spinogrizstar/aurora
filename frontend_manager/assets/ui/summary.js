@@ -374,7 +374,12 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
   }
 
   if (el.calcWarning) {
-    if (flags.isValid) {
+    const isEmptyServices = !Array.isArray(state.services) || state.services.length === 0;
+    if (isEmptyServices) {
+      el.calcWarning.style.display = 'block';
+      el.calcWarning.textContent = state.servicesPresetError
+        || `Пустой пресет услуг для пакета ${state.selectedPackageId || '—'} (isDetailed=${!!state.servicesDetailed}). Проверь матрицу/ID.`;
+    } else if (flags.isValid) {
       el.calcWarning.style.display = 'none';
       el.calcWarning.textContent = '';
     } else {
@@ -384,8 +389,11 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
   }
 
   if (el.copyBtn) {
-    el.copyBtn.disabled = !flags.isValid;
-    el.copyBtn.title = flags.isValid ? '' : 'Невалидный расчёт — проверь количества услуг';
+    const isEmptyServices = !Array.isArray(state.services) || state.services.length === 0;
+    const emptyMessage = state.servicesPresetError
+      || `Пустой пресет услуг для пакета ${state.selectedPackageId || '—'} (isDetailed=${!!state.servicesDetailed}). Проверь матрицу/ID.`;
+    el.copyBtn.disabled = !flags.isValid || isEmptyServices;
+    el.copyBtn.title = isEmptyServices ? emptyMessage : (flags.isValid ? '' : 'Невалидный расчёт — проверь количества услуг');
   }
 
   // «Почему такая стоимость?» — открывает понятную раскладку.

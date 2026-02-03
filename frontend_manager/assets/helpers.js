@@ -54,7 +54,7 @@ export function kktCounts() {
 
 export function deviceCounts() {
   return {
-    scanners: Number(state.device_scanner || 0),
+    scanners: Number(state.equipment?.scannersCount || 0),
     tsd: Number(state.device_tsd || 0),
   };
 }
