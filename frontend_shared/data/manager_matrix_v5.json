@@ -4,7 +4,7 @@
     "retail_only": {
       "summary": [
         { "id": "reg_chz", "title": "Регистрация в ЧЗ", "hoursPerUnit": 1, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 7, "qty": 1, "group": "Интеграция/учёт" },
+        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 3, "qty": 1, "group": "Интеграция/учёт" },
         { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 4, "qty": 1, "group": "Оборудование/ККТ" },
         { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
       ],
