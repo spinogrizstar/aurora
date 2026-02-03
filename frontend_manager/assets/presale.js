@@ -5,17 +5,17 @@
 // Если хочется поменять формат текста — правь функцию buildPresaleText().
 // ------------------------------------------------------------
 
-import { state } from './state.js';
+import { state, getCalcState } from './state.js';
 import { fmtRub, segText, kktCount, deviceCounts, devicesPayload } from './helpers.js';
 import { el } from './dom.js';
 import { lastResult } from './update.js';
-import { calcServiceTotals } from './services.js';
+import { normalizeState, recalc } from './calc/managerV5Calc.js';
 
 export function buildPresaleText() {
   const pkg = lastResult?.pkg;
   const prelim = lastResult?.prelim;
-  const totals = calcServiceTotals(state.services || []);
-  const total = totals.totalRub || 0;
+  const managerCalc = recalc(normalizeState(getCalcState()));
+  const total = managerCalc?.totals?.price || 0;
 
   const kktCnt = kktCount();
   const dc = deviceCounts();
@@ -40,9 +40,8 @@ export function buildPresaleText() {
     'Услуги и объём:'
   ];
 
-  (state.services || []).forEach(svc => {
-    const hours = Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0);
-    lines.push(`- ${svc.title}: ${svc.qty || 0} × ${svc.hoursPerUnit} ч = ${hours} ч`);
+  (managerCalc?.breakdown || []).forEach((row) => {
+    lines.push(`- ${row.title}: ${row.qty || 0} × ${row.hoursPerUnit} ч = ${row.hoursTotal} ч`);
   });
 
   const c = state.contacts || {};
@@ -56,7 +55,7 @@ export function buildPresaleText() {
     if (c.desired_result) lines.push('', 'Желаемый результат:', c.desired_result);
   }
 
-  lines.push('', `Всего часов: ${totals.totalHours || 0} ч`);
+  lines.push('', `Всего часов: ${managerCalc?.totals?.hours || 0} ч`);
   lines.push(`Итого (предварительно): ${fmtRub(total)}`);
   return lines.join('\n');
 }

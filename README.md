@@ -57,6 +57,12 @@ AURORA_USER=admin AURORA_PASS=secret \
 ## Важно про запуск менеджера
 `frontend_manager/index.html` нельзя открывать двойным кликом (через `file://`). Используйте HTTP‑запуск через `start_localhost.bat` или `python -m http.server`, иначе модульные скрипты и `fetch` могут не работать.
 
+## Менеджер v5: источник истины расчёта
+- Источник истины — `calcState` (selectedPackageId + services + serviceOverrides + servicesDetailed), который собирается через `getCalcState()` из `frontend_manager/assets/state.js` и передаётся в `recalc(normalizeState(...))` в `frontend_manager/assets/update.js`.
+- Сам расчёт находится в `frontend_manager/assets/calc/managerV5Calc.js` (normalize → recalc → validate).
+- В dev‑режиме каждый апдейт логирует diff calcState + totals + issues (см. `frontend_manager/assets/update.js`).
+- Сброс ручного оверрайда количества — кнопка ↺ рядом со счётчиком услуги в правой панели.
+
 ## API
 - `POST /calculate`
 - `GET /health`

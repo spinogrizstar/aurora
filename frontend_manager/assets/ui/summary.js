@@ -43,9 +43,14 @@ function groupServices(services) {
   return grouped;
 }
 
-function renderServicesList() {
+function renderServicesList(managerCalc) {
   if (!el.servicesList) return;
   el.servicesList.innerHTML = '';
+
+  const breakdownMap = new Map();
+  (managerCalc?.breakdown || []).forEach((row) => {
+    breakdownMap.set(String(row.key || ''), row);
+  });
 
   const grouped = groupServices(state.services || []);
   grouped.forEach((items, group) => {
@@ -85,7 +90,10 @@ function renderServicesList() {
 
       const perUnit = document.createElement('div');
       perUnit.className = 'serviceUnit';
-      perUnit.textContent = `${fmtHoursInline(svc.hoursPerUnit)} ч/ед`;
+      const svcKey = String(svc.id || svc.key || svc.title || '');
+      const rowData = breakdownMap.get(svcKey);
+      const hoursPerUnit = rowData ? rowData.hoursPerUnit : svc.hoursPerUnit;
+      perUnit.textContent = `${fmtHoursInline(hoursPerUnit)} ч/ед`;
 
       const stepper = document.createElement('div');
       stepper.className = 'stepper';
@@ -95,18 +103,29 @@ function renderServicesList() {
       minus.textContent = '−';
       const qty = document.createElement('div');
       qty.className = 'stepNum';
-      qty.textContent = String(svc.qty || 0);
+      qty.textContent = String(rowData ? rowData.qty : svc.qty || 0);
       const plus = document.createElement('button');
       plus.type = 'button';
       plus.className = 'btnTiny';
       plus.textContent = '+';
+      const reset = document.createElement('button');
+      reset.type = 'button';
+      reset.className = 'btnTiny stepperReset';
+      reset.title = 'Сбросить к пресету';
+      reset.textContent = '↺';
 
       const updateQty = (delta) => {
-        const next = Math.max(0, Number(svc.qty || 0) + delta);
-        svc.qty = Math.trunc(next);
+        const baseQty = rowData ? rowData.qty : svc.qty;
+        const next = Math.max(0, Number(baseQty || 0) + delta);
+        state.serviceOverrides = state.serviceOverrides || {};
+        state.serviceOverrides[svcKey] = {
+          ...(state.serviceOverrides[svcKey] || {}),
+          qtyOverride: Math.trunc(next),
+        };
         svc.manuallySet = true;
         svc.isAuto = false;
-        qty.textContent = String(svc.qty);
+        qty.textContent = String(Math.trunc(next));
+        reset.style.display = 'inline-flex';
       };
 
       minus.onclick = () => {
@@ -122,17 +141,38 @@ function renderServicesList() {
         if (window.__AURORA_APP_UPDATE) {
           window.__AURORA_APP_UPDATE();
         } else {
-          renderServicesTotals();
+          renderServicesTotals(managerCalc);
         }
       };
 
       stepper.appendChild(minus);
       stepper.appendChild(qty);
       stepper.appendChild(plus);
+      if (rowData?.source === 'override') {
+        reset.style.display = 'inline-flex';
+      } else {
+        reset.style.display = 'none';
+      }
+      reset.onclick = () => {
+        if (state.serviceOverrides?.[svcKey]) {
+          state.serviceOverrides[svcKey] = {
+            ...(state.serviceOverrides[svcKey] || {}),
+            qtyOverride: null,
+            hoursOverride: null,
+          };
+        }
+        svc.manuallySet = false;
+        if (window.__AURORA_APP_UPDATE) {
+          window.__AURORA_APP_UPDATE();
+        } else {
+          renderServicesTotals(managerCalc);
+        }
+      };
+      stepper.appendChild(reset);
 
       const rowTotal = document.createElement('div');
       rowTotal.className = 'serviceTotal';
-      const rowHours = Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0);
+      const rowHours = rowData ? rowData.hoursTotal : (Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0));
       rowTotal.textContent = fmtHours(rowHours);
 
       row.appendChild(title);
@@ -149,11 +189,9 @@ function renderServicesList() {
   });
 }
 
-function renderServicesTotals() {
-  const totalHours = (state.services || []).reduce((sum, svc) => {
-    return sum + Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0);
-  }, 0);
-  const totalRub = totalHours * 4950;
+function renderServicesTotals(managerCalc) {
+  const totalHours = managerCalc?.totals?.hours || 0;
+  const totalRub = managerCalc?.totals?.price || 0;
 
   if (el.servicesTotalHours) el.servicesTotalHours.textContent = fmtHours(totalHours);
   if (el.servicesTotalRub) el.servicesTotalRub.textContent = fmtRub(totalRub);
@@ -216,12 +254,13 @@ function buildGroupDetails(groups) {
   return items;
 }
 
-export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
+export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
   const selectedPkg = getSelectedCorePackage();
   const pkgView = resolvePackage(selectedPkg);
   // Шапка
   el.segBadge.textContent = segText();
-  const totals = managerTotals || { totalHours: 0, totalRub: 0, error: '' };
+  const totals = managerCalc?.totals || { hours: 0, price: 0 };
+  const flags = managerCalc?.flags || { isValid: true, issues: [] };
 
   if (!pkgView) {
     // Сбрасываем заголовок (и возможную кнопку «подробнее»)
@@ -255,6 +294,14 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
     if (el.matrixBtn) {
       el.matrixBtn.style.display = 'none';
       el.matrixBtn.onclick = null;
+    }
+    if (el.calcWarning) {
+      el.calcWarning.style.display = 'none';
+      el.calcWarning.textContent = '';
+    }
+    if (el.copyBtn) {
+      el.copyBtn.disabled = true;
+      el.copyBtn.title = 'Невалидный расчёт — проверь количества услуг';
     }
     return;
   }
@@ -304,7 +351,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
   el.diagBanner.style.display = (needDiagnostics() ? 'block' : 'none');
 
   // Суммы
-  el.sumTotal.textContent = fmtRub(totals.totalRub || 0);
+  el.sumTotal.textContent = fmtRub(totals.price || 0);
 
   if (el.servicesToggle) {
     el.servicesToggle.checked = !!state.servicesDetailed;
@@ -316,23 +363,33 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
     };
   }
 
-  renderServicesList();
-  renderServicesTotals();
+  renderServicesList(managerCalc);
+  renderServicesTotals(managerCalc);
 
   el.recHint.textContent = hint || (prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.');
   el.projAlert.style.display = state.custom_integration ? 'block' : 'none';
   if (el.packageDataAlert) {
-    if (totals.error) {
-      el.packageDataAlert.style.display = 'block';
-      el.packageDataAlert.textContent = totals.error;
+    el.packageDataAlert.style.display = 'none';
+    el.packageDataAlert.textContent = '';
+  }
+
+  if (el.calcWarning) {
+    if (flags.isValid) {
+      el.calcWarning.style.display = 'none';
+      el.calcWarning.textContent = '';
     } else {
-      el.packageDataAlert.style.display = 'none';
-      el.packageDataAlert.textContent = '';
+      el.calcWarning.style.display = 'block';
+      el.calcWarning.textContent = 'Невалидный расчёт — проверь количества услуг.';
     }
   }
 
+  if (el.copyBtn) {
+    el.copyBtn.disabled = !flags.isValid;
+    el.copyBtn.title = flags.isValid ? '' : 'Невалидный расчёт — проверь количества услуг';
+  }
+
   // «Почему такая стоимость?» — открывает понятную раскладку.
-  _wireWhyButton(pkgView, calc, costs, totals);
+  _wireWhyButton(pkgView, calc, costs, managerCalc);
 
   // «Матрица услуг» — показывает правила/условия, что именно сработало.
   _wireMatrixButton(pkgView, calc, costs);
@@ -384,7 +441,7 @@ function _renderPackageTitle(text, pkg) {
   el.pkgTitle.appendChild(btn);
 }
 
-function _wireWhyButton(pkg, calc, costs, totals) {
+function _wireWhyButton(pkg, calc, costs, managerCalc) {
   if (!el.whyBtn) return;
   if (document.body.classList.contains('managerSlim')) {
     el.whyBtn.style.display = 'none';
@@ -416,13 +473,12 @@ function _wireWhyButton(pkg, calc, costs, totals) {
 
     items.push('────────');
     items.push(`Пакет: ${pkg.name || '—'}`);
-    (state.services || []).forEach(svc => {
-      const rowHours = Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0);
-      items.push(`- ${svc.title}: ${svc.qty || 0} × ${fmtHoursInline(svc.hoursPerUnit)} ч = ${fmtHoursInline(rowHours)} ч`);
+    (managerCalc?.breakdown || []).forEach((row) => {
+      items.push(`- ${row.title}: ${row.qty || 0} × ${fmtHoursInline(row.hoursPerUnit)} ч = ${fmtHoursInline(row.hoursTotal)} ч`);
     });
 
     items.push('────────');
-    items.push(`ИТОГО: ${totals?.totalHours || 0} ч × 4 950 ₽ = ${fmtRub(totals?.totalRub || 0)}`);
+    items.push(`ИТОГО: ${managerCalc?.totals?.hours || 0} ч × 4 950 ₽ = ${fmtRub(managerCalc?.totals?.price || 0)}`);
 
     openInfoModal('Почему такая стоимость?', {
       desc: 'Это внутренняя раскладка для менеджера: какие параметры выбраны и как посчитаны часы.',

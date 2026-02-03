@@ -13,6 +13,7 @@ export const state = {
   servicesDetailed: false,
   servicesPackageId: '',
   servicesGroupsCollapsed: {},
+  serviceOverrides: {},
   scannersManuallySet: false,
   equipmentEnabled: false,
 
@@ -66,3 +67,22 @@ export const state = {
     comment: '',
   },
 };
+
+export function getCalcState() {
+  return {
+    selectedPackageId: state.selectedPackageId,
+    services: state.services,
+    overrides: state.serviceOverrides,
+    ui: { showDetails: state.servicesDetailed },
+  };
+}
+
+export function setCalcState(next) {
+  if (!next || typeof next !== 'object') return;
+  if (next.selectedPackageId !== undefined) state.selectedPackageId = next.selectedPackageId;
+  if (next.services !== undefined) state.services = next.services;
+  if (next.overrides !== undefined) state.serviceOverrides = next.overrides;
+  if (next.ui && next.ui.showDetails !== undefined) {
+    state.servicesDetailed = !!next.ui.showDetails;
+  }
+}
