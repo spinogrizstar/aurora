@@ -40,6 +40,27 @@ function _serviceDefaults(preset) {
   });
 }
 
+function _buildServiceCatalog(matrix) {
+  const catalog = new Map();
+  const packages = matrix?.packages || {};
+  Object.values(packages || {}).forEach((pkg) => {
+    ['summary', 'detailed'].forEach((key) => {
+      const list = Array.isArray(pkg?.[key]) ? pkg[key] : [];
+      list.forEach((service) => {
+        const id = String(service?.id || '').trim();
+        if (!id) return;
+        if (!catalog.has(id)) {
+          catalog.set(id, {
+            ...service,
+            id,
+          });
+        }
+      });
+    });
+  });
+  return catalog;
+}
+
 export function isEquipmentAvailable(packageId) {
   return isKktAvailable(packageId) || isScannerAvailable(packageId);
 }
@@ -52,17 +73,53 @@ export function isScannerAvailable(packageId) {
   return SCANNER_PACKAGES.has(String(packageId || ''));
 }
 
-export function getPresetServices(packageId, detailed) {
+export function buildPresetServices(packageId, detailed) {
+  const matrix = _matrixData();
   const pkg = _matrixPackage(packageId);
-  const presets = detailed ? pkg.detailed : pkg.summary;
-  return _serviceDefaults(presets || []);
+  const detailedList = Array.isArray(pkg.detailed) ? pkg.detailed : [];
+  const summaryList = Array.isArray(pkg.summary) ? pkg.summary : [];
+  const rawPreset = (detailed && detailedList.length)
+    ? detailedList
+    : (summaryList.length ? summaryList : detailedList);
+  const rawWithDefaults = _serviceDefaults(rawPreset || []);
+  const catalog = _buildServiceCatalog(matrix);
+  const rawFiltered = rawWithDefaults.filter((service) => {
+    const id = String(service?.id || '').trim();
+    return id ? catalog.has(id) : false;
+  });
+  const normalized = (rawFiltered.length ? rawFiltered : rawWithDefaults).map((service) => {
+    const id = String(service?.id || '').trim();
+    const catalogEntry = id ? catalog.get(id) : null;
+    if (!catalogEntry) return service;
+    return {
+      ...catalogEntry,
+      ...service,
+      id,
+      title: service.title || catalogEntry.title,
+      group: service.group || catalogEntry.group,
+      hoursPerUnit: Number(service.hoursPerUnit ?? catalogEntry.hoursPerUnit ?? 0),
+      qty: Number(service.qty ?? catalogEntry.qty ?? 0),
+    };
+  });
+  return {
+    services: normalized,
+    diagnostics: {
+      selectedPackageId: String(packageId || ''),
+      isDetailed: !!detailed,
+      presetBeforeFilter: rawWithDefaults,
+      presetAfterFilter: rawFiltered,
+      serviceCatalogIds: Array.from(catalog.keys()),
+    },
+  };
 }
 
-export function getDefaultEquipment(packageId) {
+export function buildDefaultEquipment(packageId) {
   return {
-    regularCount: 0,
-    smartCount: 0,
-    otherCount: 0,
+    kkt: {
+      regularCount: 0,
+      smartCount: 0,
+      otherCount: 0,
+    },
     scannersCount: 0,
   };
 }
@@ -83,42 +140,61 @@ export function applyAutoFromEquipment(services, equipment, packageId) {
   return list;
 }
 
-export function applyPackagePreset(packageId, { resetEquipment = true } = {}) {
+export function applyPreset(packageId, { resetEquipment = true } = {}) {
   if (!packageId) return;
   const normalized = String(packageId || '');
   state.selectedPackageId = normalized;
-  state.services = getPresetServices(normalized, state.servicesDetailed);
+  const { services, diagnostics } = buildPresetServices(normalized, state.servicesDetailed);
+  state.services = services;
   state.servicesPackageId = normalized;
+  state.serviceOverrides = {};
+  state.servicesPresetError = '';
+  state.services.forEach((service) => {
+    service.manuallySet = false;
+    service.isAuto = false;
+  });
+  state.scannersManuallySet = false;
+  if (!Array.isArray(state.services) || !state.services.length) {
+    state.servicesPresetError = `Пустой пресет услуг для пакета ${normalized} (isDetailed=${!!state.servicesDetailed}). Проверь матрицу/ID.`;
+    console.error('[Aurora][manager_v5] Empty services preset', diagnostics);
+  }
   if (resetEquipment) {
-    const equipmentDefault = getDefaultEquipment(normalized);
+    const equipmentDefault = buildDefaultEquipment(normalized);
     state.kkt = {
-      regularCount: equipmentDefault.regularCount,
-      smartCount: equipmentDefault.smartCount,
-      otherCount: equipmentDefault.otherCount,
+      regularCount: equipmentDefault.kkt.regularCount,
+      smartCount: equipmentDefault.kkt.smartCount,
+      otherCount: equipmentDefault.kkt.otherCount,
     };
-    state.device_scanner = equipmentDefault.scannersCount;
-    state.scannersManuallySet = false;
+    state.equipment = {
+      scannersCount: equipmentDefault.scannersCount,
+    };
     state.equipmentEnabled = false;
   }
+  syncAutoServiceQuantities();
+}
+
+export function applyPackagePreset(packageId, options) {
+  applyPreset(packageId, options);
 }
 
 export function onPackageChange(packageId) {
-  applyPackagePreset(packageId);
+  applyPreset(packageId);
 }
 
 export function ensureServicesForPackage(packageId) {
   if (!packageId) return;
   if (state.servicesPackageId !== packageId || !Array.isArray(state.services) || !state.services.length) {
-    applyPackagePreset(packageId);
+    applyPreset(packageId);
   }
 }
 
 export function syncAutoServiceQuantities() {
+  if (!state.equipment) state.equipment = { scannersCount: 0 };
   const equipment = {
     regularCount: Number(state.kkt?.regularCount || 0),
     smartCount: Number(state.kkt?.smartCount || 0),
     otherCount: Number(state.kkt?.otherCount || 0),
-    scannersCount: Number(state.device_scanner || 0),
+    scannersCount: Number(state.equipment?.scannersCount || 0),
   };
   state.services = applyAutoFromEquipment(state.services || [], equipment, state.selectedPackageId);
 }

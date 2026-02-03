@@ -14,6 +14,7 @@ export const state = {
   servicesPackageId: '',
   servicesGroupsCollapsed: {},
   serviceOverrides: {},
+  servicesPresetError: '',
   scannersManuallySet: false,
   equipmentEnabled: false,
 
@@ -28,7 +29,9 @@ export const state = {
   needs_rr: true,
 
   // 4) Устройства: два счётчика (можно мешать)
-  device_scanner: 0,
+  equipment: {
+    scannersCount: 0,
+  },
   device_tsd: 0,
   tsd_collective: false,
 
