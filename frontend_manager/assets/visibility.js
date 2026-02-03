@@ -6,15 +6,18 @@
 
 import { state } from './state.js';
 import { hasProducer } from './helpers.js';
+import { isEquipmentAvailable } from './services.js';
 
 // Анимация появления/скрытия секций (медленная, «по красоте»)
 export const SECTION_ANIM_MS = 1120; // было ~560, замедлили в 2 раза
 
 export function visibilityFromState() {
   const hasSeg = (state.segments || []).length > 0;
+  const packageId = state.selectedPackageId;
+  const equipmentAllowed = isEquipmentAvailable(packageId);
   return {
     onec: hasSeg,
-    equipment: hasSeg,
+    equipment: hasSeg && (equipmentAllowed || state.equipmentEnabled),
     products: hasSeg && hasProducer(),
     custom: hasSeg,
     contacts: hasSeg,
