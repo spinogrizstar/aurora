@@ -4,7 +4,6 @@
 // ------------------------------------------------------------
 
 import { state } from './state.js';
-import { kktCount } from './helpers.js';
 
 export const SERVICE_GROUPS = [
   'Регистрация ЧЗ',
@@ -46,10 +45,10 @@ const DETAILED_PRESETS = {
     { id: 'reg_chz', title: 'Регистрация в системе ЧЗ', hoursPerUnit: 1, qty: 1, group: 'Регистрация ЧЗ' },
     { id: 'edo_setup', title: 'Настройка ЭДО', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
     { id: 'integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'ts_piot', title: 'ТС ПИОТ', hoursPerUnit: 0.5, qty: 1, group: 'Интеграция/учёт' },
+    { id: 'ts_piot', title: 'ТС ПИОТ', hoursPerUnit: 0.5, qty: 0, group: 'Интеграция/учёт' },
     { id: 'lm_chz', title: 'ЛМ ЧЗ', hoursPerUnit: 0.5, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'kkt_firmware', title: 'Прошивка ККТ', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'fn_replace', title: 'Замена ФН', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'kkt_firmware', title: 'Прошивка ККТ', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
+    { id: 'fn_replace', title: 'Замена ФН', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
     { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'kkt_connect', title: 'Подключение ККТ к товароучётке', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
@@ -66,11 +65,11 @@ const DETAILED_PRESETS = {
     { id: 'reg_chz', title: 'Регистрация в системе ЧЗ', hoursPerUnit: 2, qty: 1, group: 'Регистрация ЧЗ' },
     { id: 'edo_setup', title: 'Настройка ЭДО', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
     { id: 'integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'ts_piot', title: 'ТС ПИОТ', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
+    { id: 'ts_piot', title: 'ТС ПИОТ', hoursPerUnit: 1, qty: 0, group: 'Интеграция/учёт' },
     { id: 'lm_chz', title: 'ЛМ ЧЗ', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
     { id: 'catalog_cards', title: 'Создание карточек товаров', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'kkt_firmware', title: 'Прошивка ККТ', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'fn_replace', title: 'Замена ФН', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'kkt_firmware', title: 'Прошивка ККТ', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
+    { id: 'fn_replace', title: 'Замена ФН', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
     { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'kkt_connect', title: 'Подключение ККТ к товароучётке', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
@@ -79,11 +78,11 @@ const DETAILED_PRESETS = {
     { id: 'reg_chz', title: 'Регистрация в системе ЧЗ', hoursPerUnit: 2, qty: 1, group: 'Регистрация ЧЗ' },
     { id: 'edo_setup', title: 'Настройка ЭДО', hoursPerUnit: 2, qty: 1, group: 'Интеграция/учёт' },
     { id: 'integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 2, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'ts_piot', title: 'ТС ПИОТ', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
+    { id: 'ts_piot', title: 'ТС ПИОТ', hoursPerUnit: 1, qty: 0, group: 'Интеграция/учёт' },
     { id: 'lm_chz', title: 'ЛМ ЧЗ', hoursPerUnit: 2, qty: 1, group: 'Интеграция/учёт' },
     { id: 'catalog_cards', title: 'Создание карточек товаров', hoursPerUnit: 1, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'kkt_firmware', title: 'Прошивка ККТ', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'fn_replace', title: 'Замена ФН', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'kkt_firmware', title: 'Прошивка ККТ', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
+    { id: 'fn_replace', title: 'Замена ФН', hoursPerUnit: 1, qty: 0, group: 'Оборудование/ККТ' },
     { id: 'scanner_connect', title: 'Подключение сканера', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'kkt_connect', title: 'Подключение ККТ к товароучётке', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'kepa_order', title: 'Заказ КЭП', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
@@ -92,17 +91,12 @@ const DETAILED_PRESETS = {
   ],
 };
 
-const AUTO_BY_KKT = new Set(['kkt_firmware', 'fn_replace', 'kkt_connect', 'ts_piot']);
 const AUTO_BY_SCANNER = new Set(['scanner_connect']);
 
-function _serviceDefaults(preset, totalKkt, scanners) {
+function _serviceDefaults(preset, scanners) {
   return (preset || []).map((service) => {
     let qty = Number(service.qty ?? 0);
     let isAuto = false;
-    if (AUTO_BY_KKT.has(service.id)) {
-      qty = totalKkt;
-      isAuto = true;
-    }
     if (AUTO_BY_SCANNER.has(service.id)) {
       qty = scanners;
       isAuto = true;
@@ -116,15 +110,14 @@ function _serviceDefaults(preset, totalKkt, scanners) {
   });
 }
 
-export function getServicePreset(packageId, detailed, totalKkt, scanners) {
+export function getServicePreset(packageId, detailed, scanners) {
   const presets = detailed ? DETAILED_PRESETS : BASE_PRESETS;
-  return _serviceDefaults(presets[packageId] || [], totalKkt, scanners);
+  return _serviceDefaults(presets[packageId] || [], scanners);
 }
 
 export function applyPackagePreset(packageId) {
-  const totalKkt = kktCount();
   const scanners = Number(state.device_scanner || 0);
-  state.services = getServicePreset(packageId, state.servicesDetailed, totalKkt, scanners);
+  state.services = getServicePreset(packageId, state.servicesDetailed, scanners);
   state.servicesPackageId = packageId;
 }
 
@@ -136,14 +129,9 @@ export function ensureServicesForPackage(packageId) {
 }
 
 export function syncAutoServiceQuantities() {
-  const totalKkt = kktCount();
   const scanners = Number(state.device_scanner || 0);
   (state.services || []).forEach((service) => {
     if (service.manuallySet) return;
-    if (AUTO_BY_KKT.has(service.id)) {
-      service.qty = totalKkt;
-      service.isAuto = true;
-    }
     if (AUTO_BY_SCANNER.has(service.id)) {
       service.qty = scanners;
       service.isAuto = true;

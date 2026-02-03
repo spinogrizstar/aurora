@@ -93,7 +93,6 @@ export function renderChecklist(update){
     card.onclick = () => {
       state.segments = [...pkgCfg.segments];
       state.selectedPackageId = pkgCfg.key;
-      state.scannersManuallySet = false;
       if (getTotalKktCount() === 0) {
         state.kkt.regularCount = 1;
       }
