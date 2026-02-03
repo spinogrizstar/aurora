@@ -4,7 +4,7 @@
     "retail_only": {
       "summary": [
         { "id": "reg_chz", "title": "Регистрация в ЧЗ", "hoursPerUnit": 1, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 3, "qty": 1, "group": "Интеграция/учёт" },
+        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 7, "qty": 1, "group": "Интеграция/учёт" },
         { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 4, "qty": 1, "group": "Оборудование/ККТ" },
         { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
       ],
@@ -24,7 +24,7 @@
     "wholesale_only": {
       "summary": [
         { "id": "reg_chz", "title": "Регистрация в ЧЗ", "hoursPerUnit": 1, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 4, "qty": 1, "group": "Интеграция/учёт" },
+        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 4, "qty": 1, "group": "Интеграция/учёт" },
         { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
         { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
       ],
@@ -38,8 +38,8 @@
     },
     "producer_only": {
       "summary": [
-        { "id": "reg_chz", "title": "Регистрация в ЧЗ", "hoursPerUnit": 2, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 5, "qty": 1, "group": "Интеграция/учёт" },
+        { "id": "reg_chz_gs1", "title": "Регистрация в ЧЗ/ГС1", "hoursPerUnit": 2, "qty": 1, "group": "Регистрация ЧЗ" },
+        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 5, "qty": 1, "group": "Интеграция/учёт" },
         { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 4, "qty": 1, "group": "Оборудование/ККТ" },
         { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
       ],
@@ -54,8 +54,8 @@
     },
     "producer_retail": {
       "summary": [
-        { "id": "reg_chz", "title": "Регистрация в ЧЗ", "hoursPerUnit": 2, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 8, "qty": 1, "group": "Интеграция/учёт" },
+        { "id": "reg_chz_gs1", "title": "Регистрация в ЧЗ/ГС1", "hoursPerUnit": 2, "qty": 1, "group": "Регистрация ЧЗ" },
+        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 8, "qty": 1, "group": "Интеграция/учёт" },
         { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 7, "qty": 1, "group": "Оборудование/ККТ" },
         { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
       ],
