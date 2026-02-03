@@ -311,7 +311,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerTotals) {
     el.servicesToggle.disabled = false;
     el.servicesToggle.onchange = () => {
       state.servicesDetailed = !!el.servicesToggle.checked;
-      applyPackagePreset(state.selectedPackageId);
+      applyPackagePreset(state.selectedPackageId, { resetEquipment: false });
       if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
     };
   }

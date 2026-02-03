@@ -15,7 +15,7 @@ import { CZ_GROUPS } from '../catalogs.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
 import { clamp, fmtRub } from '../helpers.js';
 import { mkDropdown } from '../components/dropdown.js';
-import { isEquipmentAvailable, onPackageChange, syncAutoServiceQuantities } from '../services.js';
+import { applyPackagePreset, isEquipmentAvailable, isKktAvailable, isScannerAvailable, syncAutoServiceQuantities } from '../services.js';
 
 // Чтобы блоки “появлялись/убирались” анимацией, но при этом чекбоксы
 // реагировали МГНОВЕННО (без задержек после клика).
@@ -92,8 +92,7 @@ export function renderChecklist(update){
     `;
     card.onclick = () => {
       state.segments = [...pkgCfg.segments];
-      state.selectedPackageId = pkgCfg.key;
-      onPackageChange(pkgCfg.key);
+      applyPackagePreset(pkgCfg.key);
       const hours = quoteHours;
       const totalRub = hours * 4950;
       console.log('[Aurora] package selected', {
@@ -152,6 +151,8 @@ export function renderChecklist(update){
   // Что именно показывать
   const vis = visibilityFromState();
   const equipmentAllowed = isEquipmentAvailable(state.selectedPackageId);
+  const kktAllowed = isKktAvailable(state.selectedPackageId);
+  const scannerAllowed = isScannerAvailable(state.selectedPackageId);
 
   // 1.5) Учётная система (1С)
   const secOneC = document.createElement('div');
@@ -248,81 +249,85 @@ export function renderChecklist(update){
     }
   };
 
-  kktTypes.forEach((type) => {
-    const row = document.createElement('div');
-    row.className = 'kktCardRow kktCountRow';
+  if (kktAllowed) {
+    kktTypes.forEach((type) => {
+      const row = document.createElement('div');
+      row.className = 'kktCardRow kktCountRow';
 
-    const label = document.createElement('div');
-    label.className = 'kktRowLabel';
-    const title = document.createElement('div');
-    title.className = 'kktRowTitle';
-    title.textContent = type.title;
-    title.title = type.tooltip;
-    const note = document.createElement('div');
-    note.className = 'kktRowNote';
-    note.textContent = type.note;
-    label.appendChild(title);
-    label.appendChild(note);
+      const label = document.createElement('div');
+      label.className = 'kktRowLabel';
+      const title = document.createElement('div');
+      title.className = 'kktRowTitle';
+      title.textContent = type.title;
+      title.title = type.tooltip;
+      const note = document.createElement('div');
+      note.className = 'kktRowNote';
+      note.textContent = type.note;
+      label.appendChild(title);
+      label.appendChild(note);
 
-    const right = document.createElement('div');
-    right.className = 'kktRowContent';
-    const step = document.createElement('div'); step.className = 'stepper';
-    const minus = document.createElement('button'); minus.className = 'btnTiny'; minus.type = 'button'; minus.textContent = '−';
-    const num = document.createElement('div'); num.className = 'stepNum'; num.textContent = String(state.kkt?.[type.key] || 0);
-    const plus = document.createElement('button'); plus.className = 'btnTiny'; plus.type = 'button'; plus.textContent = '+';
-    const refresh = () => { num.textContent = String(state.kkt?.[type.key] || 0); };
-    minus.onclick = () => {
-      const prevTotal = getTotalKktCount();
-      state.kkt[type.key] = clamp((state.kkt[type.key] || 0) - 1, 0, 99);
-      refresh();
-      ensureScannerMin(prevTotal, getTotalKktCount());
+      const right = document.createElement('div');
+      right.className = 'kktRowContent';
+      const step = document.createElement('div'); step.className = 'stepper';
+      const minus = document.createElement('button'); minus.className = 'btnTiny'; minus.type = 'button'; minus.textContent = '−';
+      const num = document.createElement('div'); num.className = 'stepNum'; num.textContent = String(state.kkt?.[type.key] || 0);
+      const plus = document.createElement('button'); plus.className = 'btnTiny'; plus.type = 'button'; plus.textContent = '+';
+      const refresh = () => { num.textContent = String(state.kkt?.[type.key] || 0); };
+      minus.onclick = () => {
+        const prevTotal = getTotalKktCount();
+        state.kkt[type.key] = clamp((state.kkt[type.key] || 0) - 1, 0, 99);
+        refresh();
+        ensureScannerMin(prevTotal, getTotalKktCount());
+        syncAutoServiceQuantities();
+        update();
+      };
+      plus.onclick = () => {
+        const prevTotal = getTotalKktCount();
+        state.kkt[type.key] = clamp((state.kkt[type.key] || 0) + 1, 0, 99);
+        refresh();
+        ensureScannerMin(prevTotal, getTotalKktCount());
+        syncAutoServiceQuantities();
+        update();
+      };
+      step.appendChild(minus); step.appendChild(num); step.appendChild(plus);
+      right.appendChild(step);
+      row.appendChild(label);
+      row.appendChild(right);
+      card.appendChild(row);
+    });
+
+    box2.appendChild(card);
+  }
+
+  if (scannerAllowed || state.equipmentEnabled) {
+    const scannerRow = document.createElement('div');
+    scannerRow.className = 'opt';
+    scannerRow.innerHTML = `<div class="label"><div class="t">Сканеры</div><div class="d">Количество (может быть меньше касс)</div></div>`;
+    const scannerStep = document.createElement('div'); scannerStep.className = 'stepper';
+    const scannerMinus = document.createElement('button'); scannerMinus.className = 'btnTiny'; scannerMinus.type = 'button'; scannerMinus.textContent = '−';
+    const scannerNum = document.createElement('div'); scannerNum.className = 'stepNum'; scannerNum.textContent = String(state.device_scanner || 0);
+    const scannerPlus = document.createElement('button'); scannerPlus.className = 'btnTiny'; scannerPlus.type = 'button'; scannerPlus.textContent = '+';
+    const refreshScanner = () => { scannerNum.textContent = String(state.device_scanner || 0); };
+    scannerMinus.onclick = () => {
+      state.scannersManuallySet = true;
+      state.device_scanner = clamp((state.device_scanner || 0) - 1, 0, 99);
+      refreshScanner();
       syncAutoServiceQuantities();
       update();
     };
-    plus.onclick = () => {
-      const prevTotal = getTotalKktCount();
-      state.kkt[type.key] = clamp((state.kkt[type.key] || 0) + 1, 0, 99);
-      refresh();
-      ensureScannerMin(prevTotal, getTotalKktCount());
+    scannerPlus.onclick = () => {
+      state.scannersManuallySet = true;
+      state.device_scanner = clamp((state.device_scanner || 0) + 1, 0, 99);
+      refreshScanner();
       syncAutoServiceQuantities();
       update();
     };
-    step.appendChild(minus); step.appendChild(num); step.appendChild(plus);
-    right.appendChild(step);
-    row.appendChild(label);
-    row.appendChild(right);
-    card.appendChild(row);
-  });
-
-  box2.appendChild(card);
-
-  const scannerRow = document.createElement('div');
-  scannerRow.className = 'opt';
-  scannerRow.innerHTML = `<div class="label"><div class="t">Сканеры</div><div class="d">Количество (может быть меньше касс)</div></div>`;
-  const scannerStep = document.createElement('div'); scannerStep.className = 'stepper';
-  const scannerMinus = document.createElement('button'); scannerMinus.className = 'btnTiny'; scannerMinus.type = 'button'; scannerMinus.textContent = '−';
-  const scannerNum = document.createElement('div'); scannerNum.className = 'stepNum'; scannerNum.textContent = String(state.device_scanner || 0);
-  const scannerPlus = document.createElement('button'); scannerPlus.className = 'btnTiny'; scannerPlus.type = 'button'; scannerPlus.textContent = '+';
-  const refreshScanner = () => { scannerNum.textContent = String(state.device_scanner || 0); };
-  scannerMinus.onclick = () => {
-    state.scannersManuallySet = true;
-    state.device_scanner = clamp((state.device_scanner || 0) - 1, 0, 99);
-    refreshScanner();
-    syncAutoServiceQuantities();
-    update();
-  };
-  scannerPlus.onclick = () => {
-    state.scannersManuallySet = true;
-    state.device_scanner = clamp((state.device_scanner || 0) + 1, 0, 99);
-    refreshScanner();
-    syncAutoServiceQuantities();
-    update();
-  };
-  scannerStep.appendChild(scannerMinus);
-  scannerStep.appendChild(scannerNum);
-  scannerStep.appendChild(scannerPlus);
-  scannerRow.appendChild(scannerStep);
-  box2.appendChild(scannerRow);
+    scannerStep.appendChild(scannerMinus);
+    scannerStep.appendChild(scannerNum);
+    scannerStep.appendChild(scannerPlus);
+    scannerRow.appendChild(scannerStep);
+    box2.appendChild(scannerRow);
+  }
 
   sec2.appendChild(box2);
   revealAppend(sec2, 'equipment', vis.equipment, checklistExtra);
