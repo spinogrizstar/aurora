@@ -78,9 +78,10 @@ export function buildPresetServices(packageId, detailed) {
   const pkg = _matrixPackage(packageId);
   const detailedList = Array.isArray(pkg.detailed) ? pkg.detailed : [];
   const summaryList = Array.isArray(pkg.summary) ? pkg.summary : [];
-  const rawPreset = (detailed && detailedList.length)
-    ? detailedList
-    : (summaryList.length ? summaryList : detailedList);
+  let rawPreset = detailed ? detailedList : summaryList;
+  if (!rawPreset.length) {
+    rawPreset = detailedList.length ? detailedList : summaryList;
+  }
   const rawWithDefaults = _serviceDefaults(rawPreset || []);
   const catalog = _buildServiceCatalog(matrix);
   const rawFiltered = rawWithDefaults.filter((service) => {
