@@ -40,7 +40,17 @@ function groupServices(services) {
     if (!grouped.has(group)) grouped.set(group, []);
     grouped.get(group).push(svc);
   });
-  return grouped;
+  const DATA = getDataSync();
+  const groupOrder = (DATA?.manager_matrix_v5?.groups || []).map((g) => String(g?.title || g?.name || g?.id || '').trim()).filter(Boolean);
+  if (!groupOrder.length) return grouped;
+  const ordered = new Map();
+  groupOrder.forEach((group) => {
+    if (grouped.has(group)) ordered.set(group, grouped.get(group));
+  });
+  grouped.forEach((items, group) => {
+    if (!ordered.has(group)) ordered.set(group, items);
+  });
+  return ordered;
 }
 
 function renderServicesList(managerCalc) {
@@ -62,7 +72,9 @@ function renderServicesList(managerCalc) {
     header.className = 'serviceGroupHead';
     header.innerHTML = `<span>${group}</span><span class="serviceGroupChevron">▾</span>`;
 
-    const collapsed = !!state.servicesGroupsCollapsed?.[group];
+    const groupState = state.servicesGroupsCollapsed || {};
+    const hasStored = Object.prototype.hasOwnProperty.call(groupState, group);
+    const collapsed = hasStored ? !!groupState[group] : !state.servicesDetailed;
     groupWrap.classList.toggle('collapsed', collapsed);
     header.onclick = () => {
       state.servicesGroupsCollapsed = state.servicesGroupsCollapsed || {};
@@ -361,7 +373,6 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
     el.servicesToggle.disabled = false;
     el.servicesToggle.onchange = () => {
       state.servicesDetailed = !!el.servicesToggle.checked;
-      applyPackagePreset(state.selectedPackageId, { resetEquipment: false });
       if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
     };
   }

@@ -11,7 +11,8 @@
 let _DATA = null;
 const DATA_URL = '/data/data.json';
 const CORE_PACKAGES_URL = '/data/core_packages.json';
-const MANAGER_MATRIX_URL = '/data/manager_matrix_v5.json';
+const MANAGER_MATRIX_URL = '/api/v5/services-matrix';
+const MANAGER_MATRIX_FALLBACK_URL = '/data/manager_matrix_v5.json';
 
 export async function loadData() {
   if (_DATA) return _DATA;
@@ -72,6 +73,28 @@ export async function loadData() {
       error: e,
     });
     _DATA.__matrixError = `не удалось загрузить ${MANAGER_MATRIX_URL}`;
+  }
+  if (_DATA.__matrixError) {
+    try {
+      const fallbackRes = await fetch(MANAGER_MATRIX_FALLBACK_URL, { cache: 'no-store' });
+      if (fallbackRes.ok) {
+        _DATA.manager_matrix_v5 = await fallbackRes.json();
+        _DATA.__matrixError = '';
+      } else {
+        console.error('[Aurora][manager_v5] Manager matrix fallback fetch failed', {
+          url: MANAGER_MATRIX_FALLBACK_URL,
+          status: fallbackRes.status,
+          statusText: fallbackRes.statusText,
+        });
+        _DATA.__matrixError = `не удалось загрузить ${MANAGER_MATRIX_FALLBACK_URL}`;
+      }
+    } catch (e) {
+      console.error('[Aurora][manager_v5] Manager matrix fallback fetch error', {
+        url: MANAGER_MATRIX_FALLBACK_URL,
+        error: e,
+      });
+      _DATA.__matrixError = `не удалось загрузить ${MANAGER_MATRIX_FALLBACK_URL}`;
+    }
   }
   return _DATA;
 }
