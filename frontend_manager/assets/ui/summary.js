@@ -277,6 +277,11 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
       el.servicesToggle.checked = !!state.servicesDetailed;
       el.servicesToggle.disabled = true;
     }
+    if (el.servicesReset) {
+      el.servicesReset.disabled = true;
+      el.servicesReset.title = 'Сначала выберите пакет';
+      el.servicesReset.onclick = null;
+    }
     renderList(el.pkgDetailed, []);
     if (el.recRow) el.recRow.hidden = false;
     el.recHint.textContent = hint || 'Выбери сегмент слева — и мы покажем пакет и расчёт.';
@@ -358,6 +363,14 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
     el.servicesToggle.disabled = false;
     el.servicesToggle.onchange = () => {
       state.servicesDetailed = !!el.servicesToggle.checked;
+      applyPackagePreset(state.selectedPackageId, { resetEquipment: false });
+      if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
+    };
+  }
+  if (el.servicesReset) {
+    el.servicesReset.disabled = false;
+    el.servicesReset.title = 'Вернуть значения услуг к пресету/авто';
+    el.servicesReset.onclick = () => {
       applyPackagePreset(state.selectedPackageId, { resetEquipment: false });
       if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
     };

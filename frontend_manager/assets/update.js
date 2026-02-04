@@ -148,6 +148,10 @@ export async function update() {
     _emptyState('Данные не загрузились. Проверьте папку data/*.json — интерфейс работает, но без расчёта.');
     return;
   }
+  if (DATA?.__matrixLoadError) {
+    _emptyState(DATA.__matrixLoadError);
+    return;
+  }
   // Пока сегмент не выбран — показываем пустое состояние.
   if (!(state.segments || []).length || !state.selectedPackageId) {
     _emptyState('Выберите тип клиента слева — и мы покажем пакет, состав работ и расчёт.');

@@ -3,74 +3,372 @@
   "packages": {
     "retail_only": {
       "summary": [
-        { "id": "reg_chz", "title": "Регистрация в ЧЗ", "hoursPerUnit": 1, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 7, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 4, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
+        {
+          "id": "reg_chz",
+          "title": "Регистрация в ЧЗ",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Регистрация ЧЗ"
+        },
+        {
+          "id": "accounting_integration",
+          "title": "Интеграция с товароучёткой",
+          "hoursPerUnit": 7,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "equipment_prep",
+          "title": "Подготовка оборудования",
+          "hoursPerUnit": 4,
+          "qty": 1,
+          "group": "Оборудование/ККТ"
+        },
+        {
+          "id": "training",
+          "title": "Обучение",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Обучение"
+        }
       ],
       "detailed": [
-        { "id": "reg_chz", "title": "Рега в ЧЗ", "hoursPerUnit": 1, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "edo_setup", "title": "Настройка ЭДО", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "kkt_firmware", "title": "Прошивка ККТ", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "fn_replace", "title": "Замена ФН", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "scanner_connect", "title": "Подключение сканера", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" },
-        { "id": "kkt_connect", "title": "Подключение ККТ к товароучетке", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "ts_piot", "title": "ТС ПИОТ", "hoursPerUnit": 1, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "lm_chz", "title": "ЛМ ЧЗ", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" }
+        {
+          "id": "reg_chz",
+          "title": "Рега в ЧЗ",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Регистрация ЧЗ"
+        },
+        {
+          "id": "edo_setup",
+          "title": "Настройка ЭДО",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "integration",
+          "title": "Интеграция с товароучёткой",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "kkt_firmware",
+          "title": "Прошивка ККТ",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ",
+          "autoFrom": "kkt_total"
+        },
+        {
+          "id": "fn_replace",
+          "title": "Замена ФН",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ",
+          "autoFrom": "kkt_total"
+        },
+        {
+          "id": "scanner_connect",
+          "title": "Подключение сканера",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ",
+          "autoFrom": "scanner_total"
+        },
+        {
+          "id": "training",
+          "title": "Обучение",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Обучение"
+        },
+        {
+          "id": "kkt_connect",
+          "title": "Подключение ККТ к товароучетке",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ",
+          "autoFrom": "kkt_total"
+        },
+        {
+          "id": "ts_piot",
+          "title": "ТС ПИОТ",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "lm_chz",
+          "title": "ЛМ ЧЗ",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        }
       ]
     },
     "wholesale_only": {
       "summary": [
-        { "id": "reg_chz", "title": "Регистрация в ЧЗ", "hoursPerUnit": 1, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 4, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
+        {
+          "id": "reg_chz",
+          "title": "Регистрация в ЧЗ",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Регистрация ЧЗ"
+        },
+        {
+          "id": "accounting_integration",
+          "title": "Интеграция с товароучёткой",
+          "hoursPerUnit": 4,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "equipment_prep",
+          "title": "Подготовка оборудования",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ"
+        },
+        {
+          "id": "training",
+          "title": "Обучение",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Обучение"
+        }
       ],
       "detailed": [
-        { "id": "reg_chz", "title": "Рега в ЧЗ", "hoursPerUnit": 1, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "edo_setup", "title": "Настройка ЭДО", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "scanner_connect", "title": "Подключение сканера", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
+        {
+          "id": "reg_chz",
+          "title": "Рега в ЧЗ",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Регистрация ЧЗ"
+        },
+        {
+          "id": "edo_setup",
+          "title": "Настройка ЭДО",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "integration",
+          "title": "Интеграция с товароучёткой",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "scanner_connect",
+          "title": "Подключение сканера",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ",
+          "autoFrom": "scanner_total"
+        },
+        {
+          "id": "training",
+          "title": "Обучение",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Обучение"
+        }
       ]
     },
     "producer_only": {
       "summary": [
-        { "id": "reg_chz_gs1", "title": "Регистрация в ЧЗ/ГС1", "hoursPerUnit": 2, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 5, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 4, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
+        {
+          "id": "reg_chz_gs1",
+          "title": "Регистрация в ЧЗ/ГС1",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Регистрация ЧЗ"
+        },
+        {
+          "id": "accounting_integration",
+          "title": "Интеграция с товароучёткой",
+          "hoursPerUnit": 5,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "equipment_prep",
+          "title": "Подготовка оборудования",
+          "hoursPerUnit": 4,
+          "qty": 1,
+          "group": "Оборудование/ККТ"
+        },
+        {
+          "id": "training",
+          "title": "Обучение",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Обучение"
+        }
       ],
       "detailed": [
-        { "id": "reg_chz_gs1", "title": "Рега в ЧЗ/ГС1", "hoursPerUnit": 2, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "edo_setup", "title": "Настройка ЭДО", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 3, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "scanner_connect", "title": "Подключение сканера", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "printer_setup", "title": "Настройка принтера", "hoursPerUnit": 3, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
+        {
+          "id": "reg_chz_gs1",
+          "title": "Рега в ЧЗ/ГС1",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Регистрация ЧЗ"
+        },
+        {
+          "id": "edo_setup",
+          "title": "Настройка ЭДО",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "integration",
+          "title": "Интеграция с товароучёткой",
+          "hoursPerUnit": 3,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "scanner_connect",
+          "title": "Подключение сканера",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ",
+          "autoFrom": "scanner_total"
+        },
+        {
+          "id": "printer_setup",
+          "title": "Настройка принтера",
+          "hoursPerUnit": 3,
+          "qty": 1,
+          "group": "Оборудование/ККТ"
+        },
+        {
+          "id": "training",
+          "title": "Обучение",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Обучение"
+        }
       ]
     },
     "producer_retail": {
       "summary": [
-        { "id": "reg_chz_gs1", "title": "Регистрация в ЧЗ/ГС1", "hoursPerUnit": 2, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 8, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 7, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
+        {
+          "id": "reg_chz_gs1",
+          "title": "Регистрация в ЧЗ/ГС1",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Регистрация ЧЗ"
+        },
+        {
+          "id": "accounting_integration",
+          "title": "Интеграция с товароучёткой",
+          "hoursPerUnit": 8,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "equipment_prep",
+          "title": "Подготовка оборудования",
+          "hoursPerUnit": 7,
+          "qty": 1,
+          "group": "Оборудование/ККТ"
+        },
+        {
+          "id": "training",
+          "title": "Обучение",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Обучение"
+        }
       ],
       "detailed": [
-        { "id": "reg_chz_gs1", "title": "Рега в ЧЗ/ГС1", "hoursPerUnit": 2, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "edo_setup", "title": "Настройка ЭДО", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 3, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "scanner_connect", "title": "Подключение сканера", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "printer_setup", "title": "Настройка принтера", "hoursPerUnit": 3, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" },
-        { "id": "ts_piot", "title": "ТС ПИОТ", "hoursPerUnit": 1, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "lm_chz", "title": "ЛМ ЧЗ", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "kkt_connect", "title": "Подключение ККТ к товароучетке", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "kkt_firmware", "title": "Прошивка ККТ", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" },
-        { "id": "fn_replace", "title": "Замена ФН", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ" }
+        {
+          "id": "reg_chz_gs1",
+          "title": "Рега в ЧЗ/ГС1",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Регистрация ЧЗ"
+        },
+        {
+          "id": "edo_setup",
+          "title": "Настройка ЭДО",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "integration",
+          "title": "Интеграция с товароучёткой",
+          "hoursPerUnit": 3,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "scanner_connect",
+          "title": "Подключение сканера",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ",
+          "autoFrom": "scanner_total"
+        },
+        {
+          "id": "printer_setup",
+          "title": "Настройка принтера",
+          "hoursPerUnit": 3,
+          "qty": 1,
+          "group": "Оборудование/ККТ"
+        },
+        {
+          "id": "training",
+          "title": "Обучение",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Обучение"
+        },
+        {
+          "id": "ts_piot",
+          "title": "ТС ПИОТ",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "lm_chz",
+          "title": "ЛМ ЧЗ",
+          "hoursPerUnit": 2,
+          "qty": 1,
+          "group": "Интеграция/учёт"
+        },
+        {
+          "id": "kkt_connect",
+          "title": "Подключение ККТ к товароучетке",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ",
+          "autoFrom": "kkt_total"
+        },
+        {
+          "id": "kkt_firmware",
+          "title": "Прошивка ККТ",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ",
+          "autoFrom": "kkt_total"
+        },
+        {
+          "id": "fn_replace",
+          "title": "Замена ФН",
+          "hoursPerUnit": 1,
+          "qty": 1,
+          "group": "Оборудование/ККТ",
+          "autoFrom": "kkt_total"
+        }
       ]
     }
   }

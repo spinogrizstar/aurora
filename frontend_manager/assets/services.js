@@ -14,13 +14,17 @@ export const SERVICE_GROUPS = [
   'Прочее',
 ];
 
-const AUTO_BY_SCANNER = new Set(['scanner_connect']);
 const KKT_PACKAGES = new Set(['retail_only', 'producer_retail']);
 const SCANNER_PACKAGES = new Set(['retail_only', 'producer_retail', 'wholesale_only']);
 
 function _matrixData() {
   const DATA = getDataSync();
   return DATA?.manager_matrix_v5 || { rate_per_hour: 4950, packages: {} };
+}
+
+function _hasMatrixData() {
+  const DATA = getDataSync();
+  return !!DATA?.manager_matrix_v5;
 }
 
 function _matrixPackage(packageId) {
@@ -100,6 +104,7 @@ export function buildPresetServices(packageId, detailed) {
       group: service.group || catalogEntry.group,
       hoursPerUnit: Number(service.hoursPerUnit ?? catalogEntry.hoursPerUnit ?? 0),
       qty: Number(service.qty ?? catalogEntry.qty ?? 0),
+      autoFrom: service.autoFrom ?? catalogEntry.autoFrom ?? null,
     };
   });
   return {
@@ -128,14 +133,28 @@ export function buildDefaultEquipment(packageId) {
 export function applyAutoFromEquipment(services, equipment, packageId) {
   const list = services || [];
   const scanners = Number(equipment?.scannersCount || 0);
-  const autoEnabled = isScannerAvailable(packageId) || !!state.equipmentEnabled;
+  const kktTotal =
+    Number(equipment?.regularCount || 0)
+    + Number(equipment?.smartCount || 0)
+    + Number(equipment?.otherCount || 0);
+  const autoEnabled = isScannerAvailable(packageId) || isKktAvailable(packageId) || !!state.equipmentEnabled;
   list.forEach((service) => {
     if (service.manuallySet) return;
     const override = state.serviceOverrides?.[service.id];
     if (override && override.qtyOverride !== null && override.qtyOverride !== undefined) return;
-    if (AUTO_BY_SCANNER.has(service.id) && autoEnabled) {
+    const autoFrom = service.autoFrom;
+    if (!autoFrom || !autoEnabled) {
+      service.isAuto = false;
+      return;
+    }
+    if (autoFrom === 'scanner_total') {
       service.qty = scanners;
-      service.isAuto = scanners > 0;
+      service.isAuto = true;
+      return;
+    }
+    if (autoFrom === 'kkt_total') {
+      service.qty = kktTotal;
+      service.isAuto = true;
     }
   });
   return list;
@@ -144,6 +163,15 @@ export function applyAutoFromEquipment(services, equipment, packageId) {
 export function applyPreset(packageId, { resetEquipment = true } = {}) {
   if (!packageId) return;
   const normalized = String(packageId || '');
+  const DATA = getDataSync();
+  if (DATA?.__matrixLoadError || !_hasMatrixData()) {
+    state.selectedPackageId = normalized;
+    state.services = [];
+    state.servicesPackageId = normalized;
+    state.serviceOverrides = {};
+    state.servicesPresetError = DATA?.__matrixLoadError || 'Не удалось загрузить /data/manager_matrix_v5.json';
+    return;
+  }
   state.selectedPackageId = normalized;
   const { services, diagnostics } = buildPresetServices(normalized, state.servicesDetailed);
   state.services = services;
@@ -198,6 +226,20 @@ export function syncAutoServiceQuantities() {
     scannersCount: Number(state.equipment?.scannersCount || 0),
   };
   state.services = applyAutoFromEquipment(state.services || [], equipment, state.selectedPackageId);
+}
+
+export function getPackageMatrixTotals(packageId, detailed) {
+  const matrix = _matrixData();
+  const pkg = _matrixPackage(packageId);
+  if (!pkg || (!Array.isArray(pkg.summary) && !Array.isArray(pkg.detailed))) {
+    return { hours: 0, price: 0, hasMatrix: false };
+  }
+  const detailedList = Array.isArray(pkg.detailed) ? pkg.detailed : [];
+  const summaryList = Array.isArray(pkg.summary) ? pkg.summary : [];
+  let rawPreset = detailed ? detailedList : summaryList;
+  if (!rawPreset.length) rawPreset = detailedList.length ? detailedList : summaryList;
+  const totals = calcServiceTotals(rawPreset);
+  return { hours: totals.totalHours, price: totals.totalRub, hasMatrix: true };
 }
 
 export function calcServiceTotals(services) {

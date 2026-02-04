@@ -15,7 +15,7 @@ import { CZ_GROUPS } from '../catalogs.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
 import { clamp, fmtRub } from '../helpers.js';
 import { mkDropdown } from '../components/dropdown.js';
-import { applyPackagePreset, isEquipmentAvailable, isKktAvailable, isScannerAvailable, syncAutoServiceQuantities } from '../services.js';
+import { applyPackagePreset, getPackageMatrixTotals, isEquipmentAvailable, isKktAvailable, isScannerAvailable, syncAutoServiceQuantities } from '../services.js';
 
 // Чтобы блоки “появлялись/убирались” анимацией, но при этом чекбоксы
 // реагировали МГНОВЕННО (без задержек после клика).
@@ -49,6 +49,15 @@ export function renderChecklist(update){
     checklistExtra.innerHTML = '<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Проверьте, что папка <b>data</b> доступна рядом с index.html.</div>';
     return;
   }
+  if (DATA?.__matrixLoadError) {
+    const err = document.createElement('div');
+    err.className = 'alert red';
+    err.style.display = 'block';
+    err.innerHTML = `<b>Матрица услуг не загрузилась</b><div class="small" style="margin-top:8px;">${DATA.__matrixLoadError}</div>`;
+    checklistMain.appendChild(err);
+    checklistExtra.innerHTML = '<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Проверьте доступность /data/manager_matrix_v5.json.</div>';
+    return;
+  }
 
   const getTotalKktCount = () => {
     const regular = Number(state.kkt?.regularCount || 0);
@@ -77,8 +86,9 @@ export function renderChecklist(update){
   packages.forEach(pkgCfg => {
     const pkg = pkgByKey(pkgCfg.key) || {};
     const title = pkg.title || pkgCfg.title;
-    const quoteHours = Number(pkg.quote_hours || 0);
-    const price = quoteHours * 4950;
+    const matrixTotals = getPackageMatrixTotals(pkgCfg.key, state.servicesDetailed);
+    const quoteHours = matrixTotals.hasMatrix ? matrixTotals.hours : Number(pkg.quote_hours || 0);
+    const price = matrixTotals.hasMatrix ? matrixTotals.price : quoteHours * 4950;
 
     const card = document.createElement('button');
     card.type = 'button';
@@ -243,10 +253,9 @@ export function renderChecklist(update){
     },
   ];
 
-  const ensureScannerMin = (prevTotal, nextTotal) => {
-    if (nextTotal > prevTotal && !state.scannersManuallySet) {
-      const scanners = Number(state.equipment?.scannersCount || 0);
-      state.equipment.scannersCount = clamp(Math.max(scanners, nextTotal), 0, 99);
+  const syncScannersWithKkt = (nextTotal) => {
+    if (!state.scannersManuallySet) {
+      state.equipment.scannersCount = clamp(nextTotal, 0, 99);
     }
   };
 
@@ -278,7 +287,7 @@ export function renderChecklist(update){
         const prevTotal = getTotalKktCount();
         state.kkt[type.key] = clamp((state.kkt[type.key] || 0) - 1, 0, 99);
         refresh();
-        ensureScannerMin(prevTotal, getTotalKktCount());
+        syncScannersWithKkt(getTotalKktCount());
         syncAutoServiceQuantities();
         update();
       };
@@ -286,7 +295,7 @@ export function renderChecklist(update){
         const prevTotal = getTotalKktCount();
         state.kkt[type.key] = clamp((state.kkt[type.key] || 0) + 1, 0, 99);
         refresh();
-        ensureScannerMin(prevTotal, getTotalKktCount());
+        syncScannersWithKkt(getTotalKktCount());
         syncAutoServiceQuantities();
         update();
       };
