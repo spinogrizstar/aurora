@@ -180,7 +180,12 @@ export function buildPresetServices(packageId, detailed) {
   return { services: normalized, diagnostics };
 }
 
-export function applyAutoFromEquipment(services, equipment, packageId, { allowEquipmentOverride = false } = {}) {
+export function applyAutoFromEquipment(
+  services,
+  equipment,
+  packageId,
+  { allowEquipmentOverride = false, forceEquipmentAuto = false } = {},
+) {
   const list = services || [];
   const scanners = Number(equipment?.scannersCount || 0);
   const regular = Number(equipment?.regularCount || 0);
@@ -188,8 +193,8 @@ export function applyAutoFromEquipment(services, equipment, packageId, { allowEq
   const other = Number(equipment?.otherCount || 0);
   const kktTotal = regular + smart + other;
 
-  const allowKktAuto = isKktAvailable(packageId) || allowEquipmentOverride;
-  const allowScannerAuto = isScannerAvailable(packageId) || allowEquipmentOverride;
+  const allowKktAuto = isKktAvailable(packageId) || allowEquipmentOverride || forceEquipmentAuto;
+  const allowScannerAuto = isScannerAvailable(packageId) || allowEquipmentOverride || forceEquipmentAuto;
 
   list.forEach((service) => {
     if (!service || service.qty_mode !== 'auto') return;
@@ -198,7 +203,7 @@ export function applyAutoFromEquipment(services, equipment, packageId, { allowEq
     let base = null;
 
     if (autoFrom === 'kkt_total' && allowKktAuto) base = kktTotal;
-    if (autoFrom === 'scanner_total' && allowScannerAuto) base = scanners;
+    if ((autoFrom === 'scanner_total' || autoFrom === 'scanners_count') && allowScannerAuto) base = scanners;
     if (autoFrom === 'kkt_standard' && allowKktAuto) base = regular;
     if (autoFrom === 'kkt_smart' && allowKktAuto) base = smart;
     if (autoFrom === 'kkt_other' && allowKktAuto) base = other;

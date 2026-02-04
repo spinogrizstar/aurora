@@ -234,29 +234,27 @@ export function renderChecklist(update){
       title: 'Обычная касса (ФР/ККТ)',
       note: 'Фактор для авто‑qty услуг',
       prepHours: 2,
-      tooltip: 'ФР/обычная ККТ на ПК (драйвер/ФР). Подготовка обычно 2 часа.',
+      tooltip: 'классическая касса + фискальник',
     },
     {
       key: 'smartCount',
       title: 'Смарт-терминал',
       note: 'Фактор для авто‑qty услуг',
       prepHours: 3,
-      tooltip: 'Эвотор/Сигма/MS POS и аналоги. Подготовка обычно 3 часа.',
+      tooltip: 'Эвотор/Сигма/MS POS и т.п.',
     },
     {
       key: 'otherCount',
       title: 'Другая касса',
       note: 'Фактор для авто‑qty услуг',
       prepHours: 2,
-      tooltip: 'Штрих и прочие. Если нестандарт — отмечайте «Нестандарт/интеграции».',
+      tooltip: 'Штрих и т.п.',
     },
   ];
 
-  const ensureScannerMin = (prevTotal, nextTotal) => {
-    if (nextTotal > prevTotal && !state.scannersManuallySet) {
-      const scanners = Number(state.equipment?.scannersCount || 0);
-      state.equipment.scannersCount = clamp(Math.max(scanners, nextTotal), 0, 99);
-    }
+  const syncScannerAuto = (nextTotal) => {
+    if (state.scannersManuallySet) return;
+    state.equipment.scannersCount = clamp(nextTotal, 0, 99);
   };
 
   if (kktAllowed) {
@@ -284,18 +282,16 @@ export function renderChecklist(update){
       const plus = document.createElement('button'); plus.className = 'btnTiny'; plus.type = 'button'; plus.textContent = '+';
       const refresh = () => { num.textContent = String(state.kkt?.[type.key] || 0); };
       minus.onclick = () => {
-        const prevTotal = getTotalKktCount();
         state.kkt[type.key] = clamp((state.kkt[type.key] || 0) - 1, 0, 99);
         refresh();
-        ensureScannerMin(prevTotal, getTotalKktCount());
+        syncScannerAuto(getTotalKktCount());
         syncAutoServiceQuantities();
         update();
       };
       plus.onclick = () => {
-        const prevTotal = getTotalKktCount();
         state.kkt[type.key] = clamp((state.kkt[type.key] || 0) + 1, 0, 99);
         refresh();
-        ensureScannerMin(prevTotal, getTotalKktCount());
+        syncScannerAuto(getTotalKktCount());
         syncAutoServiceQuantities();
         update();
       };
@@ -312,7 +308,7 @@ export function renderChecklist(update){
   if (scannerAllowed || state.equipmentEnabled) {
     const scannerRow = document.createElement('div');
     scannerRow.className = 'opt';
-    scannerRow.innerHTML = `<div class="label"><div class="t">Сканеры</div><div class="d">Количество (может быть меньше касс)</div></div>`;
+    scannerRow.innerHTML = `<div class="label"><div class="t">Сканеры (может быть меньше касс)</div><div class="d">Количество</div></div>`;
     const scannerStep = document.createElement('div'); scannerStep.className = 'stepper';
     const scannerMinus = document.createElement('button'); scannerMinus.className = 'btnTiny'; scannerMinus.type = 'button'; scannerMinus.textContent = '−';
     const scannerNum = document.createElement('div'); scannerNum.className = 'stepNum'; scannerNum.textContent = String(state.equipment?.scannersCount || 0);
@@ -365,6 +361,9 @@ export function renderChecklist(update){
       state.kkt = { regularCount: 0, smartCount: 0, otherCount: 0 };
       state.equipment.scannersCount = 0;
       state.scannersManuallySet = false;
+    } else if (!equipmentAllowed && state.equipmentEnabled) {
+      state.scannersManuallySet = false;
+      syncScannerAuto(getTotalKktCount());
     }
     syncAutoServiceQuantities();
     renderChecklist(update);
@@ -374,7 +373,7 @@ export function renderChecklist(update){
   toggleRow.appendChild(toggleRight);
   toggleBox.appendChild(toggleRow);
   toggleEquipment.appendChild(toggleBox);
-  const showEquipToggle = (state.segments || []).length && !equipmentAllowed && !state.equipmentEnabled;
+  const showEquipToggle = (state.segments || []).length && !equipmentAllowed;
   revealAppend(toggleEquipment, 'equipmentToggle', showEquipToggle, checklistExtra);
 
   // 5) Продукция (только производитель)
