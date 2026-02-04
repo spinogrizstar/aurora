@@ -214,7 +214,7 @@ export function buildPresaleText() {
 
   (managerCalc?.breakdown || []).forEach((row) => {
     const hoursPerUnit = row.hours_per_unit ?? row.hoursPerUnit ?? 0;
-    lines.push(`- ${row.title}: ${row.qty || 0} × ${hoursPerUnit} ч = ${row.hoursTotal} ч`);
+    lines.push(`- ${row.title}: ${row.qty || 0} × ${formatHoursInline(hoursPerUnit)} ч = ${formatHoursInline(row.hoursTotal)} ч`);
   });
 
   const c = state.contacts || {};

@@ -26,8 +26,8 @@ const SCANNER_PACKAGES = new Set(['retail_only', 'producer_retail']);
 const SUMMARY_FALLBACK = {
   retail_only: [
     { id: 'reg_chz', title: 'Регистрация в ЧЗ', hours_per_unit: 1, qty: 1, group: 'Регистрация ЧЗ' },
-    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hours_per_unit: 3, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'equipment_prep', title: 'Подготовка оборудования', hours_per_unit: 4, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hours_per_unit: 5, qty: 1, group: 'Интеграция/учёт' },
+    { id: 'equipment_prep', title: 'Подготовка оборудования', hours_per_unit: 2, qty: 1, group: 'Оборудование/ККТ' },
     { id: 'training', title: 'Обучение', hours_per_unit: 1, qty: 1, group: 'Обучение' },
   ],
   wholesale_only: [

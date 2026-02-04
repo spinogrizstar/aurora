@@ -4,19 +4,19 @@
     "retail_only": {
       "summary": [
         { "id": "reg_chz", "title": "Регистрация в ЧЗ", "hoursPerUnit": 1, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 3, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 4, "qty": 1, "group": "Оборудование/ККТ" },
+        { "id": "accounting_integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 5, "qty": 1, "group": "Интеграция/учёт" },
+        { "id": "equipment_prep", "title": "Подготовка оборудования", "hoursPerUnit": 2, "qty": 1, "group": "Оборудование/ККТ" },
         { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" }
       ],
       "detailed": [
         { "id": "reg_chz", "title": "Рега в ЧЗ", "hoursPerUnit": 1, "qty": 1, "group": "Регистрация ЧЗ" },
-        { "id": "edo_setup", "title": "Настройка ЭДО", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" },
-        { "id": "kkt_firmware", "title": "Прошивка ККТ", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ", "autoFrom": "kkt_total" },
-        { "id": "fn_replace", "title": "Замена ФН", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ", "autoFrom": "kkt_total" },
-        { "id": "scanner_connect", "title": "Подключение сканера", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ", "autoFrom": "scanner_total" },
+        { "id": "edo_setup", "title": "Настройка ЭДО", "hoursPerUnit": 1, "qty": 1, "group": "Интеграция/учёт" },
+        { "id": "integration", "title": "Интеграция с товароучёткой", "hoursPerUnit": 1, "qty": 1, "group": "Интеграция/учёт" },
+        { "id": "kkt_firmware", "title": "Прошивка ККТ", "hoursPerUnit": 0.5, "qty": 1, "group": "Оборудование/ККТ", "autoFrom": "kkt_total" },
+        { "id": "fn_replace", "title": "Замена ФН", "hoursPerUnit": 0.5, "qty": 1, "group": "Оборудование/ККТ", "autoFrom": "kkt_total" },
+        { "id": "scanner_connect", "title": "Подключение сканера", "hoursPerUnit": 0.5, "qty": 1, "group": "Оборудование/ККТ", "autoFrom": "scanner_total" },
         { "id": "training", "title": "Обучение", "hoursPerUnit": 1, "qty": 1, "group": "Обучение" },
-        { "id": "kkt_connect", "title": "Подключение ККТ к товароучетке", "hoursPerUnit": 1, "qty": 1, "group": "Оборудование/ККТ", "autoFrom": "kkt_total" },
+        { "id": "kkt_connect", "title": "Подключение ККТ к товароучетке", "hoursPerUnit": 0.5, "qty": 1, "group": "Оборудование/ККТ", "autoFrom": "kkt_total" },
         { "id": "ts_piot", "title": "ТС ПИОТ", "hoursPerUnit": 1, "qty": 1, "group": "Интеграция/учёт" },
         { "id": "lm_chz", "title": "ЛМ ЧЗ", "hoursPerUnit": 2, "qty": 1, "group": "Интеграция/учёт" }
       ]
