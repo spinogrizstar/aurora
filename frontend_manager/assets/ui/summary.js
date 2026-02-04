@@ -81,19 +81,21 @@ function renderServicesList(managerCalc) {
       title.className = 'serviceTitle';
       title.textContent = svc.title;
 
-      if (svc.qty_mode === 'auto') {
-        const auto = document.createElement('span');
-        auto.className = 'serviceAuto';
-        auto.textContent = 'авто';
-        title.appendChild(auto);
-      }
-
       const perUnit = document.createElement('div');
       perUnit.className = 'serviceUnit';
       const svcKey = String(svc.id || svc.key || svc.title || '');
       const rowData = breakdownMap.get(svcKey);
       const hoursPerUnit = rowData?.hours_per_unit ?? rowData?.hoursPerUnit ?? svc.hours_per_unit ?? svc.hoursPerUnit;
-      perUnit.textContent = `${fmtHoursInline(hoursPerUnit)} ч/ед`;
+      const hoursSpan = document.createElement('span');
+      hoursSpan.textContent = `${fmtHoursInline(hoursPerUnit)} ч/ед`;
+      perUnit.appendChild(hoursSpan);
+
+      if (svc.qty_mode === 'auto') {
+        const auto = document.createElement('span');
+        auto.className = 'serviceAuto';
+        auto.textContent = 'auto';
+        perUnit.appendChild(auto);
+      }
 
       const stepper = document.createElement('div');
       stepper.className = 'stepper';
