@@ -112,7 +112,9 @@ function normalizeServiceLine(rawService, groupMap) {
     title,
     group,
     hours_per_unit: Number(hoursPerUnit) || 0,
+    unit_hours: Number(hoursPerUnit) || 0,
     qty: normalizedQty,
+    qty_current: normalizedQty,
     qty_mode: qtyMode,
     auto_from: String(autoFrom || '').trim(),
     auto_multiplier: Number.isFinite(autoMultiplier) && autoMultiplier > 0 ? autoMultiplier : 1,
@@ -211,20 +213,14 @@ export function applyAutoFromEquipment(
     if (base === null) return;
     const next = Math.max(0, Math.trunc(Number(base) * multiplier));
     service.qty = next;
+    service.qty_current = next;
   });
 
   return list;
 }
 
 export function calcServiceTotals(services) {
-  const list = services || [];
-  const totalHours = list.reduce((sum, svc) => {
-    return sum + Number(svc.hours_per_unit || 0) * Number(svc.qty || 0);
-  }, 0);
-  const matrix = _matrixData();
-  const rate = Number(matrix.rate_per_hour || 4950);
-  const totalRub = totalHours * rate;
-  return { totalHours, totalRub };
+  return calcServiceTotalsFromServices(services);
 }
 
 export function getPackagePresetTotals(packageId, detailed = false) {
@@ -243,7 +239,73 @@ export function getPackagePresetTotals(packageId, detailed = false) {
   return calcServiceTotals(services);
 }
 
+export function calcServiceTotalsFromServices(services, rateOverride) {
+  const list = Array.isArray(services) ? services : Object.values(services || {});
+  const matrix = _matrixData();
+  const rate = Number(rateOverride ?? matrix.rate_per_hour ?? 4950);
+  const safeRate = Number.isFinite(rate) && rate > 0 ? rate : 4950;
+  const totalHours = list.reduce((sum, svc) => {
+    const hoursPerUnit = Number(svc?.unit_hours ?? svc?.hours_per_unit ?? svc?.hoursPerUnit ?? 0);
+    const qty = Number(svc?.qty_current ?? svc?.qty ?? 0);
+    return sum + hoursPerUnit * qty;
+  }, 0);
+  const totalRub = Math.round(totalHours * safeRate);
+  return { totalHours, totalRub };
+}
+
+let _matrixSelfChecked = false;
+
+function isDevEnv() {
+  if (typeof process !== 'undefined' && process?.env?.NODE_ENV) {
+    return process.env.NODE_ENV !== 'production';
+  }
+  if (typeof location !== 'undefined') {
+    return location.hostname === 'localhost' || location.protocol === 'file:';
+  }
+  return false;
+}
+
+function runMatrixSelfCheck() {
+  if (_matrixSelfChecked || !isDevEnv()) return;
+  _matrixSelfChecked = true;
+  const expectations = [
+    { id: 'retail_only', hours: 9, rub: 44550 },
+    { id: 'wholesale_only', hours: 7, rub: 34650 },
+    { id: 'producer_only', hours: 12, rub: 59400 },
+    { id: 'producer_retail', hours: 18, rub: 89100 },
+  ];
+  const issues = [];
+  expectations.forEach((exp) => {
+    const { services } = buildPresetServices(exp.id, false);
+    const defaults = buildDefaultEquipment(exp.id);
+    applyAutoFromEquipment(
+      services,
+      {
+        regularCount: defaults.kkt.regularCount,
+        smartCount: defaults.kkt.smartCount,
+        otherCount: defaults.kkt.otherCount,
+        scannersCount: defaults.scannersCount,
+      },
+      exp.id,
+    );
+    const totals = calcServiceTotalsFromServices(services);
+    if (Math.abs(totals.totalHours - exp.hours) > 0.001 || totals.totalRub !== exp.rub) {
+      issues.push({
+        packageId: exp.id,
+        expected: exp,
+        got: totals,
+      });
+    }
+  });
+  if (issues.length) {
+    const data = _matrixData();
+    data.__matrixError = 'Матрица услуг сломана';
+    console.error('[Aurora][manager_v5] matrix self-check failed', issues);
+  }
+}
+
 export function validatePackagePresets() {
+  runMatrixSelfCheck();
   const issues = [];
   const matrix = _matrixData();
   const packageIds = _matrixPackages(matrix).map((pkg) => String(pkg?.id || '').trim()).filter(Boolean);

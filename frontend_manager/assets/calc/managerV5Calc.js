@@ -54,9 +54,14 @@ function normalizeServices(rawServices, rawOverrides, issues) {
       key,
       title: svc.title || key,
       group: svc.group || 'Прочее',
-      qty: normalizeNumber(svc.qty, { integer: true, min: 0 }, issues),
+      qty: normalizeNumber(svc.qty_current ?? svc.qty, { integer: true, min: 0 }, issues),
       hours_per_unit: normalizeNumber(
-        svc.hours_per_unit ?? svc.hoursPerUnit,
+        svc.unit_hours ?? svc.hours_per_unit ?? svc.hoursPerUnit,
+        { integer: false, min: 0 },
+        issues,
+      ),
+      unit_hours: normalizeNumber(
+        svc.unit_hours ?? svc.hours_per_unit ?? svc.hoursPerUnit,
         { integer: false, min: 0 },
         issues,
       ),
@@ -124,7 +129,7 @@ export function recalc(state) {
       ? override.hoursOverride
       : svc.hours_per_unit;
     const hoursTotal = Number(qty || 0) * Number(hoursPerUnit || 0);
-    const priceTotal = hoursTotal * rate;
+    const priceTotal = Math.round(hoursTotal * rate);
     const source = (override.qtyOverride !== null && override.qtyOverride !== undefined) ||
       (override.hoursOverride !== null && override.hoursOverride !== undefined)
       ? 'override'
@@ -166,21 +171,22 @@ export function recalc(state) {
     issues.add('EMPTY_BREAKDOWN');
   }
 
-  if (hasAnyWork && totals.hours === 0) {
-    issues.add('INVALID_STATE_ZERO_TOTAL');
+  if (hasAnyServiceQty && totals.hours === 0) {
+    issues.add('ZERO_TOTAL_WITH_QTY');
   }
 
-  if (hasAnyWork && rate > 0 && totals.price === 0) {
-    issues.add('INVALID_STATE_ZERO_TOTAL');
+  if (hasAnyServiceQty && rate > 0 && totals.price === 0) {
+    issues.add('ZERO_TOTAL_WITH_QTY');
   }
 
-  const isValid = !hasAnyWork || (totals.hours > 0 && (rate <= 0 || totals.price > 0));
+  const isValid = true;
 
   return {
     totals,
     breakdown,
     flags: {
       hasAnyWork,
+      hasAnyServiceQty,
       isValid,
       issues: Array.from(issues),
     },
@@ -203,7 +209,7 @@ function runSelfCheck() {
     ...base,
     services: [{ id: 'scanners', title: 'Сканеры', qty: 0, hours_per_unit: 1.5 }],
   }));
-  console.assert(calcB.flags.isValid === false, '[managerV5Calc] expected invalid state when no hours');
+  console.assert(calcB.totals.hours === 0, '[managerV5Calc] expected zero hours when qty=0');
 
   const calcC = recalc(normalizeState({
     ...base,

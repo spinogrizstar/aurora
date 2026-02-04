@@ -11,6 +11,7 @@ import { el } from './dom.js';
 import { lastResult } from './update.js';
 import { normalizeState, recalc } from './calc/managerV5Calc.js';
 import { getDataSync } from './data.js';
+import { isEquipmentAvailable } from './services.js';
 
 const DEFAULT_RATE_PER_HOUR = 4950;
 
@@ -112,7 +113,7 @@ export function buildKPText() {
   const now = new Date().toLocaleString('ru-RU');
 
   const lines = [
-    'КП (менеджер v5)',
+    'КП (внутреннее)',
     `Дата/время: ${now}`,
   ];
 
@@ -128,13 +129,14 @@ export function buildKPText() {
     clientLines.forEach((line) => lines.push(`- ${line}`));
   }
 
-  lines.push(
-    '',
-    `Пакет: ${pkg.id} — ${pkg.label}`,
-    `Ставка: ${rate} ₽/час`,
-    `Оборудование (обычная/смарт/другая + сканеры): ${regular}/${smart}/${other} + ${scanners}`,
-    'Услуги:',
-  );
+  const segmentLabel = segText() || '—';
+  lines.push('', `Сегмент/пакет: ${segmentLabel} — ${pkg.label}`);
+  lines.push(`Ставка: ${rate} ₽/час`);
+  if (isEquipmentAvailable(state.selectedPackageId)) {
+    const kktTotal = kktCount();
+    lines.push(`Оборудование: ККТ ${kktTotal} (обычная/смарт/другая: ${regular}/${smart}/${other}) · Сканеры ${scanners}`);
+  }
+  lines.push('Услуги:');
 
   const breakdownMap = new Map();
   (managerCalc?.breakdown || []).forEach((row) => {
@@ -159,22 +161,20 @@ export function buildKPText() {
       currentGroup = group;
     }
 
-    const qty = row.qty ?? svc.qty ?? 0;
-    const hoursPerUnit = row.hours_per_unit ?? row.hoursPerUnit ?? svc.hours_per_unit ?? svc.hoursPerUnit ?? 0;
+    const qty = row.qty ?? svc.qty_current ?? svc.qty ?? 0;
+    const hoursPerUnit = row.hours_per_unit ?? row.hoursPerUnit ?? svc.unit_hours ?? svc.hours_per_unit ?? svc.hoursPerUnit ?? 0;
     const hoursTotal = row.hoursTotal ?? Number(qty || 0) * Number(hoursPerUnit || 0);
     const isManualOverride = svc.qty_mode === 'manual' && svc.preset_qty_mode === 'auto';
     const marker = isManualOverride ? '*' : '';
 
     if (isManualOverride) hasManualOverride = true;
 
-    lines.push(
-      `- ${svc.title || key}${marker}: ${qty} × ${formatHoursInline(hoursPerUnit)}ч = ${formatHoursInline(hoursTotal)}ч`,
-    );
+    lines.push(`${svc.title || key}${marker}: ${qty} × ${formatHoursInline(hoursPerUnit)} = ${formatHoursInline(hoursTotal)} ч`);
   });
 
   const totalHours = managerCalc?.totals?.hours || 0;
-  const totalRub = totalHours * rate;
-  lines.push('', `Итого: ${formatHoursInline(totalHours)}ч × ${rate} = ${formatRub(totalRub)} ₽`);
+  const totalRub = managerCalc?.totals?.price || 0;
+  lines.push('', `Итого: ${formatHoursInline(totalHours)} ч · ${formatRub(totalRub)} ₽`);
 
   if (hasManualOverride) {
     lines.push('', '* — количество изменено вручную');
