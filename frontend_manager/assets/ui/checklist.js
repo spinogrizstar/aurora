@@ -15,7 +15,7 @@ import { CZ_GROUPS } from '../catalogs.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
 import { clamp, fmtRub } from '../helpers.js';
 import { mkDropdown } from '../components/dropdown.js';
-import { applyPackagePreset, isEquipmentAvailable, isKktAvailable, isScannerAvailable, syncAutoServiceQuantities } from '../services.js';
+import { applyPackagePreset, getPackagePresetTotals, isEquipmentAvailable, isKktAvailable, isScannerAvailable, syncAutoServiceQuantities } from '../services.js';
 
 // Чтобы блоки “появлялись/убирались” анимацией, но при этом чекбоксы
 // реагировали МГНОВЕННО (без задержек после клика).
@@ -50,6 +50,14 @@ export function renderChecklist(update){
     return;
   }
 
+  if (DATA?.__matrixError) {
+    const err = document.createElement('div');
+    err.className = 'alert red';
+    err.style.display = 'block';
+    err.innerHTML = `<b>Матрица услуг не загрузилась</b><div class="small" style="margin-top:8px;">${DATA.__matrixError}</div>`;
+    checklistMain.appendChild(err);
+  }
+
   const getTotalKktCount = () => {
     const regular = Number(state.kkt?.regularCount || 0);
     const smart = Number(state.kkt?.smartCount || 0);
@@ -77,8 +85,9 @@ export function renderChecklist(update){
   packages.forEach(pkgCfg => {
     const pkg = pkgByKey(pkgCfg.key) || {};
     const title = pkg.title || pkgCfg.title;
-    const quoteHours = Number(pkg.quote_hours || 0);
-    const price = quoteHours * 4950;
+    const presetTotals = getPackagePresetTotals(pkgCfg.key, state.servicesDetailed);
+    const quoteHours = Number(presetTotals.totalHours || 0);
+    const price = Number(presetTotals.totalRub || 0);
 
     const card = document.createElement('button');
     card.type = 'button';
@@ -94,7 +103,7 @@ export function renderChecklist(update){
       state.segments = [...pkgCfg.segments];
       applyPackagePreset(pkgCfg.key);
       const hours = quoteHours;
-      const totalRub = hours * 4950;
+      const totalRub = price;
       console.log('[Aurora] package selected', {
         selectedPackageId: state.selectedPackageId,
         segments: state.segments,
