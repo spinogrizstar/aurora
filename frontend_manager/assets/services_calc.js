@@ -23,33 +23,6 @@ export const SERVICE_GROUPS = [
 const KKT_PACKAGES = new Set(['retail_only', 'producer_retail']);
 const SCANNER_PACKAGES = new Set(['retail_only', 'producer_retail']);
 
-const SUMMARY_FALLBACK = {
-  retail_only: [
-    { id: 'reg_chz', title: 'Регистрация в ЧЗ', hours_per_unit: 1, qty: 1, group: 'Регистрация ЧЗ' },
-    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hours_per_unit: 5, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'equipment_prep', title: 'Подготовка оборудования', hours_per_unit: 2, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'training', title: 'Обучение', hours_per_unit: 1, qty: 1, group: 'Обучение' },
-  ],
-  wholesale_only: [
-    { id: 'reg_chz', title: 'Регистрация в ЧЗ', hours_per_unit: 1, qty: 1, group: 'Регистрация ЧЗ' },
-    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hours_per_unit: 4, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'equipment_prep', title: 'Подготовка оборудования', hours_per_unit: 1, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'training', title: 'Обучение', hours_per_unit: 1, qty: 1, group: 'Обучение' },
-  ],
-  producer_only: [
-    { id: 'reg_chz_gs1', title: 'Регистрация в ЧЗ/ГС1', hours_per_unit: 2, qty: 1, group: 'Регистрация ЧЗ' },
-    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hours_per_unit: 5, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'equipment_prep', title: 'Подготовка оборудования', hours_per_unit: 4, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'training', title: 'Обучение', hours_per_unit: 1, qty: 1, group: 'Обучение' },
-  ],
-  producer_retail: [
-    { id: 'reg_chz_gs1', title: 'Регистрация в ЧЗ/ГС1', hours_per_unit: 2, qty: 1, group: 'Регистрация ЧЗ' },
-    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hours_per_unit: 8, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'equipment_prep', title: 'Подготовка оборудования', hours_per_unit: 7, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'training', title: 'Обучение', hours_per_unit: 1, qty: 1, group: 'Обучение' },
-  ],
-};
-
 const DEFAULT_EQUIPMENT = {
   retail_only: {
     kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
@@ -83,55 +56,55 @@ const DEFAULT_EQUIPMENT = {
 
 function _matrixData() {
   const DATA = getDataSync();
-  return DATA?.manager_matrix_v5 || { rate_per_hour: 4950, packages: {} };
+  return DATA?.manager_matrix_v5 || { rate_per_hour: 4950, packages: [], groups: [], services: [] };
 }
 
-function _matrixPackage(packageId) {
-  const matrix = _matrixData();
-  return matrix.packages?.[packageId] || { summary: [], detailed: [] };
+function _matrixPackages(matrix) {
+  return Array.isArray(matrix?.packages) ? matrix.packages : [];
 }
 
-function _getPackageList(pkg, primaryKey, fallbackKey) {
-  if (Array.isArray(pkg?.[primaryKey])) return pkg[primaryKey];
-  if (Array.isArray(pkg?.[fallbackKey])) return pkg[fallbackKey];
-  return [];
+function _matrixGroups(matrix) {
+  return Array.isArray(matrix?.groups) ? matrix.groups : [];
 }
 
-function _buildServiceCatalog(matrix) {
-  const catalog = new Map();
-  const packages = matrix?.packages || {};
-  Object.values(packages || {}).forEach((pkg) => {
-    [
-      ['summary', 'servicesSummary'],
-      ['detailed', 'servicesDetailed'],
-    ].forEach(([primaryKey, fallbackKey]) => {
-      const list = _getPackageList(pkg, primaryKey, fallbackKey);
-      list.forEach((service) => {
-        const id = String(service?.id || '').trim();
-        if (!id) return;
-        if (!catalog.has(id)) {
-          catalog.set(id, {
-            ...service,
-            id,
-          });
-        }
-      });
-    });
+function _matrixGroupMap(matrix) {
+  const map = new Map();
+  _matrixGroups(matrix).forEach((group) => {
+    const id = String(group?.id || group?.key || '').trim();
+    if (!id) return;
+    const title = String(group?.title || group?.name || id).trim();
+    map.set(id, title || id);
   });
-  return catalog;
+  return map;
 }
 
-function normalizeServiceLine(rawService, catalogEntry) {
+function _matrixServices(matrix) {
+  return Array.isArray(matrix?.services) ? matrix.services : [];
+}
+
+function _servicesForPackage(matrix, packageId) {
+  const normalized = String(packageId || '').trim();
+  return _matrixServices(matrix).filter((service) => String(service?.package_id || service?.packageId || '').trim() === normalized);
+}
+
+function normalizeServiceLine(rawService, groupMap) {
   const base = rawService || {};
-  const catalog = catalogEntry || {};
-  const id = String(base.id || base.key || catalog.id || '').trim();
-  const title = base.title || catalog.title || id;
-  const group = base.group || catalog.group || 'Прочее';
-  const hoursPerUnit = base.hours_per_unit ?? base.hoursPerUnit ?? catalog.hours_per_unit ?? catalog.hoursPerUnit ?? 0;
-  const qtyValue = base.qty ?? catalog.qty ?? 0;
-  const autoFrom = base.auto_from ?? base.autoFrom ?? catalog.auto_from ?? catalog.autoFrom ?? '';
-  const autoMultiplier = Number(base.auto_multiplier ?? base.autoMultiplier ?? catalog.auto_multiplier ?? catalog.autoMultiplier ?? 1);
-  const qtyMode = base.qty_mode || base.qtyMode || (autoFrom ? 'auto' : 'manual');
+  const id = String(base.service_id || base.id || base.key || '').trim();
+  const title = base.title || id;
+  const groupId = String(base.group_id || base.group || '').trim();
+  const group = groupMap.get(groupId) || base.group || groupId || 'Прочее';
+  const hoursPerUnit = base.unit_hours ?? base.hours_per_unit ?? base.hoursPerUnit ?? 0;
+  const qtyValue = base.qty_default ?? base.qty ?? 0;
+  const autoDep = base.auto_dep || base.autoDep || {};
+  const autoFrom = (typeof autoDep === 'string' ? autoDep : autoDep?.source) ?? base.auto_from ?? base.autoFrom ?? '';
+  const autoMultiplier = Number(
+    (typeof autoDep === 'object' && autoDep !== null ? autoDep.multiplier : undefined)
+      ?? base.auto_multiplier
+      ?? base.autoMultiplier
+      ?? 1,
+  );
+  const rawMode = String(base.qty_mode || base.qtyMode || (autoFrom ? 'auto' : 'manual')).toLowerCase();
+  const qtyMode = rawMode === 'auto' ? 'auto' : 'manual';
   const normalizedQty = Number.isFinite(Number(qtyValue)) ? Math.max(0, Math.trunc(Number(qtyValue))) : 0;
 
   return {
@@ -140,7 +113,7 @@ function normalizeServiceLine(rawService, catalogEntry) {
     group,
     hours_per_unit: Number(hoursPerUnit) || 0,
     qty: normalizedQty,
-    qty_mode: qtyMode === 'auto' ? 'auto' : 'manual',
+    qty_mode: qtyMode,
     auto_from: String(autoFrom || '').trim(),
     auto_multiplier: Number.isFinite(autoMultiplier) && autoMultiplier > 0 ? autoMultiplier : 1,
     preset_qty: normalizedQty,
@@ -174,36 +147,10 @@ export function buildDefaultEquipment(packageId) {
 
 export function buildPresetServices(packageId, detailed) {
   const matrix = _matrixData();
-  const pkg = _matrixPackage(packageId);
-  const detailedList = _getPackageList(pkg, 'detailed', 'servicesDetailed');
-  const summaryList = _getPackageList(pkg, 'summary', 'servicesSummary');
-
-  let rawPreset = detailed ? detailedList : summaryList;
-  let source = detailed ? 'detailed' : 'summary';
-
-  if (!rawPreset.length && detailed && summaryList.length) {
-    rawPreset = summaryList;
-    source = 'summary_fallback';
-  }
-  if (!rawPreset.length && !detailed && detailedList.length) {
-    rawPreset = detailedList;
-    source = 'detailed_fallback';
-  }
-
-  if (!rawPreset.length) {
-    const fallback = SUMMARY_FALLBACK[String(packageId || '')];
-    if (fallback && fallback.length) {
-      rawPreset = fallback;
-      source = 'summary_fallback_map';
-    }
-  }
-
-  const catalog = _buildServiceCatalog(matrix);
-  const normalized = (rawPreset || []).map((service) => {
-    const id = String(service?.id || '').trim();
-    const catalogEntry = id ? catalog.get(id) : null;
-    return normalizeServiceLine(service, catalogEntry);
-  }).filter((svc) => svc.id);
+  const groupMap = _matrixGroupMap(matrix);
+  const rawPreset = _servicesForPackage(matrix, packageId);
+  const source = rawPreset.length ? 'matrix' : 'empty';
+  const normalized = (rawPreset || []).map((service) => normalizeServiceLine(service, groupMap)).filter((svc) => svc.id);
 
   const hasServices = normalized.length > 0;
   const diagnostics = {
@@ -211,7 +158,7 @@ export function buildPresetServices(packageId, detailed) {
     isDetailed: !!detailed,
     source,
     hasServices,
-    serviceCatalogIds: Array.from(catalog.keys()),
+    serviceCatalogIds: _matrixServices(matrix).map((service) => String(service?.service_id || service?.id || '').trim()).filter(Boolean),
   };
 
   if (!hasServices) {
@@ -293,7 +240,9 @@ export function getPackagePresetTotals(packageId, detailed = false) {
 
 export function validatePackagePresets() {
   const issues = [];
-  PACKAGE_IDS.forEach((packageId) => {
+  const matrix = _matrixData();
+  const packageIds = _matrixPackages(matrix).map((pkg) => String(pkg?.id || '').trim()).filter(Boolean);
+  (packageIds.length ? packageIds : PACKAGE_IDS).forEach((packageId) => {
     [false, true].forEach((isDetailed) => {
       const { services, diagnostics } = buildPresetServices(packageId, isDetailed);
       if (!Array.isArray(services) || !services.length || diagnostics.source === 'placeholder') {

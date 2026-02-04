@@ -21,6 +21,7 @@ from .v5.models import V5Input, V5Result
 from .v5.calc import calculate_v5
 from .v5.docx_gen import build_docx_bytes, suggest_filename
 from .v5.data import load_data_from_frontend
+from .v5.services_matrix import get_package_preset, load_services_matrix
 from .admin_utils import require_admin
 
 import json
@@ -157,6 +158,18 @@ def export_docx(data: V5Input):
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers=headers,
     )
+
+
+@router.get("/api/v5/services-matrix")
+def get_services_matrix():
+    """Единый источник матрицы услуг (v5) для фронта."""
+    return load_services_matrix()
+
+
+@router.get("/api/v5/services-matrix/{package_id}")
+def get_services_matrix_package(package_id: str):
+    """Пресет услуг для выбранного пакета (v5)."""
+    return get_package_preset(package_id)
 
 
 # -----------------------------
