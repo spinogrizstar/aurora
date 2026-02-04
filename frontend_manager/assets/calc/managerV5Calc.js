@@ -55,7 +55,11 @@ function normalizeServices(rawServices, rawOverrides, issues) {
       title: svc.title || key,
       group: svc.group || 'Прочее',
       qty: normalizeNumber(svc.qty, { integer: true, min: 0 }, issues),
-      hoursPerUnit: normalizeNumber(svc.hoursPerUnit, { integer: false, min: 0 }, issues),
+      hours_per_unit: normalizeNumber(
+        svc.hours_per_unit ?? svc.hoursPerUnit,
+        { integer: false, min: 0 },
+        issues,
+      ),
       enabled: !!svc.enabled,
     };
   });
@@ -116,7 +120,9 @@ export function recalc(state) {
   const breakdown = Object.values(normalized.services || {}).map((svc) => {
     const override = normalized.overrides?.[svc.key] || {};
     const qty = override.qtyOverride !== null && override.qtyOverride !== undefined ? override.qtyOverride : svc.qty;
-    const hoursPerUnit = override.hoursOverride !== null && override.hoursOverride !== undefined ? override.hoursOverride : svc.hoursPerUnit;
+    const hoursPerUnit = override.hoursOverride !== null && override.hoursOverride !== undefined
+      ? override.hoursOverride
+      : svc.hours_per_unit;
     const hoursTotal = Number(qty || 0) * Number(hoursPerUnit || 0);
     const priceTotal = hoursTotal * rate;
     const source = (override.qtyOverride !== null && override.qtyOverride !== undefined) ||
@@ -129,7 +135,7 @@ export function recalc(state) {
       title: svc.title,
       group: svc.group,
       qty,
-      hoursPerUnit,
+      hours_per_unit: hoursPerUnit,
       hoursTotal,
       priceTotal,
       source,
@@ -185,7 +191,7 @@ function runSelfCheck() {
   const base = {
     selectedPackageId: 'retail_only',
     services: [
-      { id: 'scanners', title: 'Сканеры', qty: 1, hoursPerUnit: 1.5 },
+      { id: 'scanners', title: 'Сканеры', qty: 1, hours_per_unit: 1.5 },
     ],
     overrides: {},
     ui: { showDetails: true },
@@ -195,13 +201,13 @@ function runSelfCheck() {
 
   const calcB = recalc(normalizeState({
     ...base,
-    services: [{ id: 'scanners', title: 'Сканеры', qty: 0, hoursPerUnit: 1.5 }],
+    services: [{ id: 'scanners', title: 'Сканеры', qty: 0, hours_per_unit: 1.5 }],
   }));
   console.assert(calcB.flags.isValid === false, '[managerV5Calc] expected invalid state when no hours');
 
   const calcC = recalc(normalizeState({
     ...base,
-    services: [{ id: 'scanners', title: 'Сканеры', qty: NaN, hoursPerUnit: 1.5 }],
+    services: [{ id: 'scanners', title: 'Сканеры', qty: NaN, hours_per_unit: 1.5 }],
   }));
   console.assert(calcC.flags.issues.includes('NAN_FIXED'), '[managerV5Calc] expected NAN_FIXED issue');
 }

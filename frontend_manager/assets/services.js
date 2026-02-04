@@ -1,207 +1,31 @@
 // ФАЙЛ: frontend/assets/services.js
 // ------------------------------------------------------------
-// Единый источник истины для услуг и их автологики.
+// Слой действий для state + прокси в модуль расчёта.
 // ------------------------------------------------------------
 
 import { state } from './state.js';
-import { getDataSync } from './data.js';
+import {
+  SERVICE_GROUPS,
+  applyAutoFromEquipment,
+  buildDefaultEquipment,
+  buildPresetServices,
+  calcServiceTotals,
+  getPackagePresetTotals,
+  isEquipmentAvailable,
+  isKktAvailable,
+  isScannerAvailable,
+  validatePackagePresets,
+} from './services_calc.js';
 
-export const SERVICE_GROUPS = [
-  'Регистрация ЧЗ',
-  'Интеграция/учёт',
-  'Оборудование/ККТ',
-  'Обучение',
-  'Прочее',
-];
-const KKT_PACKAGES = new Set(['retail_only', 'producer_retail']);
-const SCANNER_PACKAGES = new Set(['retail_only', 'producer_retail', 'wholesale_only']);
-
-const SUMMARY_FALLBACK = {
-  retail_only: [
-    { id: 'reg_chz', title: 'Регистрация в ЧЗ', hoursPerUnit: 1, qty: 1, group: 'Регистрация ЧЗ' },
-    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 3, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'equipment_prep', title: 'Подготовка оборудования', hoursPerUnit: 4, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
-  ],
-  wholesale_only: [
-    { id: 'reg_chz', title: 'Регистрация в ЧЗ', hoursPerUnit: 1, qty: 1, group: 'Регистрация ЧЗ' },
-    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 4, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'equipment_prep', title: 'Подготовка оборудования', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
-  ],
-  producer_only: [
-    { id: 'reg_chz_gs1', title: 'Регистрация в ЧЗ/ГС1', hoursPerUnit: 2, qty: 1, group: 'Регистрация ЧЗ' },
-    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 5, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'equipment_prep', title: 'Подготовка оборудования', hoursPerUnit: 4, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
-  ],
-  producer_retail: [
-    { id: 'reg_chz_gs1', title: 'Регистрация в ЧЗ/ГС1', hoursPerUnit: 2, qty: 1, group: 'Регистрация ЧЗ' },
-    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 8, qty: 1, group: 'Интеграция/учёт' },
-    { id: 'equipment_prep', title: 'Подготовка оборудования', hoursPerUnit: 7, qty: 1, group: 'Оборудование/ККТ' },
-    { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
-  ],
+export {
+  SERVICE_GROUPS,
+  calcServiceTotals,
+  getPackagePresetTotals,
+  isEquipmentAvailable,
+  isKktAvailable,
+  isScannerAvailable,
+  validatePackagePresets,
 };
-
-function _matrixData() {
-  const DATA = getDataSync();
-  return DATA?.manager_matrix_v5 || { rate_per_hour: 4950, packages: {} };
-}
-
-function _matrixPackage(packageId) {
-  const matrix = _matrixData();
-  return matrix.packages?.[packageId] || { summary: [], detailed: [] };
-}
-
-function _serviceDefaults(preset) {
-  return (preset || []).map((service) => {
-    const qty = Number(service.qty ?? 0);
-    return {
-      ...service,
-      qty,
-      isAuto: false,
-      manuallySet: false,
-    };
-  });
-}
-
-function _getPackageList(pkg, primaryKey, fallbackKey) {
-  if (Array.isArray(pkg?.[primaryKey])) return pkg[primaryKey];
-  if (Array.isArray(pkg?.[fallbackKey])) return pkg[fallbackKey];
-  return [];
-}
-
-function _buildServiceCatalog(matrix) {
-  const catalog = new Map();
-  const packages = matrix?.packages || {};
-  Object.values(packages || {}).forEach((pkg) => {
-    [
-      ['summary', 'servicesSummary'],
-      ['detailed', 'servicesDetailed'],
-    ].forEach(([primaryKey, fallbackKey]) => {
-      const list = _getPackageList(pkg, primaryKey, fallbackKey);
-      list.forEach((service) => {
-        const id = String(service?.id || '').trim();
-        if (!id) return;
-        if (!catalog.has(id)) {
-          catalog.set(id, {
-            ...service,
-            id,
-          });
-        }
-      });
-    });
-  });
-  return catalog;
-}
-
-export function isEquipmentAvailable(packageId) {
-  return isKktAvailable(packageId) || isScannerAvailable(packageId);
-}
-
-export function isKktAvailable(packageId) {
-  return KKT_PACKAGES.has(String(packageId || ''));
-}
-
-export function isScannerAvailable(packageId) {
-  return SCANNER_PACKAGES.has(String(packageId || ''));
-}
-
-export function buildPresetServices(packageId, detailed) {
-  const matrix = _matrixData();
-  const pkg = _matrixPackage(packageId);
-  const detailedList = _getPackageList(pkg, 'detailed', 'servicesDetailed');
-  const summaryList = _getPackageList(pkg, 'summary', 'servicesSummary');
-  let rawPreset = detailed ? detailedList : summaryList;
-  if (!rawPreset.length && !detailed) {
-    const fallback = SUMMARY_FALLBACK[String(packageId || '')];
-    if (fallback && fallback.length) {
-      console.warn('[Aurora][manager_v5] Missing summary preset, using fallback', {
-        packageId: String(packageId || ''),
-      });
-      rawPreset = fallback;
-    }
-  }
-  if (!rawPreset.length && detailed) {
-    rawPreset = summaryList;
-  }
-  const rawWithDefaults = _serviceDefaults(rawPreset || []);
-  const catalog = _buildServiceCatalog(matrix);
-  const rawFiltered = rawWithDefaults.filter((service) => {
-    const id = String(service?.id || '').trim();
-    return id ? catalog.has(id) : false;
-  });
-  const normalized = (rawFiltered.length ? rawFiltered : rawWithDefaults).map((service) => {
-    const id = String(service?.id || '').trim();
-    const catalogEntry = id ? catalog.get(id) : null;
-    if (!catalogEntry) return service;
-    return {
-      ...catalogEntry,
-      ...service,
-      id,
-      title: service.title || catalogEntry.title,
-      group: service.group || catalogEntry.group,
-      hoursPerUnit: Number(service.hoursPerUnit ?? catalogEntry.hoursPerUnit ?? 0),
-      qty: Number(service.qty ?? catalogEntry.qty ?? 0),
-    };
-  });
-  return {
-    services: normalized,
-    diagnostics: {
-      selectedPackageId: String(packageId || ''),
-      isDetailed: !!detailed,
-      presetBeforeFilter: rawWithDefaults,
-      presetAfterFilter: rawFiltered,
-      serviceCatalogIds: Array.from(catalog.keys()),
-    },
-  };
-}
-
-export function buildDefaultEquipment(packageId) {
-  return {
-    kkt: {
-      regularCount: 0,
-      smartCount: 0,
-      otherCount: 0,
-    },
-    scannersCount: 0,
-  };
-}
-
-export function applyAutoFromEquipment(services, equipment, packageId) {
-  const list = services || [];
-  const scanners = Number(equipment?.scannersCount || 0);
-  const kktTotal = Number(equipment?.regularCount || 0)
-    + Number(equipment?.smartCount || 0)
-    + Number(equipment?.otherCount || 0);
-  const allowKktAuto = isKktAvailable(packageId) || !!state.equipmentEnabled;
-  const allowScannerAuto = isScannerAvailable(packageId) || !!state.equipmentEnabled;
-  list.forEach((service) => {
-    if (service.manuallySet) return;
-    const override = state.serviceOverrides?.[service.id];
-    if (override && override.qtyOverride !== null && override.qtyOverride !== undefined) {
-      service.isAuto = false;
-      return;
-    }
-    const autoFrom = String(service.autoFrom || '').trim();
-    if (!autoFrom) {
-      service.isAuto = false;
-      return;
-    }
-    if (autoFrom === 'kkt_total' && allowKktAuto) {
-      service.qty = kktTotal;
-      service.isAuto = kktTotal > 0;
-      return;
-    }
-    if (autoFrom === 'scanner_total' && allowScannerAuto) {
-      service.qty = scanners;
-      service.isAuto = scanners > 0;
-      return;
-    }
-    service.isAuto = false;
-  });
-  return list;
-}
 
 export function applyPreset(packageId, { resetEquipment = true } = {}) {
   if (!packageId) return;
@@ -212,15 +36,17 @@ export function applyPreset(packageId, { resetEquipment = true } = {}) {
   state.servicesPackageId = normalized;
   state.serviceOverrides = {};
   state.servicesPresetError = '';
-  state.services.forEach((service) => {
-    service.manuallySet = false;
-    service.isAuto = false;
-  });
-  state.scannersManuallySet = false;
-  if (!Array.isArray(state.services) || !state.services.length) {
+
+  if (!Array.isArray(state.services) || !state.services.length || diagnostics?.source === 'placeholder') {
     state.servicesPresetError = `Пустой пресет услуг для пакета ${normalized} (isDetailed=${!!state.servicesDetailed}). Проверь матрицу/ID.`;
-    console.error('[Aurora][manager_v5] Empty services preset', diagnostics);
+    console.error('[Aurora][manager_v5] Empty services preset', {
+      packageId: normalized,
+      isDetailed: !!state.servicesDetailed,
+      source: diagnostics?.source,
+      diagnostics,
+    });
   }
+
   if (resetEquipment) {
     const equipmentDefault = buildDefaultEquipment(normalized);
     state.kkt = {
@@ -232,7 +58,9 @@ export function applyPreset(packageId, { resetEquipment = true } = {}) {
       scannersCount: equipmentDefault.scannersCount,
     };
     state.equipmentEnabled = false;
+    state.scannersManuallySet = false;
   }
+
   syncAutoServiceQuantities();
 }
 
@@ -259,21 +87,10 @@ export function syncAutoServiceQuantities() {
     otherCount: Number(state.kkt?.otherCount || 0),
     scannersCount: Number(state.equipment?.scannersCount || 0),
   };
-  state.services = applyAutoFromEquipment(state.services || [], equipment, state.selectedPackageId);
-}
-
-export function calcServiceTotals(services) {
-  const list = services || [];
-  const totalHours = list.reduce((sum, svc) => {
-    return sum + Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0);
-  }, 0);
-  const matrix = _matrixData();
-  const rate = Number(matrix.rate_per_hour || 4950);
-  const totalRub = totalHours * rate;
-  return { totalHours, totalRub };
-}
-
-export function getPackagePresetTotals(packageId, detailed = false) {
-  const { services } = buildPresetServices(packageId, detailed);
-  return calcServiceTotals(services);
+  state.services = applyAutoFromEquipment(
+    state.services || [],
+    equipment,
+    state.selectedPackageId,
+    { allowEquipmentOverride: !!state.equipmentEnabled },
+  );
 }
