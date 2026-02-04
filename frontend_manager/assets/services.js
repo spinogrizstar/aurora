@@ -18,6 +18,33 @@ const AUTO_BY_SCANNER = new Set(['scanner_connect']);
 const KKT_PACKAGES = new Set(['retail_only', 'producer_retail']);
 const SCANNER_PACKAGES = new Set(['retail_only', 'producer_retail', 'wholesale_only']);
 
+const SUMMARY_FALLBACK = {
+  retail_only: [
+    { id: 'reg_chz', title: 'Регистрация в ЧЗ', hoursPerUnit: 1, qty: 1, group: 'Регистрация ЧЗ' },
+    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 3, qty: 1, group: 'Интеграция/учёт' },
+    { id: 'equipment_prep', title: 'Подготовка оборудования', hoursPerUnit: 4, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
+  ],
+  wholesale_only: [
+    { id: 'reg_chz', title: 'Регистрация в ЧЗ', hoursPerUnit: 1, qty: 1, group: 'Регистрация ЧЗ' },
+    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 4, qty: 1, group: 'Интеграция/учёт' },
+    { id: 'equipment_prep', title: 'Подготовка оборудования', hoursPerUnit: 1, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
+  ],
+  producer_only: [
+    { id: 'reg_chz_gs1', title: 'Регистрация в ЧЗ/ГС1', hoursPerUnit: 2, qty: 1, group: 'Регистрация ЧЗ' },
+    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 5, qty: 1, group: 'Интеграция/учёт' },
+    { id: 'equipment_prep', title: 'Подготовка оборудования', hoursPerUnit: 4, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
+  ],
+  producer_retail: [
+    { id: 'reg_chz_gs1', title: 'Регистрация в ЧЗ/ГС1', hoursPerUnit: 2, qty: 1, group: 'Регистрация ЧЗ' },
+    { id: 'accounting_integration', title: 'Интеграция с товароучёткой', hoursPerUnit: 8, qty: 1, group: 'Интеграция/учёт' },
+    { id: 'equipment_prep', title: 'Подготовка оборудования', hoursPerUnit: 7, qty: 1, group: 'Оборудование/ККТ' },
+    { id: 'training', title: 'Обучение', hoursPerUnit: 1, qty: 1, group: 'Обучение' },
+  ],
+};
+
 function _matrixData() {
   const DATA = getDataSync();
   return DATA?.manager_matrix_v5 || { rate_per_hour: 4950, packages: {} };
@@ -40,12 +67,21 @@ function _serviceDefaults(preset) {
   });
 }
 
+function _getPackageList(pkg, primaryKey, fallbackKey) {
+  if (Array.isArray(pkg?.[primaryKey])) return pkg[primaryKey];
+  if (Array.isArray(pkg?.[fallbackKey])) return pkg[fallbackKey];
+  return [];
+}
+
 function _buildServiceCatalog(matrix) {
   const catalog = new Map();
   const packages = matrix?.packages || {};
   Object.values(packages || {}).forEach((pkg) => {
-    ['summary', 'detailed'].forEach((key) => {
-      const list = Array.isArray(pkg?.[key]) ? pkg[key] : [];
+    [
+      ['summary', 'servicesSummary'],
+      ['detailed', 'servicesDetailed'],
+    ].forEach(([primaryKey, fallbackKey]) => {
+      const list = _getPackageList(pkg, primaryKey, fallbackKey);
       list.forEach((service) => {
         const id = String(service?.id || '').trim();
         if (!id) return;
@@ -76,11 +112,20 @@ export function isScannerAvailable(packageId) {
 export function buildPresetServices(packageId, detailed) {
   const matrix = _matrixData();
   const pkg = _matrixPackage(packageId);
-  const detailedList = Array.isArray(pkg.detailed) ? pkg.detailed : [];
-  const summaryList = Array.isArray(pkg.summary) ? pkg.summary : [];
+  const detailedList = _getPackageList(pkg, 'detailed', 'servicesDetailed');
+  const summaryList = _getPackageList(pkg, 'summary', 'servicesSummary');
   let rawPreset = detailed ? detailedList : summaryList;
-  if (!rawPreset.length) {
-    rawPreset = detailedList.length ? detailedList : summaryList;
+  if (!rawPreset.length && !detailed) {
+    const fallback = SUMMARY_FALLBACK[String(packageId || '')];
+    if (fallback && fallback.length) {
+      console.warn('[Aurora][manager_v5] Missing summary preset, using fallback', {
+        packageId: String(packageId || ''),
+      });
+      rawPreset = fallback;
+    }
+  }
+  if (!rawPreset.length && detailed) {
+    rawPreset = summaryList;
   }
   const rawWithDefaults = _serviceDefaults(rawPreset || []);
   const catalog = _buildServiceCatalog(matrix);
