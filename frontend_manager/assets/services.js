@@ -13,8 +13,6 @@ export const SERVICE_GROUPS = [
   'Обучение',
   'Прочее',
 ];
-
-const AUTO_BY_SCANNER = new Set(['scanner_connect']);
 const KKT_PACKAGES = new Set(['retail_only', 'producer_retail']);
 const SCANNER_PACKAGES = new Set(['retail_only', 'producer_retail', 'wholesale_only']);
 
@@ -173,15 +171,34 @@ export function buildDefaultEquipment(packageId) {
 export function applyAutoFromEquipment(services, equipment, packageId) {
   const list = services || [];
   const scanners = Number(equipment?.scannersCount || 0);
-  const autoEnabled = isScannerAvailable(packageId) || !!state.equipmentEnabled;
+  const kktTotal = Number(equipment?.regularCount || 0)
+    + Number(equipment?.smartCount || 0)
+    + Number(equipment?.otherCount || 0);
+  const allowKktAuto = isKktAvailable(packageId) || !!state.equipmentEnabled;
+  const allowScannerAuto = isScannerAvailable(packageId) || !!state.equipmentEnabled;
   list.forEach((service) => {
     if (service.manuallySet) return;
     const override = state.serviceOverrides?.[service.id];
-    if (override && override.qtyOverride !== null && override.qtyOverride !== undefined) return;
-    if (AUTO_BY_SCANNER.has(service.id) && autoEnabled) {
+    if (override && override.qtyOverride !== null && override.qtyOverride !== undefined) {
+      service.isAuto = false;
+      return;
+    }
+    const autoFrom = String(service.autoFrom || '').trim();
+    if (!autoFrom) {
+      service.isAuto = false;
+      return;
+    }
+    if (autoFrom === 'kkt_total' && allowKktAuto) {
+      service.qty = kktTotal;
+      service.isAuto = kktTotal > 0;
+      return;
+    }
+    if (autoFrom === 'scanner_total' && allowScannerAuto) {
       service.qty = scanners;
       service.isAuto = scanners > 0;
+      return;
     }
+    service.isAuto = false;
   });
   return list;
 }
@@ -254,4 +271,9 @@ export function calcServiceTotals(services) {
   const rate = Number(matrix.rate_per_hour || 4950);
   const totalRub = totalHours * rate;
   return { totalHours, totalRub };
+}
+
+export function getPackagePresetTotals(packageId, detailed = false) {
+  const { services } = buildPresetServices(packageId, detailed);
+  return calcServiceTotals(services);
 }

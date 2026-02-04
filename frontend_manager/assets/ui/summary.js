@@ -11,7 +11,7 @@ import { getDataSync } from '../data.js';
 import { openInfoModal } from '../components/info_modal.js';
 import { openServiceGraphModal } from './service_graph.js';
 import { attachPopover } from '../components/popover.js';
-import { applyPackagePreset } from '../services.js';
+import { applyPackagePreset, syncAutoServiceQuantities } from '../services.js';
 
 export function renderList(ul, items) {
   if (!ul) return;
@@ -162,6 +162,7 @@ function renderServicesList(managerCalc) {
           };
         }
         svc.manuallySet = false;
+        syncAutoServiceQuantities();
         if (window.__AURORA_APP_UPDATE) {
           window.__AURORA_APP_UPDATE();
         } else {
@@ -277,13 +278,22 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
       el.servicesToggle.checked = !!state.servicesDetailed;
       el.servicesToggle.disabled = true;
     }
+    if (el.servicesReset) {
+      el.servicesReset.disabled = true;
+    }
     renderList(el.pkgDetailed, []);
     if (el.recRow) el.recRow.hidden = false;
     el.recHint.textContent = hint || 'Выбери сегмент слева — и мы покажем пакет и расчёт.';
     el.projAlert.style.display = 'none';
     if (el.packageDataAlert) {
-      el.packageDataAlert.style.display = 'none';
-      el.packageDataAlert.textContent = '';
+      const dataError = getDataSync()?.__matrixError;
+      if (dataError) {
+        el.packageDataAlert.style.display = 'block';
+        el.packageDataAlert.textContent = dataError;
+      } else {
+        el.packageDataAlert.style.display = 'none';
+        el.packageDataAlert.textContent = '';
+      }
     }
 
     // Кнопка «Почему такая стоимость?» скрыта, пока нет пакета.
@@ -362,6 +372,13 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
       if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
     };
   }
+  if (el.servicesReset) {
+    el.servicesReset.disabled = false;
+    el.servicesReset.onclick = () => {
+      applyPackagePreset(state.selectedPackageId, { resetEquipment: false });
+      if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
+    };
+  }
 
   renderServicesList(managerCalc);
   renderServicesTotals(managerCalc);
@@ -369,8 +386,14 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
   el.recHint.textContent = hint || (prelim ? 'Сначала диагностика ККТ, после — подтверждаем пакет/итог.' : 'Пакет и сумма рассчитаны по чек‑листу.');
   el.projAlert.style.display = state.custom_integration ? 'block' : 'none';
   if (el.packageDataAlert) {
-    el.packageDataAlert.style.display = 'none';
-    el.packageDataAlert.textContent = '';
+    const dataError = getDataSync()?.__matrixError;
+    if (dataError) {
+      el.packageDataAlert.style.display = 'block';
+      el.packageDataAlert.textContent = dataError;
+    } else {
+      el.packageDataAlert.style.display = 'none';
+      el.packageDataAlert.textContent = '';
+    }
   }
 
   if (el.calcWarning) {
