@@ -81,7 +81,7 @@ function renderServicesList(managerCalc) {
       title.className = 'serviceTitle';
       title.textContent = svc.title;
 
-      if (svc.isAuto) {
+      if (svc.qty_mode === 'auto') {
         const auto = document.createElement('span');
         auto.className = 'serviceAuto';
         auto.textContent = 'авто';
@@ -92,7 +92,7 @@ function renderServicesList(managerCalc) {
       perUnit.className = 'serviceUnit';
       const svcKey = String(svc.id || svc.key || svc.title || '');
       const rowData = breakdownMap.get(svcKey);
-      const hoursPerUnit = rowData ? rowData.hoursPerUnit : svc.hoursPerUnit;
+      const hoursPerUnit = rowData?.hours_per_unit ?? rowData?.hoursPerUnit ?? svc.hours_per_unit ?? svc.hoursPerUnit;
       perUnit.textContent = `${fmtHoursInline(hoursPerUnit)} ч/ед`;
 
       const stepper = document.createElement('div');
@@ -117,13 +117,8 @@ function renderServicesList(managerCalc) {
       const updateQty = (delta) => {
         const baseQty = rowData ? rowData.qty : svc.qty;
         const next = Math.max(0, Number(baseQty || 0) + delta);
-        state.serviceOverrides = state.serviceOverrides || {};
-        state.serviceOverrides[svcKey] = {
-          ...(state.serviceOverrides[svcKey] || {}),
-          qtyOverride: Math.trunc(next),
-        };
-        svc.manuallySet = true;
-        svc.isAuto = false;
+        svc.qty = Math.trunc(next);
+        svc.qty_mode = 'manual';
         qty.textContent = String(Math.trunc(next));
         reset.style.display = 'inline-flex';
       };
@@ -148,20 +143,14 @@ function renderServicesList(managerCalc) {
       stepper.appendChild(minus);
       stepper.appendChild(qty);
       stepper.appendChild(plus);
-      if (rowData?.source === 'override') {
+      if (svc.qty_mode === 'manual' && svc.qty !== svc.preset_qty) {
         reset.style.display = 'inline-flex';
       } else {
         reset.style.display = 'none';
       }
       reset.onclick = () => {
-        if (state.serviceOverrides?.[svcKey]) {
-          state.serviceOverrides[svcKey] = {
-            ...(state.serviceOverrides[svcKey] || {}),
-            qtyOverride: null,
-            hoursOverride: null,
-          };
-        }
-        svc.manuallySet = false;
+        svc.qty = svc.preset_qty ?? 0;
+        svc.qty_mode = svc.preset_qty_mode || (svc.auto_from ? 'auto' : 'manual');
         syncAutoServiceQuantities();
         if (window.__AURORA_APP_UPDATE) {
           window.__AURORA_APP_UPDATE();
@@ -173,7 +162,9 @@ function renderServicesList(managerCalc) {
 
       const rowTotal = document.createElement('div');
       rowTotal.className = 'serviceTotal';
-      const rowHours = rowData ? rowData.hoursTotal : (Number(svc.hoursPerUnit || 0) * Number(svc.qty || 0));
+      const rowHours = rowData
+        ? rowData.hoursTotal
+        : (Number(svc.hours_per_unit || svc.hoursPerUnit || 0) * Number(svc.qty || 0));
       rowTotal.textContent = fmtHours(rowHours);
 
       row.appendChild(title);
@@ -375,7 +366,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
   if (el.servicesReset) {
     el.servicesReset.disabled = false;
     el.servicesReset.onclick = () => {
-      applyPackagePreset(state.selectedPackageId, { resetEquipment: false });
+      applyPackagePreset(state.selectedPackageId, { resetEquipment: true });
       if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
     };
   }
@@ -505,7 +496,8 @@ function _wireWhyButton(pkg, calc, costs, managerCalc) {
     items.push('────────');
     items.push(`Пакет: ${pkg.name || '—'}`);
     (managerCalc?.breakdown || []).forEach((row) => {
-      items.push(`- ${row.title}: ${row.qty || 0} × ${fmtHoursInline(row.hoursPerUnit)} ч = ${fmtHoursInline(row.hoursTotal)} ч`);
+      const hoursPerUnit = row.hours_per_unit ?? row.hoursPerUnit ?? 0;
+      items.push(`- ${row.title}: ${row.qty || 0} × ${fmtHoursInline(hoursPerUnit)} ч = ${fmtHoursInline(row.hoursTotal)} ч`);
     });
 
     items.push('────────');

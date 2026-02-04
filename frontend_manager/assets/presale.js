@@ -41,7 +41,8 @@ export function buildPresaleText() {
   ];
 
   (managerCalc?.breakdown || []).forEach((row) => {
-    lines.push(`- ${row.title}: ${row.qty || 0} × ${row.hoursPerUnit} ч = ${row.hoursTotal} ч`);
+    const hoursPerUnit = row.hours_per_unit ?? row.hoursPerUnit ?? 0;
+    lines.push(`- ${row.title}: ${row.qty || 0} × ${hoursPerUnit} ч = ${row.hoursTotal} ч`);
   });
 
   const c = state.contacts || {};

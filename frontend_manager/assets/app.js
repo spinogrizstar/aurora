@@ -22,12 +22,14 @@ import { initDropdownGlobalClose } from './components/dropdown.js';
 import { initInfoModal } from './components/info_modal.js';
 import { initServiceGraphModal } from './ui/service_graph.js';
 import { el } from './dom.js';
+import { validatePackagePresets } from './services.js';
 
 async function init() {
   window.__AURORA_APP_BOOTED = true;
 
   // 1) Данные
   await loadData();
+  validatePackagePresets();
 
   // 2) Глобальные «мелочи»
   initDropdownGlobalClose();
