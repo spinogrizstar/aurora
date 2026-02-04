@@ -6,10 +6,182 @@
 // ------------------------------------------------------------
 
 import { state, getCalcState } from './state.js';
-import { fmtRub, segText, kktCount, deviceCounts, devicesPayload } from './helpers.js';
+import { fmtRub, segText, kktCount, kktCounts, deviceCounts, devicesPayload } from './helpers.js';
 import { el } from './dom.js';
 import { lastResult } from './update.js';
 import { normalizeState, recalc } from './calc/managerV5Calc.js';
+import { getDataSync } from './data.js';
+
+const DEFAULT_RATE_PER_HOUR = 4950;
+
+function getRatePerHour() {
+  const rate = Number(getDataSync()?.manager_matrix_v5?.rate_per_hour ?? DEFAULT_RATE_PER_HOUR);
+  return Number.isFinite(rate) && rate > 0 ? rate : DEFAULT_RATE_PER_HOUR;
+}
+
+function formatHoursInline(value) {
+  const num = Number(value || 0);
+  if (Number.isInteger(num)) return String(num);
+  return num.toFixed(1).replace(/\.0$/, '');
+}
+
+function formatRub(value) {
+  const num = Number(value || 0);
+  return num.toLocaleString('ru-RU');
+}
+
+function showToast(message, kind = 'ok', ms = 2400) {
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  Object.assign(toast.style, {
+    position: 'fixed',
+    right: '20px',
+    bottom: '20px',
+    padding: '10px 14px',
+    borderRadius: '10px',
+    background: kind === 'err' ? 'rgba(239,68,68,.95)' : 'rgba(16,185,129,.95)',
+    color: '#fff',
+    fontSize: '13px',
+    fontWeight: '600',
+    boxShadow: '0 6px 18px rgba(0,0,0,.25)',
+    zIndex: 9999,
+    opacity: '0',
+    transform: 'translateY(8px)',
+    transition: 'opacity 0.2s ease, transform 0.2s ease',
+    pointerEvents: 'none',
+  });
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+  });
+  window.setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(8px)';
+    window.setTimeout(() => toast.remove(), 250);
+  }, ms);
+}
+
+async function copyWithFallback(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      // fallback below
+    }
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-1000px';
+  textarea.style.left = '-1000px';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch (e) {
+    ok = false;
+  }
+  textarea.remove();
+  return ok;
+}
+
+function getSelectedPackage() {
+  const selectedId = String(state.selectedPackageId || '').trim();
+  if (!selectedId) return null;
+  const corePackages = getDataSync()?.core_packages?.packages || [];
+  const pkg = corePackages.find((item) => String(item?.id || item?.segment_key || '') === selectedId);
+  if (!pkg) return null;
+  return {
+    id: selectedId,
+    label: String(pkg.title || pkg.name || pkg.label || '').trim() || selectedId,
+  };
+}
+
+export function buildKPText() {
+  const pkg = getSelectedPackage();
+  if (!pkg) return '';
+  const managerCalc = recalc(normalizeState(getCalcState()));
+  const rate = getRatePerHour();
+
+  const { regular, smart, other } = kktCounts();
+  const { scanners } = deviceCounts();
+  const now = new Date().toLocaleString('ru-RU');
+
+  const lines = [
+    'КП (менеджер v5)',
+    `Дата/время: ${now}`,
+  ];
+
+  const c = state.contacts || {};
+  const clientLines = [];
+  if (c.legal_name) clientLines.push(`Юрлицо: ${c.legal_name}`);
+  if (c.inn) clientLines.push(`ИНН: ${c.inn}`);
+  if (c.contact_name) clientLines.push(`Контакт: ${c.contact_name}`);
+  if (c.phone) clientLines.push(`Телефон: ${c.phone}`);
+  if (c.email) clientLines.push(`Email: ${c.email}`);
+  if (clientLines.length) {
+    lines.push('', 'Клиент:');
+    clientLines.forEach((line) => lines.push(`- ${line}`));
+  }
+
+  lines.push(
+    '',
+    `Пакет: ${pkg.id} — ${pkg.label}`,
+    `Ставка: ${rate} ₽/час`,
+    `Оборудование (обычная/смарт/другая + сканеры): ${regular}/${smart}/${other} + ${scanners}`,
+    'Услуги:',
+  );
+
+  const breakdownMap = new Map();
+  (managerCalc?.breakdown || []).forEach((row) => {
+    breakdownMap.set(String(row.key || ''), row);
+  });
+
+  const servicesList = Array.isArray(state.services)
+    ? state.services
+    : Object.values(state.services || {});
+  let currentGroup = null;
+  let hasManualOverride = false;
+
+  servicesList.forEach((svc) => {
+    if (!svc) return;
+    const key = String(svc.id || svc.key || svc.title || '');
+    const row = breakdownMap.get(key) || {};
+    const group = svc.group || row.group || 'Прочее';
+
+    if (group !== currentGroup) {
+      if (currentGroup !== null) lines.push('');
+      lines.push(`${group}:`);
+      currentGroup = group;
+    }
+
+    const qty = row.qty ?? svc.qty ?? 0;
+    const hoursPerUnit = row.hours_per_unit ?? row.hoursPerUnit ?? svc.hours_per_unit ?? svc.hoursPerUnit ?? 0;
+    const hoursTotal = row.hoursTotal ?? Number(qty || 0) * Number(hoursPerUnit || 0);
+    const isManualOverride = svc.qty_mode === 'manual' && svc.preset_qty_mode === 'auto';
+    const marker = isManualOverride ? '*' : '';
+
+    if (isManualOverride) hasManualOverride = true;
+
+    lines.push(
+      `- ${svc.title || key}${marker}: ${qty} × ${formatHoursInline(hoursPerUnit)}ч = ${formatHoursInline(hoursTotal)}ч`,
+    );
+  });
+
+  const totalHours = managerCalc?.totals?.hours || 0;
+  const totalRub = totalHours * rate;
+  lines.push('', `Итого: ${formatHoursInline(totalHours)}ч × ${rate} = ${formatRub(totalRub)} ₽`);
+
+  if (hasManualOverride) {
+    lines.push('', '* — количество изменено вручную');
+  }
+
+  return lines.join('\r\n');
+}
 
 export function buildPresaleText() {
   const pkg = lastResult?.pkg;
@@ -28,7 +200,7 @@ export function buildPresaleText() {
   const lines = [
     'ЗАПРОС НА ПРЕСЕЙЛ (по чек-листу)',
     `Сегменты: ${segText()}`,
-    `Пакет: ${prelim ? 'предварительно ' : ''}${pkg?.name || '—'}`,
+    `Пакет: ${prelim ? 'предварительно ' : ''}${pkg?.title || pkg?.name || '—'}`,
     `ККТ: ${kktCnt} (используется: ${state.uses_kkt ? 'да' : 'нет'})`,
     `Сканеры: ${dc.scanners || 0}`,
     ...(isProducer ? [
@@ -64,14 +236,16 @@ export function buildPresaleText() {
 export function wirePresaleButtons() {
   if (el.copyBtn) {
     el.copyBtn.onclick = async () => {
-      const txt = buildPresaleText().replace(
-        'ЗАПРОС НА ПРЕСЕЙЛ (по чек-листу)',
-        'КП (выжимка по чек-листу)',
-      );
-      try {
-        await navigator.clipboard.writeText(txt);
-        alert('Скопировано.');
-      } catch (e) {
+      const selectedPackage = getSelectedPackage();
+      if (!selectedPackage) {
+        showToast('Сначала выберите пакет', 'err');
+        return;
+      }
+      const txt = buildKPText();
+      const ok = await copyWithFallback(txt);
+      if (ok) {
+        showToast('КП скопировано');
+      } else {
         alert(txt);
       }
     };
