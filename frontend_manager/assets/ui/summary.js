@@ -132,6 +132,7 @@ function renderServicesList(managerCalc) {
         const baseQty = rowData ? rowData.qty : svc.qty;
         const next = Math.max(0, Number(baseQty || 0) + delta);
         svc.qty = Math.trunc(next);
+        svc.qty_current = Math.trunc(next);
         svc.qty_mode = 'manual';
         qty.textContent = String(Math.trunc(next));
         reset.style.display = 'inline-flex';
@@ -164,6 +165,7 @@ function renderServicesList(managerCalc) {
       }
       reset.onclick = () => {
         svc.qty = svc.preset_qty ?? 0;
+        svc.qty_current = svc.preset_qty ?? 0;
         svc.qty_mode = svc.preset_qty_mode || (svc.auto_from ? 'auto' : 'manual');
         syncAutoServiceQuantities();
         if (window.__AURORA_APP_UPDATE) {
@@ -266,7 +268,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
   // Шапка
   el.segBadge.textContent = segText();
   const totals = managerCalc?.totals || { hours: 0, price: 0 };
-  const flags = managerCalc?.flags || { isValid: true, issues: [] };
+  const flags = managerCalc?.flags || { isValid: true, issues: [], hasAnyServiceQty: false };
 
   if (!pkgView) {
     // Сбрасываем заголовок (и возможную кнопку «подробнее»)
@@ -402,10 +404,14 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
 
   if (el.calcWarning) {
     const isEmptyServices = !Array.isArray(state.services) || state.services.length === 0;
+    const hasZeroWithQty = (flags.issues || []).includes('ZERO_TOTAL_WITH_QTY');
     if (isEmptyServices) {
       el.calcWarning.style.display = 'block';
       el.calcWarning.textContent = state.servicesPresetError
         || `Пустой пресет услуг для пакета ${state.selectedPackageId || '—'} (isDetailed=${!!state.servicesDetailed}). Проверь матрицу/ID.`;
+    } else if (hasZeroWithQty) {
+      el.calcWarning.style.display = 'block';
+      el.calcWarning.textContent = 'Есть услуги с количеством > 0, но итог = 0. Проверь матрицу услуг.';
     } else if (flags.isValid) {
       el.calcWarning.style.display = 'none';
       el.calcWarning.textContent = '';
@@ -419,8 +425,8 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
     const isEmptyServices = !Array.isArray(state.services) || state.services.length === 0;
     const emptyMessage = state.servicesPresetError
       || `Пустой пресет услуг для пакета ${state.selectedPackageId || '—'} (isDetailed=${!!state.servicesDetailed}). Проверь матрицу/ID.`;
-    el.copyBtn.disabled = !flags.isValid || isEmptyServices;
-    el.copyBtn.title = isEmptyServices ? emptyMessage : (flags.isValid ? '' : 'Невалидный расчёт — проверь количества услуг');
+    el.copyBtn.disabled = isEmptyServices;
+    el.copyBtn.title = isEmptyServices ? emptyMessage : '';
   }
 
   // «Почему такая стоимость?» — открывает понятную раскладку.
