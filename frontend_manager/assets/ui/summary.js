@@ -11,7 +11,7 @@ import { getDataSync } from '../data.js';
 import { openInfoModal } from '../components/info_modal.js';
 import { openServiceGraphModal } from './service_graph.js';
 import { attachPopover } from '../components/popover.js';
-import { applyPackagePreset, syncAutoServiceQuantities } from '../services.js';
+import { resetPackageDefaults, syncAutoServiceQuantities } from '../services.js';
 
 export function renderList(ul, items) {
   if (!ul) return;
@@ -134,6 +134,7 @@ function renderServicesList(managerCalc) {
         svc.qty = Math.trunc(next);
         svc.qty_current = Math.trunc(next);
         svc.qty_mode = 'manual';
+        svc.manual_qty_override = true;
         qty.textContent = String(Math.trunc(next));
         reset.style.display = 'inline-flex';
       };
@@ -158,7 +159,7 @@ function renderServicesList(managerCalc) {
       stepper.appendChild(minus);
       stepper.appendChild(qty);
       stepper.appendChild(plus);
-      if (svc.qty_mode === 'manual' && svc.qty !== svc.preset_qty) {
+      if (svc.manual_qty_override || (svc.qty_mode === 'manual' && svc.qty !== svc.preset_qty)) {
         reset.style.display = 'inline-flex';
       } else {
         reset.style.display = 'none';
@@ -167,6 +168,7 @@ function renderServicesList(managerCalc) {
         svc.qty = svc.preset_qty ?? 0;
         svc.qty_current = svc.preset_qty ?? 0;
         svc.qty_mode = svc.preset_qty_mode || (svc.auto_from ? 'auto' : 'manual');
+        svc.manual_qty_override = false;
         syncAutoServiceQuantities();
         if (window.__AURORA_APP_UPDATE) {
           window.__AURORA_APP_UPDATE();
@@ -381,7 +383,8 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
   if (el.servicesReset) {
     el.servicesReset.disabled = false;
     el.servicesReset.onclick = () => {
-      applyPackagePreset(state.selectedPackageId, { resetEquipment: true });
+      resetPackageDefaults(state.selectedPackageId);
+      if (window.__AURORA_RENDER_CHECKLIST) window.__AURORA_RENDER_CHECKLIST();
       if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
     };
   }
