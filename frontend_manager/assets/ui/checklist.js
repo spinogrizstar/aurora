@@ -56,13 +56,6 @@ export function renderChecklist(update){
     checklistMain.appendChild(err);
   }
 
-  const getTotalKktCount = () => {
-    const regular = Number(state.kkt?.regularCount || 0);
-    const smart = Number(state.kkt?.smartCount || 0);
-    const other = Number(state.kkt?.otherCount || 0);
-    return regular + smart + other;
-  };
-
   // 1) Быстрый выбор пакета (4 карточки)
   const sec1 = document.createElement('div');
   sec1.className='section';
@@ -155,13 +148,6 @@ export function renderChecklist(update){
   secComment.appendChild(commentOpts);
   checklistMain.appendChild(secComment);
 
-  // Если сегмент ещё не выбран — дальше ничего не показываем.
-  if(!(state.segments||[]).length){
-    _prevVis = { equipment:false, custom:false };
-    checklistExtra.innerHTML = `<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Выберите тип клиента слева — здесь появятся доп.факторы.</div>`;
-    return;
-  }
-
   // helper: добавить секцию с плавным появлением/исчезновением
   const revealAppend = (sec, key, show, target)=>{
     sec.dataset.sec = key;
@@ -234,11 +220,6 @@ export function renderChecklist(update){
     },
   ];
 
-  const syncScannerAuto = (nextTotal) => {
-    if (state.scannersManuallySet) return;
-    state.equipment.scannersCount = clamp(nextTotal, 0, 99);
-  };
-
   kktTypes.forEach((type) => {
       const row = document.createElement('div');
       row.className = 'kktCardRow kktCountRow';
@@ -265,14 +246,12 @@ export function renderChecklist(update){
       minus.onclick = () => {
         state.kkt[type.key] = clamp((state.kkt[type.key] || 0) - 1, 0, 99);
         refresh();
-        syncScannerAuto(getTotalKktCount());
         syncAutoServiceQuantities();
         update();
       };
       plus.onclick = () => {
         state.kkt[type.key] = clamp((state.kkt[type.key] || 0) + 1, 0, 99);
         refresh();
-        syncScannerAuto(getTotalKktCount());
         syncAutoServiceQuantities();
         update();
       };
@@ -295,14 +274,12 @@ export function renderChecklist(update){
     const scannerPlus = document.createElement('button'); scannerPlus.className = 'btnTiny'; scannerPlus.type = 'button'; scannerPlus.textContent = '+';
     const refreshScanner = () => { scannerNum.textContent = String(state.equipment?.scannersCount || 0); };
     scannerMinus.onclick = () => {
-      state.scannersManuallySet = true;
       state.equipment.scannersCount = clamp((state.equipment?.scannersCount || 0) - 1, 0, 99);
       refreshScanner();
       syncAutoServiceQuantities();
       update();
     };
     scannerPlus.onclick = () => {
-      state.scannersManuallySet = true;
       state.equipment.scannersCount = clamp((state.equipment?.scannersCount || 0) + 1, 0, 99);
       refreshScanner();
       syncAutoServiceQuantities();

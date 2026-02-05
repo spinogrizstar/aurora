@@ -3,7 +3,7 @@
 // Слой действий для state + прокси в модуль расчёта.
 // ------------------------------------------------------------
 
-import { state } from './state.js';
+import { applyPackageDefaults, state } from './state.js';
 import {
   SERVICE_GROUPS,
   applyAutoFromEquipment,
@@ -57,16 +57,7 @@ export function applyPreset(packageId, { resetEquipment = true } = {}) {
   }
 
   if (resetEquipment) {
-    const equipmentDefault = getEquipmentDefaults(normalized);
-    state.kkt = {
-      regularCount: equipmentDefault.kkt.regularCount,
-      smartCount: equipmentDefault.kkt.smartCount,
-      otherCount: equipmentDefault.kkt.otherCount,
-    };
-    state.equipment = {
-      scannersCount: equipmentDefault.scannersCount,
-    };
-    state.scannersManuallySet = false;
+    applyPackageDefaults(normalized);
   }
 
   syncAutoServiceQuantities();
@@ -79,7 +70,17 @@ export function applyPackagePreset(packageId, options) {
 export function resetPackageDefaults(packageId) {
   const normalized = String(packageId || state.selectedPackageId || '');
   if (!normalized) return;
-  applyPreset(normalized, { resetEquipment: true });
+  state.selectedPackageId = normalized;
+  applyPackageDefaults(normalized);
+  (state.services || []).forEach((svc) => {
+    if (!svc) return;
+    svc.manual_qty_override = false;
+    svc.qty_mode = svc.preset_qty_mode || (svc.auto_from ? 'auto' : 'manual');
+    const baseQty = Number(svc.preset_qty ?? 0);
+    svc.qty = Number.isFinite(baseQty) ? Math.max(0, Math.trunc(baseQty)) : 0;
+    svc.qty_current = svc.qty;
+  });
+  syncAutoServiceQuantities();
 }
 
 export function onPackageChange(packageId) {

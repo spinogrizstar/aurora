@@ -4,6 +4,7 @@
 // ------------------------------------------------------------
 
 import { getDataSync } from './data.js';
+import { PACKAGE_DEFAULTS } from './state.js';
 
 export const PACKAGE_IDS = [
   'retail_only',
@@ -24,27 +25,12 @@ const EQUIPMENT_BASIS_BY_SERVICE_ID = {
   kkt_firmware: 'kkt',
   fn_replace: 'kkt',
   kkt_connect: 'kkt',
+  ts_piot: 'kkt',
+  lm_chz: 'kkt',
   scanner_connect: 'scanner',
 };
 
-const EQUIPMENT_DEFAULTS_BY_PACKAGE = {
-  retail_only: {
-    kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
-    scannersCount: 1,
-  },
-  producer_retail: {
-    kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
-    scannersCount: 1,
-  },
-  wholesale_only: {
-    kkt: { regularCount: 0, smartCount: 0, otherCount: 0 },
-    scannersCount: 0,
-  },
-  producer_only: {
-    kkt: { regularCount: 0, smartCount: 0, otherCount: 0 },
-    scannersCount: 0,
-  },
-};
+const EQUIPMENT_DEFAULTS_BY_PACKAGE = PACKAGE_DEFAULTS;
 
 function _matrixData() {
   const DATA = getDataSync();
@@ -105,7 +91,7 @@ function normalizeServiceLine(rawService, groupMap) {
       ?? 1,
   );
   const rawMode = String(base.qty_mode || base.qtyMode || (autoFrom ? 'auto' : 'manual')).toLowerCase();
-  const qtyMode = rawMode === 'auto' ? 'auto' : 'manual';
+  const qtyMode = (rawMode === 'auto' || rawMode === 'preset_auto') ? 'auto' : 'manual';
   const normalizedQty = Number.isFinite(Number(qtyValue)) ? Math.max(0, Math.trunc(Number(qtyValue))) : 0;
 
   return {
@@ -159,8 +145,8 @@ function resolveServiceEquipmentBasis(service) {
     return EQUIPMENT_BASIS_BY_SERVICE_ID[serviceId];
   }
   const autoFrom = String(service?.auto_from || '').trim();
-  if (['kkt_total', 'kkt_standard', 'kkt_smart', 'kkt_other'].includes(autoFrom)) return 'kkt';
-  if (['scanner_total', 'scanners_count'].includes(autoFrom)) return 'scanner';
+  if (['kkt_total', 'kkt_standard', 'kkt_smart', 'kkt_other', 'kkt_count'].includes(autoFrom)) return 'kkt';
+  if (['scanner_total', 'scanners_count', 'scanner_count'].includes(autoFrom)) return 'scanner';
   return '';
 }
 
@@ -245,7 +231,6 @@ export function applyAutoFromEquipment(
   packageId,
   { allowEquipmentOverride = false, forceEquipmentAuto = false } = {},
 ) {
-  if (!allowEquipmentOverride && !forceEquipmentAuto && !isEquipmentAvailable(packageId)) return services || [];
   return applyEquipmentToServices(services, equipment);
 }
 
@@ -303,8 +288,8 @@ function runMatrixSelfCheck() {
   _matrixSelfChecked = true;
   const expectations = [
     { id: 'retail_only', hours: 9, rub: 44550 },
-    { id: 'wholesale_only', hours: 7, rub: 34650 },
-    { id: 'producer_only', hours: 12, rub: 59400 },
+    { id: 'wholesale_only', hours: 6, rub: 29700 },
+    { id: 'producer_only', hours: 11, rub: 54450 },
     { id: 'producer_retail', hours: 18, rub: 89100 },
   ];
   const issues = [];
