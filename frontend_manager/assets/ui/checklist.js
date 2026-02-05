@@ -13,7 +13,7 @@ import { state } from '../state.js';
 import { getDataSync } from '../data.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
 import { clamp, fmtRub } from '../helpers.js';
-import { applyPackagePreset, getPackagePresetTotals, isEquipmentAvailable, isKktAvailable, isScannerAvailable, syncAutoServiceQuantities } from '../services.js';
+import { applyPackagePreset, getPackagePresetTotals, syncAutoServiceQuantities } from '../services.js';
 
 // Чтобы блоки “появлялись/убирались” анимацией, но при этом чекбоксы
 // реагировали МГНОВЕННО (без задержек после клика).
@@ -22,7 +22,7 @@ import { applyPackagePreset, getPackagePresetTotals, isEquipmentAvailable, isKkt
 // галочка ставилась через ~1 сек и казалось, что сайт лагает.
 // Теперь: перерисовываем сразу, а для скрываемых секций делаем
 // «анимацию выхода» (см. revealAppend ниже).
-let _prevVis = { equipment:false, custom:false, equipmentToggle:false };
+let _prevVis = { equipment:false, custom:false };
 
 // Главный рендер чек-листа.
 // update() передаём снаружи, чтобы избежать циклических импортов.
@@ -157,7 +157,7 @@ export function renderChecklist(update){
 
   // Если сегмент ещё не выбран — дальше ничего не показываем.
   if(!(state.segments||[]).length){
-    _prevVis = { equipment:false, custom:false, equipmentToggle:false };
+    _prevVis = { equipment:false, custom:false };
     checklistExtra.innerHTML = `<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Выберите тип клиента слева — здесь появятся доп.факторы.</div>`;
     return;
   }
@@ -196,9 +196,6 @@ export function renderChecklist(update){
 
   // Что именно показывать
   const vis = visibilityFromState();
-  const equipmentAllowed = isEquipmentAvailable(state.selectedPackageId);
-  const kktAllowed = isKktAvailable(state.selectedPackageId);
-  const scannerAllowed = isScannerAvailable(state.selectedPackageId);
 
   // 2) Оборудование (ККТ + сканеры)
   const sec2 = document.createElement('div');
@@ -242,8 +239,7 @@ export function renderChecklist(update){
     state.equipment.scannersCount = clamp(nextTotal, 0, 99);
   };
 
-  if (kktAllowed) {
-    kktTypes.forEach((type) => {
+  kktTypes.forEach((type) => {
       const row = document.createElement('div');
       row.className = 'kktCardRow kktCountRow';
 
@@ -288,9 +284,8 @@ export function renderChecklist(update){
     });
 
     box2.appendChild(card);
-  }
 
-  if (scannerAllowed || state.equipmentEnabled) {
+  {
     const scannerRow = document.createElement('div');
     scannerRow.className = 'opt';
     scannerRow.innerHTML = `<div class="label"><div class="t">Сканеры (может быть меньше касс)</div><div class="d">Количество</div></div>`;
@@ -322,44 +317,6 @@ export function renderChecklist(update){
 
   sec2.appendChild(box2);
   revealAppend(sec2, 'equipment', vis.equipment, checklistExtra);
-
-  const toggleEquipment = document.createElement('div');
-  toggleEquipment.className = 'section';
-  toggleEquipment.innerHTML = `<div class="secTitle"><h3>Оборудование</h3><span class="tag">опционально</span></div>`;
-  const toggleBox = document.createElement('div');
-  toggleBox.className = 'opts';
-  const toggleRow = document.createElement('div');
-  toggleRow.className = 'opt';
-  toggleRow.innerHTML = `<div class="label"><div class="t">Показать оборудование (если есть)</div><div class="d">Для опта/производителя по умолчанию скрыто</div></div>`;
-  const toggleRight = document.createElement('div');
-  const toggleBtn = document.createElement('button');
-  toggleBtn.type = 'button';
-  toggleBtn.className = 'pillToggle';
-  const paintToggle = () => {
-    toggleBtn.textContent = state.equipmentEnabled ? 'Включено' : 'Выключено';
-    toggleBtn.classList.toggle('on', !!state.equipmentEnabled);
-  };
-  paintToggle();
-  toggleBtn.onclick = () => {
-    state.equipmentEnabled = !state.equipmentEnabled;
-    if (!state.equipmentEnabled && !equipmentAllowed) {
-      state.kkt = { regularCount: 0, smartCount: 0, otherCount: 0 };
-      state.equipment.scannersCount = 0;
-      state.scannersManuallySet = false;
-    } else if (!equipmentAllowed && state.equipmentEnabled) {
-      state.scannersManuallySet = false;
-      syncScannerAuto(getTotalKktCount());
-    }
-    syncAutoServiceQuantities();
-    renderChecklist(update);
-    update();
-  };
-  toggleRight.appendChild(toggleBtn);
-  toggleRow.appendChild(toggleRight);
-  toggleBox.appendChild(toggleRow);
-  toggleEquipment.appendChild(toggleBox);
-  const showEquipToggle = (state.segments || []).length && !equipmentAllowed;
-  revealAppend(toggleEquipment, 'equipmentToggle', showEquipToggle, checklistExtra);
 
   // 6) Нестандарт/интеграции (маркер пресейла)
   const secCustom = document.createElement('div');
