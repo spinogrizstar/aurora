@@ -189,8 +189,12 @@
       "title": "Подключение сканера",
       "group_id": "equipment",
       "unit_hours": 1,
-      "qty_default": 1,
-      "qty_mode": "preset"
+      "qty_default": 0,
+      "qty_mode": "preset",
+      "auto_dep": {
+        "source": "scanner_total",
+        "multiplier": 1
+      }
     },
     {
       "package_id": "wholesale_only",
@@ -234,8 +238,12 @@
       "title": "Подключение сканера",
       "group_id": "equipment",
       "unit_hours": 1,
-      "qty_default": 1,
-      "qty_mode": "preset"
+      "qty_default": 0,
+      "qty_mode": "preset",
+      "auto_dep": {
+        "source": "scanner_total",
+        "multiplier": 1
+      }
     },
     {
       "package_id": "producer_only",
@@ -288,8 +296,12 @@
       "title": "Подключение сканера",
       "group_id": "equipment",
       "unit_hours": 1,
-      "qty_default": 1,
-      "qty_mode": "preset"
+      "qty_default": 0,
+      "qty_mode": "preset",
+      "auto_dep": {
+        "source": "scanner_total",
+        "multiplier": 1
+      }
     },
     {
       "package_id": "producer_retail",
@@ -365,6 +377,84 @@
       "package_id": "producer_retail",
       "service_id": "fn_replace",
       "title": "Замена ФН",
+      "group_id": "equipment",
+      "unit_hours": 1,
+      "qty_default": 0,
+      "qty_mode": "auto",
+      "auto_dep": {
+        "source": "kkt_total",
+        "multiplier": 1
+      }
+    },
+    {
+      "package_id": "wholesale_only",
+      "service_id": "kkt_firmware",
+      "title": "Прошивка ККТ",
+      "group_id": "equipment",
+      "unit_hours": 1,
+      "qty_default": 0,
+      "qty_mode": "auto",
+      "auto_dep": {
+        "source": "kkt_total",
+        "multiplier": 1
+      }
+    },
+    {
+      "package_id": "wholesale_only",
+      "service_id": "fn_replace",
+      "title": "Замена ФН",
+      "group_id": "equipment",
+      "unit_hours": 1,
+      "qty_default": 0,
+      "qty_mode": "auto",
+      "auto_dep": {
+        "source": "kkt_total",
+        "multiplier": 1
+      }
+    },
+    {
+      "package_id": "wholesale_only",
+      "service_id": "kkt_connect",
+      "title": "Подключение ККТ к товароучётке",
+      "group_id": "equipment",
+      "unit_hours": 1,
+      "qty_default": 0,
+      "qty_mode": "auto",
+      "auto_dep": {
+        "source": "kkt_total",
+        "multiplier": 1
+      }
+    },
+    {
+      "package_id": "producer_only",
+      "service_id": "kkt_firmware",
+      "title": "Прошивка ККТ",
+      "group_id": "equipment",
+      "unit_hours": 1,
+      "qty_default": 0,
+      "qty_mode": "auto",
+      "auto_dep": {
+        "source": "kkt_total",
+        "multiplier": 1
+      }
+    },
+    {
+      "package_id": "producer_only",
+      "service_id": "fn_replace",
+      "title": "Замена ФН",
+      "group_id": "equipment",
+      "unit_hours": 1,
+      "qty_default": 0,
+      "qty_mode": "auto",
+      "auto_dep": {
+        "source": "kkt_total",
+        "multiplier": 1
+      }
+    },
+    {
+      "package_id": "producer_only",
+      "service_id": "kkt_connect",
+      "title": "Подключение ККТ к товароучётке",
       "group_id": "equipment",
       "unit_hours": 1,
       "qty_default": 0,

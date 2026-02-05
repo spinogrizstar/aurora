@@ -411,7 +411,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
     if (isEmptyServices) {
       el.calcWarning.style.display = 'block';
       el.calcWarning.textContent = state.servicesPresetError
-        || `Пустой пресет услуг для пакета ${state.selectedPackageId || '—'} (isDetailed=${!!state.servicesDetailed}). Проверь матрицу/ID.`;
+        || `Пустой пресет услуг для пакета ${state.selectedPackageId || '—'}. Проверь матрицу/ID.`;
     } else if (hasZeroWithQty) {
       el.calcWarning.style.display = 'block';
       el.calcWarning.textContent = 'Есть услуги с количеством > 0, но итог = 0. Проверь матрицу услуг.';
@@ -427,7 +427,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
   if (el.copyBtn) {
     const isEmptyServices = !Array.isArray(state.services) || state.services.length === 0;
     const emptyMessage = state.servicesPresetError
-      || `Пустой пресет услуг для пакета ${state.selectedPackageId || '—'} (isDetailed=${!!state.servicesDetailed}). Проверь матрицу/ID.`;
+      || `Пустой пресет услуг для пакета ${state.selectedPackageId || '—'}. Проверь матрицу/ID.`;
     el.copyBtn.disabled = isEmptyServices;
     el.copyBtn.title = isEmptyServices ? emptyMessage : '';
   }

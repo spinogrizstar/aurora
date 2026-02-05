@@ -79,6 +79,15 @@ function _servicesForPackage(matrix, packageId) {
   return _matrixServices(matrix).filter((service) => String(service?.package_id || service?.packageId || '').trim() === normalized);
 }
 
+function normalizeEquipment(equipment) {
+  return {
+    regularCount: Number(equipment?.regularCount || 0),
+    smartCount: Number(equipment?.smartCount || 0),
+    otherCount: Number(equipment?.otherCount || 0),
+    scannersCount: Number(equipment?.scannersCount || 0),
+  };
+}
+
 function normalizeServiceLine(rawService, groupMap) {
   const base = rawService || {};
   const id = String(base.service_id || base.id || base.key || '').trim();
@@ -156,11 +165,12 @@ function resolveServiceEquipmentBasis(service) {
 }
 
 function getAutoQtyByBasis(basis, equipment, multiplier = 1) {
+  const normalizedEquipment = normalizeEquipment(equipment);
   const safeMultiplier = Number.isFinite(Number(multiplier)) && Number(multiplier) > 0 ? Number(multiplier) : 1;
-  const regular = Number(equipment?.regularCount || 0);
-  const smart = Number(equipment?.smartCount || 0);
-  const other = Number(equipment?.otherCount || 0);
-  const scanners = Number(equipment?.scannersCount || 0);
+  const regular = normalizedEquipment.regularCount;
+  const smart = normalizedEquipment.smartCount;
+  const other = normalizedEquipment.otherCount;
+  const scanners = normalizedEquipment.scannersCount;
   const kktTotal = regular + smart + other;
   const baseQty = basis === 'scanner' ? scanners : kktTotal;
   return Math.max(0, Math.trunc(baseQty * safeMultiplier));
@@ -168,12 +178,13 @@ function getAutoQtyByBasis(basis, equipment, multiplier = 1) {
 
 export function applyEquipmentToServices(services, equipment) {
   const list = services || [];
+  const normalizedEquipment = normalizeEquipment(equipment);
   list.forEach((service) => {
     if (!service) return;
     const basis = resolveServiceEquipmentBasis(service);
     if (!basis) return;
 
-    const autoQty = getAutoQtyByBasis(basis, equipment, service.auto_multiplier);
+    const autoQty = getAutoQtyByBasis(basis, normalizedEquipment, service.auto_multiplier);
     service.auto_basis = basis;
     service.qty_auto = autoQty;
 
@@ -331,12 +342,10 @@ export function validatePackagePresets() {
   const matrix = _matrixData();
   const packageIds = _matrixPackages(matrix).map((pkg) => String(pkg?.id || '').trim()).filter(Boolean);
   (packageIds.length ? packageIds : PACKAGE_IDS).forEach((packageId) => {
-    [false, true].forEach((isDetailed) => {
-      const { services, diagnostics } = getPackagePreset(packageId, isDetailed);
-      if (!Array.isArray(services) || !services.length) {
-        issues.push({ packageId, isDetailed, diagnostics });
-      }
-    });
+    const { services, diagnostics } = getPackagePreset(packageId, false);
+    if (!Array.isArray(services) || !services.length) {
+      issues.push({ packageId, diagnostics });
+    }
   });
   if (issues.length) {
     console.error('[Aurora][manager_v5] Empty package presets detected', issues);
