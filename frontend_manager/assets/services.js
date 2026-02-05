@@ -10,6 +10,10 @@ import {
   getEquipmentDefaults,
   buildPresetServices,
   calcServiceTotals,
+  getPackagePreset,
+  buildServiceMapFromPreset,
+  applyEquipmentToServices,
+  computeTotals,
   getPackagePresetTotals,
   isEquipmentAvailable,
   isKktAvailable,
@@ -20,6 +24,10 @@ import {
 export {
   SERVICE_GROUPS,
   calcServiceTotals,
+  getPackagePreset,
+  buildServiceMapFromPreset,
+  applyEquipmentToServices,
+  computeTotals,
   getPackagePresetTotals,
   isEquipmentAvailable,
   isKktAvailable,
@@ -38,8 +46,8 @@ export function applyPreset(packageId, { resetEquipment = true } = {}) {
   state.serviceOverrides = {};
   state.servicesPresetError = '';
 
-  if (!Array.isArray(state.services) || !state.services.length || diagnostics?.source === 'placeholder') {
-    state.servicesPresetError = `Пустой пресет услуг для пакета ${normalized} (isDetailed=${!!state.servicesDetailed}). Проверь матрицу/ID.`;
+  if (!Array.isArray(state.services) || !state.services.length) {
+    state.servicesPresetError = `Нет услуг для пакета ${normalized}. Проверь матрицу/ID.`;
     console.error('[Aurora][manager_v5] Empty services preset', {
       packageId: normalized,
       isDetailed: !!state.servicesDetailed,
@@ -87,13 +95,12 @@ export function ensureServicesForPackage(packageId) {
 
 export function syncAutoServiceQuantities() {
   if (!state.equipment) state.equipment = { scannersCount: 0 };
-  const baseEquipment = {
+  const equipment = {
     regularCount: Number(state.kkt?.regularCount || 0),
     smartCount: Number(state.kkt?.smartCount || 0),
     otherCount: Number(state.kkt?.otherCount || 0),
     scannersCount: Number(state.equipment?.scannersCount || 0),
   };
-  const equipment = baseEquipment;
   state.services = applyAutoFromEquipment(
     state.services || [],
     equipment,
