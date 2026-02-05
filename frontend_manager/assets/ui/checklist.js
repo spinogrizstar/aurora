@@ -11,10 +11,8 @@
 import { el } from '../dom.js';
 import { state } from '../state.js';
 import { getDataSync } from '../data.js';
-import { CZ_GROUPS } from '../catalogs.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
 import { clamp, fmtRub } from '../helpers.js';
-import { mkDropdown } from '../components/dropdown.js';
 import { applyPackagePreset, getPackagePresetTotals, isEquipmentAvailable, isKktAvailable, isScannerAvailable, syncAutoServiceQuantities } from '../services.js';
 
 // Чтобы блоки “появлялись/убирались” анимацией, но при этом чекбоксы
@@ -24,7 +22,7 @@ import { applyPackagePreset, getPackagePresetTotals, isEquipmentAvailable, isKkt
 // галочка ставилась через ~1 сек и казалось, что сайт лагает.
 // Теперь: перерисовываем сразу, а для скрываемых секций делаем
 // «анимацию выхода» (см. revealAppend ниже).
-let _prevVis = { onec:false, equipment:false, products:false, contacts:false, custom:false };
+let _prevVis = { equipment:false, custom:false, equipmentToggle:false };
 
 // Главный рендер чек-листа.
 // update() передаём снаружи, чтобы избежать циклических импортов.
@@ -118,9 +116,35 @@ export function renderChecklist(update){
   sec1.appendChild(opts1);
   checklistMain.appendChild(sec1);
 
+  const secComment = document.createElement('div');
+  secComment.className = 'section';
+  secComment.innerHTML = `<div class="secTitle"><h3>Комментарий</h3></div>`;
+  const commentOpts = document.createElement('div');
+  commentOpts.className = 'opts';
+  const commentRow = document.createElement('div');
+  commentRow.className = 'opt';
+  const taComment = document.createElement('textarea');
+  taComment.className = 'ta';
+  taComment.rows = 5;
+  taComment.placeholder = 'Например: 3 бренда, 120 SKU, печать этикеток, особенности учета...';
+  taComment.value = state.comment || '';
+  taComment.oninput = () => {
+    state.comment = taComment.value;
+    try {
+      localStorage.setItem('manager_v5_comment', state.comment);
+    } catch (e) {
+      // ignore
+    }
+    update();
+  };
+  commentRow.appendChild(taComment);
+  commentOpts.appendChild(commentRow);
+  secComment.appendChild(commentOpts);
+  checklistMain.appendChild(secComment);
+
   // Если сегмент ещё не выбран — дальше ничего не показываем.
   if(!(state.segments||[]).length){
-    _prevVis = { onec:false, equipment:false, products:false, contacts:false, custom:false };
+    _prevVis = { equipment:false, custom:false, equipmentToggle:false };
     checklistExtra.innerHTML = `<div class="mini" style="padding:2px 2px 0;color:rgba(255,255,255,.55)">Выберите тип клиента слева — здесь появятся доп.факторы.</div>`;
     return;
   }
@@ -162,58 +186,6 @@ export function renderChecklist(update){
   const equipmentAllowed = isEquipmentAvailable(state.selectedPackageId);
   const kktAllowed = isKktAvailable(state.selectedPackageId);
   const scannerAllowed = isScannerAvailable(state.selectedPackageId);
-
-  // 1.5) Учётная система (1С)
-  const secOneC = document.createElement('div');
-  secOneC.className='section';
-  secOneC.innerHTML = `<div class="secTitle"><h3>Учётная система (1С)</h3><span class="tag">конфигурация</span></div>`;
-  const optsOneC = document.createElement('div'); optsOneC.className='opts';
-
-  const cfgs = Array.isArray(DATA.onec_configs) ? DATA.onec_configs : [];
-  const items = cfgs.map(c => ({ value: c.id, label: c.name }));
-
-  // Если конфигов нет — показываем объяснение (данные можно добавить через админку).
-  const row = document.createElement('div');
-  row.className='opt onecCfgRow';
-  row.innerHTML = `<div class="label"><div class="t">Конфигурация 1С</div><div class="d">Выбери, что установлено у клиента</div></div>`;
-  const right = document.createElement('div');
-  // Правая часть строки: выпадашка + переключатель «актуальная».
-  // ВАЖНО: делаем wrap, чтобы на узких экранах не «вылезало» за границы.
-  right.className = 'optRight';
-
-  if (items.length) {
-    if (!items.some(i => i.value === (state.onec?.config))) {
-      state.onec.config = items[0].value;
-    }
-    const dd = mkDropdown({
-      items,
-      value: state.onec.config,
-      onChange: (v)=>{ state.onec.config = v; update(); }
-    });
-    right.appendChild(dd);
-  } else {
-    const hint = document.createElement('div');
-    hint.className='muted';
-    hint.textContent='(список конфигураций не задан — добавим через админку)';
-    right.appendChild(hint);
-  }
-
-  const btn = document.createElement('button');
-  btn.className='pillToggle';
-  btn.type='button';
-  const paint = ()=>{
-    const ok = !!state.onec?.actual;
-    btn.textContent = ok ? 'Актуальная' : 'Неактуальная';
-    btn.classList.toggle('on', ok);
-  };
-  paint();
-  btn.onclick = ()=>{ state.onec.actual = !state.onec.actual; paint(); update(); };
-  right.appendChild(btn);
-
-  row.appendChild(right);
-  optsOneC.appendChild(row);
-  secOneC.appendChild(optsOneC);
-  revealAppend(secOneC, 'onec', vis.onec, checklistMain);
 
   // 2) Оборудование (ККТ + сканеры)
   const sec2 = document.createElement('div');
@@ -376,103 +348,6 @@ export function renderChecklist(update){
   const showEquipToggle = (state.segments || []).length && !equipmentAllowed;
   revealAppend(toggleEquipment, 'equipmentToggle', showEquipToggle, checklistExtra);
 
-  // 5) Продукция (только производитель)
-  const secProd = document.createElement('div');
-  secProd.className='section';
-  secProd.innerHTML = `<div class="secTitle"><h3>Продукция (ЧЗ)</h3><span class="tag">категории</span></div>`;
-  const optsProd = document.createElement('div'); optsProd.className='opts';
-
-  // В старом варианте был «полотном» из чекбоксов.
-  // Чтобы было удобно, делаем:
-  //   1) поиск,
-  //   2) выбранные категории показываем «чипами» сверху,
-  //   3) список — в 2 колонки и ограничиваем по количеству.
-
-  const cats = Array.isArray(state.product.categories) ? state.product.categories : (state.product.categories = []);
-
-  // Чипы выбранных категорий
-  const chips = document.createElement('div');
-  chips.className = 'chips';
-  cats.forEach(name => {
-    const ch = document.createElement('div');
-    ch.className = 'chip';
-    ch.textContent = name;
-    const x = document.createElement('div');
-    x.className = 'chipX';
-    x.textContent = '×';
-    x.title = 'Убрать';
-    x.onclick = (e) => {
-      e.stopPropagation();
-      const i = cats.indexOf(name);
-      if (i >= 0) cats.splice(i, 1);
-      renderChecklist(update);
-      update();
-    };
-    ch.appendChild(x);
-    chips.appendChild(ch);
-  });
-  if (cats.length) optsProd.appendChild(chips);
-
-  // Поиск
-  const sRow = document.createElement('div');
-  sRow.className = 'prodSearch';
-  const sInp = document.createElement('input');
-  sInp.type = 'text';
-  sInp.placeholder = 'Поиск категории (например: обувь, парфюм...)';
-  sInp.value = state.product.search || '';
-  sInp.oninput = () => { state.product.search = sInp.value; renderChecklist(update); };
-  sRow.appendChild(sInp);
-  optsProd.appendChild(sRow);
-
-  const listProd = document.createElement('div');
-  listProd.className = 'prodList';
-
-  const q = (state.product.search || '').trim().toLowerCase();
-  const filtered = CZ_GROUPS.filter(n => !q || String(n).toLowerCase().includes(q));
-  const LIMIT = 60;
-  filtered.slice(0, LIMIT).forEach(name => {
-    const row = document.createElement('div');
-    const on = cats.includes(name);
-    row.className = 'opt' + (on ? ' on' : '');
-    row.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-      <div class="label"><div class="t">${name}</div><div class="d">Товарная группа</div></div>`;
-    row.onclick = () => {
-      const idx = cats.indexOf(name);
-      if (idx >= 0) cats.splice(idx, 1);
-      else cats.push(name);
-      renderChecklist(update);
-      update();
-    };
-    listProd.appendChild(row);
-  });
-
-  if (filtered.length > LIMIT) {
-    const hint = document.createElement('div');
-    hint.className = 'muted';
-    hint.style.marginTop = '8px';
-    hint.textContent = `Показаны первые ${LIMIT} из ${filtered.length}. Уточни поиск.`;
-    optsProd.appendChild(hint);
-  }
-
-  optsProd.appendChild(listProd);
-
-  // Комментарий
-  const comm = document.createElement('div');
-  comm.className='opt';
-  comm.innerHTML = `<div class="label"><div class="t">Комментарий по продукции</div><div class="d">GTIN/бренды/упаковки и т.д.</div></div>`;
-  // ВАЖНО: переменные внутри renderChecklist должны иметь уникальные имена.
-  // Иначе будет ошибка "Identifier has already been declared" и весь интерфейс не загрузится.
-  const taProd = document.createElement('textarea');
-  taProd.className='ta';
-  taProd.placeholder='Например: 3 бренда, 120 SKU, печать этикеток на термопринтере...';
-  taProd.value = state.product.comment || '';
-  taProd.oninput=()=>{ state.product.comment = taProd.value; update(); };
-  comm.appendChild(taProd);
-  optsProd.appendChild(comm);
-
-  secProd.appendChild(optsProd);
-  revealAppend(secProd, 'products', vis.products, checklistMain);
-
   // 6) Нестандарт/интеграции (маркер пресейла)
   const secCustom = document.createElement('div');
   secCustom.className='section';
@@ -488,45 +363,5 @@ export function renderChecklist(update){
   secCustom.appendChild(optsCustom);
   revealAppend(secCustom, 'custom', vis.custom, checklistExtra);
 
-  // 8) Данные + цель
-  const sec7 = document.createElement('div');
-  sec7.className='section';
-  sec7.innerHTML = `<div class="secTitle"><h3>Данные и цель</h3><span class="tag">контакты</span></div>`;
-  // Контакты рисуем в том же формате, что и остальные пункты (строка-«карточка» + поле справа).
-  // Чтобы поля не были «белыми системными», для них есть стили .opt .inp / .opt .ta в styles.css.
-  const opts7 = document.createElement('div');
-  opts7.className = 'opts';
 
-  const mkInputRow = (key, title, ph='') => {
-    const row = document.createElement('div');
-    row.className = 'opt';
-    row.innerHTML = `<div class="label"><div class="t">${title}</div><div class="d"></div></div>`;
-    const inp = document.createElement('input');
-    inp.className = 'inp';
-    inp.placeholder = ph;
-    inp.value = state.contacts[key] || '';
-    inp.oninput = () => { state.contacts[key] = inp.value; update(); };
-    row.appendChild(inp);
-    return row;
-  };
-
-  opts7.appendChild(mkInputRow('legal_name','Юрлицо (название)','ООО Ромашка'));
-  opts7.appendChild(mkInputRow('inn','ИНН','1234567890'));
-  opts7.appendChild(mkInputRow('contact_name','Контактное лицо','Иван'));
-  opts7.appendChild(mkInputRow('phone','Телефон','+7...'));
-  opts7.appendChild(mkInputRow('email','Email','mail@...'));
-
-  const des = document.createElement('div');
-  des.className = 'opt';
-  des.innerHTML = `<div class="label"><div class="t">Желаемый результат</div><div class="d">что хотим получить на выходе</div></div>`;
-  const taDesired = document.createElement('textarea');
-  taDesired.className = 'ta';
-  taDesired.placeholder = 'Например: запустить продажу маркировки на 2 кассах + приемка по ЭДО';
-  taDesired.value = state.contacts.desired_result || '';
-  taDesired.oninput = () => { state.contacts.desired_result = taDesired.value; update(); };
-  des.appendChild(taDesired);
-  opts7.appendChild(des);
-
-  sec7.appendChild(opts7);
-  revealAppend(sec7, 'contacts', vis.contacts, checklistMain);
 }

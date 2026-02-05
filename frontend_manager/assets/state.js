@@ -54,6 +54,14 @@ export const state = {
   // 5) Сценарии / сложности
   custom_integration: false,
 
+  comment: (() => {
+    try {
+      return localStorage.getItem('manager_v5_comment') || '';
+    } catch (e) {
+      return '';
+    }
+  })(),
+
   // 7) Контакты / цель
   contacts: {
     legal_name: '',
