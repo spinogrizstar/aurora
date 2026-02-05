@@ -58,7 +58,6 @@ export function applyPreset(packageId, { resetEquipment = true } = {}) {
     state.equipment = {
       scannersCount: equipmentDefault.scannersCount,
     };
-    state.equipmentEnabled = false;
     state.scannersManuallySet = false;
   }
 
@@ -88,23 +87,16 @@ export function ensureServicesForPackage(packageId) {
 
 export function syncAutoServiceQuantities() {
   if (!state.equipment) state.equipment = { scannersCount: 0 };
-  const equipmentAllowed = isEquipmentAvailable(state.selectedPackageId);
   const baseEquipment = {
     regularCount: Number(state.kkt?.regularCount || 0),
     smartCount: Number(state.kkt?.smartCount || 0),
     otherCount: Number(state.kkt?.otherCount || 0),
     scannersCount: Number(state.equipment?.scannersCount || 0),
   };
-  const equipment = (!equipmentAllowed && !state.equipmentEnabled)
-    ? { regularCount: 0, smartCount: 0, otherCount: 0, scannersCount: 0 }
-    : baseEquipment;
+  const equipment = baseEquipment;
   state.services = applyAutoFromEquipment(
     state.services || [],
     equipment,
     state.selectedPackageId,
-    {
-      allowEquipmentOverride: !!state.equipmentEnabled,
-      forceEquipmentAuto: !equipmentAllowed && !state.equipmentEnabled,
-    },
   );
 }

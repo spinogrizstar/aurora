@@ -16,7 +16,6 @@ export const state = {
   serviceOverrides: {},
   servicesPresetError: '',
   scannersManuallySet: false,
-  equipmentEnabled: false,
 
   // 2) ККТ: смесь типов (по количеству).
   kkt: {
