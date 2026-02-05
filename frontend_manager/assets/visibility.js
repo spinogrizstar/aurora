@@ -12,7 +12,7 @@ export const SECTION_ANIM_MS = 1120; // было ~560, замедлили в 2 �
 export function visibilityFromState() {
   const hasSeg = (state.segments || []).length > 0;
   return {
-    equipment: hasSeg,
+    equipment: true,
     custom: hasSeg,
   };
 }

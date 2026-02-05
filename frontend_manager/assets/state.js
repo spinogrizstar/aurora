@@ -78,6 +78,43 @@ export const state = {
   },
 };
 
+export const PACKAGE_DEFAULTS = {
+  retail_only: {
+    kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
+    scannersCount: 1,
+  },
+  wholesale_only: {
+    kkt: { regularCount: 0, smartCount: 0, otherCount: 0 },
+    scannersCount: 0,
+  },
+  producer_only: {
+    kkt: { regularCount: 0, smartCount: 0, otherCount: 0 },
+    scannersCount: 0,
+  },
+  producer_retail: {
+    kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
+    scannersCount: 1,
+  },
+};
+
+export function applyPackageDefaults(packageId) {
+  const normalized = String(packageId || state.selectedPackageId || '');
+  const fallback = PACKAGE_DEFAULTS.wholesale_only;
+  const defaults = PACKAGE_DEFAULTS[normalized] || fallback;
+
+  state.kkt = {
+    regularCount: Number(defaults.kkt?.regularCount || 0),
+    smartCount: Number(defaults.kkt?.smartCount || 0),
+    otherCount: Number(defaults.kkt?.otherCount || 0),
+  };
+
+  state.equipment = {
+    scannersCount: Number(defaults.scannersCount || 0),
+  };
+
+  state.scannersManuallySet = false;
+}
+
 export function getCalcState() {
   return {
     selectedPackageId: state.selectedPackageId,
