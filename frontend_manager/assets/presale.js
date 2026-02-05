@@ -129,6 +129,11 @@ export function buildKPText() {
     clientLines.forEach((line) => lines.push(`- ${line}`));
   }
 
+  const managerComment = String(state.comment || '').trim();
+  if (managerComment) {
+    lines.push('', 'Комментарий:', managerComment);
+  }
+
   const segmentLabel = segText() || '—';
   lines.push('', `Сегмент/пакет: ${segmentLabel} — ${pkg.label}`);
   lines.push(`Ставка: ${rate} ₽/час`);
