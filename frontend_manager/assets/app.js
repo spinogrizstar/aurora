@@ -42,6 +42,7 @@ async function init() {
   renderChecklist(update);
   await update();
   window.__AURORA_APP_UPDATE = update;
+  window.__AURORA_RENDER_CHECKLIST = () => renderChecklist(update);
   window.__AURORA_APP_READY = true;
 }
 

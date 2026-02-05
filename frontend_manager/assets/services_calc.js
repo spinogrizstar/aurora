@@ -23,7 +23,7 @@ export const SERVICE_GROUPS = [
 const KKT_PACKAGES = new Set(['retail_only', 'producer_retail']);
 const SCANNER_PACKAGES = new Set(['retail_only', 'producer_retail']);
 
-const DEFAULT_EQUIPMENT = {
+const EQUIPMENT_DEFAULTS_BY_PACKAGE = {
   retail_only: {
     kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
     scannersCount: 1,
@@ -120,6 +120,7 @@ function normalizeServiceLine(rawService, groupMap) {
     auto_multiplier: Number.isFinite(autoMultiplier) && autoMultiplier > 0 ? autoMultiplier : 1,
     preset_qty: normalizedQty,
     preset_qty_mode: qtyMode === 'auto' ? 'auto' : 'manual',
+    manual_qty_override: false,
   };
 }
 
@@ -135,8 +136,8 @@ export function isScannerAvailable(packageId) {
   return SCANNER_PACKAGES.has(String(packageId || ''));
 }
 
-export function buildDefaultEquipment(packageId) {
-  const defaults = DEFAULT_EQUIPMENT[String(packageId || '')] || DEFAULT_EQUIPMENT.wholesale_only;
+export function getEquipmentDefaults(packageId) {
+  const defaults = EQUIPMENT_DEFAULTS_BY_PACKAGE[String(packageId || '')] || EQUIPMENT_DEFAULTS_BY_PACKAGE.wholesale_only;
   return {
     kkt: {
       regularCount: Number(defaults.kkt?.regularCount || 0),
@@ -145,6 +146,10 @@ export function buildDefaultEquipment(packageId) {
     },
     scannersCount: Number(defaults.scannersCount || 0),
   };
+}
+
+export function buildDefaultEquipment(packageId) {
+  return getEquipmentDefaults(packageId);
 }
 
 export function buildPresetServices(packageId, detailed) {
@@ -199,7 +204,7 @@ export function applyAutoFromEquipment(
   const allowScannerAuto = isScannerAvailable(packageId) || allowEquipmentOverride || forceEquipmentAuto;
 
   list.forEach((service) => {
-    if (!service || service.qty_mode !== 'auto') return;
+    if (!service || service.qty_mode !== 'auto' || service.manual_qty_override) return;
     const autoFrom = String(service.auto_from || '').trim();
     const multiplier = Number(service.auto_multiplier || 1);
     let base = null;
@@ -225,7 +230,7 @@ export function calcServiceTotals(services) {
 
 export function getPackagePresetTotals(packageId, detailed = false) {
   const { services } = buildPresetServices(packageId, detailed);
-  const defaults = buildDefaultEquipment(packageId);
+  const defaults = getEquipmentDefaults(packageId);
   applyAutoFromEquipment(
     services,
     {
@@ -277,7 +282,7 @@ function runMatrixSelfCheck() {
   const issues = [];
   expectations.forEach((exp) => {
     const { services } = buildPresetServices(exp.id, false);
-    const defaults = buildDefaultEquipment(exp.id);
+    const defaults = getEquipmentDefaults(exp.id);
     applyAutoFromEquipment(
       services,
       {

@@ -7,7 +7,7 @@ import { state } from './state.js';
 import {
   SERVICE_GROUPS,
   applyAutoFromEquipment,
-  buildDefaultEquipment,
+  getEquipmentDefaults,
   buildPresetServices,
   calcServiceTotals,
   getPackagePresetTotals,
@@ -25,6 +25,7 @@ export {
   isKktAvailable,
   isScannerAvailable,
   validatePackagePresets,
+  getEquipmentDefaults,
 };
 
 export function applyPreset(packageId, { resetEquipment = true } = {}) {
@@ -48,7 +49,7 @@ export function applyPreset(packageId, { resetEquipment = true } = {}) {
   }
 
   if (resetEquipment) {
-    const equipmentDefault = buildDefaultEquipment(normalized);
+    const equipmentDefault = getEquipmentDefaults(normalized);
     state.kkt = {
       regularCount: equipmentDefault.kkt.regularCount,
       smartCount: equipmentDefault.kkt.smartCount,
@@ -66,6 +67,12 @@ export function applyPreset(packageId, { resetEquipment = true } = {}) {
 
 export function applyPackagePreset(packageId, options) {
   applyPreset(packageId, options);
+}
+
+export function resetPackageDefaults(packageId) {
+  const normalized = String(packageId || state.selectedPackageId || '');
+  if (!normalized) return;
+  applyPreset(normalized, { resetEquipment: true });
 }
 
 export function onPackageChange(packageId) {
