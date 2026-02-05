@@ -80,7 +80,20 @@ export function renderChecklist(update){
 
   let activeKey = state.selectedPackageId || '';
 
-  packages.forEach(pkgCfg => {
+  // Пакет «Производитель + розница» оставляем в данных/расчётах,
+  // но скрываем из UI. Если такой пакет был выбран ранее (например,
+  // восстановлен извне/из storage), переводим пользователя на
+  // «Только производитель/импортёр», чтобы не было невидимого выбора.
+  if (activeKey === 'producer_retail') {
+    const producerOnly = packages.find(pkg => pkg.key === 'producer_only');
+    state.segments = [...(producerOnly?.segments || ['Производитель/Импортёр'])];
+    applyPackagePreset('producer_only');
+    activeKey = state.selectedPackageId || 'producer_only';
+  }
+
+  const visiblePackages = packages.filter(pkgCfg => pkgCfg.key !== 'producer_retail');
+
+  visiblePackages.forEach(pkgCfg => {
     const pkg = pkgByKey(pkgCfg.key) || {};
     const title = pkg.title || pkgCfg.title;
     const presetTotals = getPackagePresetTotals(pkgCfg.key, state.servicesDetailed);
@@ -89,7 +102,7 @@ export function renderChecklist(update){
 
     const card = document.createElement('button');
     card.type = 'button';
-    card.className = `packageCard${activeKey === pkgCfg.key ? ' on' : ''}`;
+    card.className = `packageCard${activeKey === pkgCfg.key ? ' on' : ''}${pkgCfg.key === 'producer_only' ? ' packageCard--wide' : ''}`;
     card.innerHTML = `
       <div class="packageTitleRow">
         <div class="packageTitle">${title}</div>
