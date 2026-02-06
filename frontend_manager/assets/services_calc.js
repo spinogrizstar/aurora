@@ -26,14 +26,15 @@ const SERVICE_MATRIX = [
   },
   { serviceId: 'edo', title: 'Настройка ЭДО', categoryId: 'integration', categoryTitle: 'Интеграция/учёт', autoDriver: 'none', defaultQtyInPreset: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 1, wholesale_only: 2, producer_only: 2, producer_retail: 2 } },
   { serviceId: 'integration', title: 'Интеграция с товароучёткой', categoryId: 'integration', categoryTitle: 'Интеграция/учёт', autoDriver: 'none', defaultQtyInPreset: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 1, wholesale_only: 2, producer_only: 3, producer_retail: 3 } },
-  { serviceId: 'ts_piot', title: 'ТС ПИОТ', categoryId: 'integration', categoryTitle: 'Интеграция/учёт', autoDriver: 'kkt', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 1 }, unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 } },
-  { serviceId: 'lm_chz', title: 'ЛМ ЧЗ', categoryId: 'integration', categoryTitle: 'Интеграция/учёт', autoDriver: 'kkt', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 1 }, unitHoursByPackage: { retail_only: 2, wholesale_only: 2, producer_only: 2, producer_retail: 2 } },
+  { serviceId: 'ts_piot', title: 'ТС ПИОТ', categoryId: 'integration', categoryTitle: 'Интеграция/учёт', autoDriver: 'kkt', autoQtySource: 'kkt_physical', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 1 }, unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 } },
+  { serviceId: 'lm_chz', title: 'ЛМ ЧЗ', categoryId: 'integration', categoryTitle: 'Интеграция/учёт', autoDriver: 'kkt', autoQtySource: 'kkt_physical', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 1 }, unitHoursByPackage: { retail_only: 2, wholesale_only: 2, producer_only: 2, producer_retail: 2 } },
   {
     serviceId: 'firmware_kkt_package',
     title: 'Прошивка ККТ (в пакете)',
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
     autoDriver: 'kkt_first',
+    autoQtySource: 'kkt_work_units',
     defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 },
     unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
@@ -43,6 +44,7 @@ const SERVICE_MATRIX = [
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
     autoDriver: 'kkt_extra',
+    autoQtySource: 'kkt_work_units',
     defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
@@ -52,6 +54,7 @@ const SERVICE_MATRIX = [
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
     autoDriver: 'kkt_first',
+    autoQtySource: 'kkt_work_units',
     defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 },
     unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
@@ -61,6 +64,7 @@ const SERVICE_MATRIX = [
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
     autoDriver: 'kkt_extra',
+    autoQtySource: 'kkt_work_units',
     defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
@@ -70,6 +74,7 @@ const SERVICE_MATRIX = [
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
     autoDriver: 'scanner_first',
+    autoQtySource: 'scanners',
     defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 1, producer_retail: 1 },
     unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
@@ -79,6 +84,7 @@ const SERVICE_MATRIX = [
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
     autoDriver: 'scanner_extra',
+    autoQtySource: 'scanners',
     defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
@@ -88,6 +94,7 @@ const SERVICE_MATRIX = [
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
     autoDriver: 'kkt_first',
+    autoQtySource: 'kkt_work_units',
     defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 },
     unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
@@ -97,10 +104,11 @@ const SERVICE_MATRIX = [
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
     autoDriver: 'kkt_extra',
+    autoQtySource: 'kkt_work_units',
     defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
-  { serviceId: 'printer_setup', title: 'Настройка принтера', categoryId: 'equipment', categoryTitle: 'Оборудование/ККТ', autoDriver: 'printer', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 3, wholesale_only: 3, producer_only: 3, producer_retail: 3 } },
+  { serviceId: 'printer_setup', title: 'Настройка принтера', categoryId: 'equipment', categoryTitle: 'Оборудование/ККТ', autoDriver: 'printer', autoQtySource: 'printers', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 3, wholesale_only: 3, producer_only: 3, producer_retail: 3 } },
   { serviceId: 'training', title: 'Обучение', categoryId: 'training', categoryTitle: 'Обучение', autoDriver: 'none', defaultQtyInPreset: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 } },
 ];
 
@@ -118,6 +126,7 @@ function normalizeServiceLine(matrixService, packageId) {
   const qty = Number(matrixService.defaultQtyInPreset?.[packageId] ?? 0);
   const unit = Number(matrixService.unitHoursByPackage?.[packageId] ?? 0);
   const autoBasis = matrixService.autoDriver === 'none' ? '' : matrixService.autoDriver;
+  const autoQtySource = matrixService.autoQtySource || mapAutoQtySource(autoBasis);
   const autoFrom = autoBasis ? `${autoBasis}_total` : '';
   return {
     id: matrixService.serviceId,
@@ -136,9 +145,17 @@ function normalizeServiceLine(matrixService, packageId) {
     manual_qty_override: false,
     qty_auto: autoBasis ? qty : null,
     auto_basis: autoBasis,
-    auto_qty_source: autoBasis,
+    auto_qty_source: autoQtySource,
     unit_hours_source: `matrix:${packageId}`,
   };
+}
+
+function mapAutoQtySource(autoBasis) {
+  if (autoBasis === 'kkt' || autoBasis === 'kkt_first' || autoBasis === 'kkt_extra') return 'kkt_work_units';
+  if (autoBasis === 'kkt_physical') return 'kkt_physical';
+  if (autoBasis === 'scanner' || autoBasis === 'scanner_first' || autoBasis === 'scanner_extra') return 'scanners';
+  if (autoBasis === 'printer') return 'printers';
+  return '';
 }
 
 export function getPackagePreset(packageId, isDetailed = false) {
@@ -158,18 +175,21 @@ export function getPackagePreset(packageId, isDetailed = false) {
 
 export function buildServiceMapFromPreset(services) { const m = new Map(); (services || []).forEach((s) => s?.id && m.set(String(s.id), s)); return m; }
 
-function getAutoQtyByBasis(basis, equipment, multiplier = 1) {
+function getAutoQtyBySource(source, basis, equipment, multiplier = 1) {
   const eq = normalizeEquipment(equipment);
-  const kktTotalPhysical = eq.regularCount + eq.smartCount + eq.otherCount;
+  const kktPhysicalCount = eq.regularCount + eq.smartCount + eq.otherCount;
   const kktWorkUnits = eq.regularCount + (eq.smartCount * 2) + (eq.otherCount * 2);
   const safeMultiplier = Number.isFinite(Number(multiplier)) && Number(multiplier) > 0 ? Number(multiplier) : 1;
-  if (basis === 'scanner') return Math.max(0, Math.trunc(eq.scannersCount * safeMultiplier));
-  if (basis === 'scanner_first') return eq.scannersCount > 0 ? 1 : 0;
-  if (basis === 'scanner_extra') return Math.max(0, eq.scannersCount - 1);
-  if (basis === 'printer') return Math.max(0, Math.trunc(eq.printersCount * safeMultiplier));
-  if (basis === 'kkt_physical') return Math.max(0, Math.trunc(kktTotalPhysical * safeMultiplier));
+  if (source === 'scanners' && basis === 'scanner') return Math.max(0, Math.trunc(eq.scannersCount * safeMultiplier));
+  if (source === 'scanners' && basis === 'scanner_first') return eq.scannersCount > 0 ? 1 : 0;
+  if (source === 'scanners' && basis === 'scanner_extra') return Math.max(0, eq.scannersCount - 1);
+  if (source === 'printers') return Math.max(0, Math.trunc(eq.printersCount * safeMultiplier));
+  if (source === 'kkt_physical') return Math.max(0, Math.trunc(kktPhysicalCount * safeMultiplier));
   if (basis === 'kkt_first') return kktWorkUnits > 0 ? 1 : 0;
   if (basis === 'kkt_extra') return Math.max(0, kktWorkUnits - 1);
+  if (source === 'scanners') return Math.max(0, Math.trunc(eq.scannersCount * safeMultiplier));
+  if (source === 'printers') return Math.max(0, Math.trunc(eq.printersCount * safeMultiplier));
+  if (source === 'kkt_physical') return Math.max(0, Math.trunc(kktPhysicalCount * safeMultiplier));
   return Math.max(0, Math.trunc(kktWorkUnits * safeMultiplier));
 }
 
@@ -178,7 +198,8 @@ export function applyEquipmentToServices(services, equipment) {
   list.forEach((service) => {
     const basis = String(service?.auto_basis || '').trim();
     if (!basis) return;
-    const autoQty = getAutoQtyByBasis(basis, equipment, service.auto_multiplier);
+    const source = String(service?.auto_qty_source || mapAutoQtySource(basis)).trim();
+    const autoQty = getAutoQtyBySource(source, basis, equipment, service.auto_multiplier);
     service.qty_auto = autoQty;
     if (service.manual_qty_override) {
       const m = Number(service.qty_current ?? service.qty ?? 0);
