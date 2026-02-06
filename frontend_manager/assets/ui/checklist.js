@@ -66,7 +66,7 @@ export function renderChecklist(update){
   const pkgByKey = (key) => corePkgs.find(p => p.segment_key === key || p.id === key);
   const packages = [
     { key: 'retail_only', title: 'Только розница', segments: ['Розница'], quote_hours: 9 },
-    { key: 'wholesale_only', title: 'Только опт', segments: ['Опт'], quote_hours: 6 },
+    { key: 'wholesale_only', title: 'Только опт', segments: ['Опт'], quote_hours: 7 },
     { key: 'producer_only', title: 'Только производитель/импортер', segments: ['Производитель/Импортёр'], quote_hours: 12 },
     { key: 'producer_retail', title: 'Производитель + розница', segments: ['Производитель/Импортёр', 'Розница'], quote_hours: 18 },
   ];
