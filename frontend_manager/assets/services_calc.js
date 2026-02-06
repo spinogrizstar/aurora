@@ -121,6 +121,10 @@ const KKT_INCLUDED_FALLBACK = {
 
 function getKktIncludedWorkUnits(packageId) {
   const normalizedPackageId = String(packageId || '').trim() || 'wholesale_only';
+  const packageDefaults = PACKAGE_DEFAULTS?.[normalizedPackageId];
+  const fromPackageConfig = Number(packageDefaults?.kktIncludedWorkUnits);
+  if (Number.isFinite(fromPackageConfig) && fromPackageConfig >= 0) return Math.trunc(fromPackageConfig);
+
   const kktInPackageService = SERVICE_MATRIX.find((service) => {
     const autoBasis = service.autoDriver === 'none' ? '' : service.autoDriver;
     const source = service.autoQtySource || mapAutoQtySource(autoBasis);
@@ -128,6 +132,7 @@ function getKktIncludedWorkUnits(packageId) {
   });
   const derivedQty = Number(kktInPackageService?.defaultQtyInPreset?.[normalizedPackageId]);
   if (Number.isFinite(derivedQty) && derivedQty >= 0) return Math.trunc(derivedQty);
+
   return Number(KKT_INCLUDED_FALLBACK[normalizedPackageId] ?? 0);
 }
 

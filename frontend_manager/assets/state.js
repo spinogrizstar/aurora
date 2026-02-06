@@ -81,21 +81,25 @@ export const state = {
 
 export const PACKAGE_DEFAULTS = {
   retail_only: {
+    kktIncludedWorkUnits: 1,
     kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
     scannersCount: 1,
     printersCount: 0,
   },
   wholesale_only: {
+    kktIncludedWorkUnits: 0,
     kkt: { regularCount: 0, smartCount: 0, otherCount: 0 },
     scannersCount: 0,
     printersCount: 0,
   },
   producer_only: {
+    kktIncludedWorkUnits: 0,
     kkt: { regularCount: 0, smartCount: 0, otherCount: 0 },
     scannersCount: 1,
     printersCount: 1,
   },
   producer_retail: {
+    kktIncludedWorkUnits: 0,
     kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
     scannersCount: 1,
     printersCount: 1,
