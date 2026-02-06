@@ -22,8 +22,10 @@ export const el = {
   packageDataAlert: document.getElementById('packageDataAlert'),
 
   servicesToggle: document.getElementById('servicesToggle'),
+  servicesPointsToggle: document.getElementById('servicesPointsToggle'),
   servicesReset: document.getElementById('servicesReset'),
   servicesList: document.getElementById('servicesList'),
+  servicesTotalLabel: document.getElementById('servicesTotalLabel'),
   servicesTotalHours: document.getElementById('servicesTotalHours'),
   servicesTotalRub: document.getElementById('servicesTotalRub'),
   sumTotal: document.getElementById('sumTotal'),

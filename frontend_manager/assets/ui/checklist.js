@@ -99,7 +99,7 @@ export function renderChecklist(update){
     card.innerHTML = `
       <div class="packageTitleRow">
         <div class="packageTitle">${title}</div>
-        <div class="packageHours">${quoteHours} ч</div>
+        <div class="packageHours">${quoteHours} балл</div>
       </div>
       <div class="packagePrice">${fmtRub(price)}</div>
     `;
@@ -345,7 +345,7 @@ export function renderChecklist(update){
   const rowCustom = document.createElement('div');
   rowCustom.className = 'opt' + (state.custom_integration ? ' on' : '');
   rowCustom.innerHTML = `<div class="chk"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <div class="label"><div class="t">Нестандарт/интеграции</div><div class="d">маркер проекта (без влияния на часы)</div></div>`;
+    <div class="label"><div class="t">Нестандарт/интеграции</div><div class="d">маркер проекта (без влияния на баллы)</div></div>`;
   rowCustom.onclick=()=>{ state.custom_integration = !state.custom_integration; renderChecklist(update); update(); };
   optsCustom.appendChild(rowCustom);
   secCustom.appendChild(optsCustom);

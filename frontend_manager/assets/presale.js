@@ -136,7 +136,7 @@ export function buildKPText() {
 
   const segmentLabel = segText() || '—';
   lines.push('', `Сегмент/пакет: ${segmentLabel} — ${pkg.label}`);
-  lines.push(`Ставка: ${rate} ₽/час`);
+  lines.push(`Ставка: ${rate} ₽/балл`);
   if (isEquipmentAvailable(state.selectedPackageId)) {
     const kktTotal = kktCount();
     lines.push(`Оборудование: ККТ ${kktTotal} (обычная/смарт/другая: ${regular}/${smart}/${other}) · Сканеры ${scanners} · Принтеры ${printers}`);
@@ -174,12 +174,12 @@ export function buildKPText() {
 
     if (isManualOverride) hasManualOverride = true;
 
-    lines.push(`${svc.title || key}${marker}: ${qty} × ${formatHoursInline(hoursPerUnit)} = ${formatHoursInline(hoursTotal)} ч`);
+    lines.push(`${svc.title || key}${marker}: ${qty} × ${formatHoursInline(hoursPerUnit)} = ${formatHoursInline(hoursTotal)} балл`);
   });
 
   const totalHours = managerCalc?.totals?.hours || 0;
   const totalRub = managerCalc?.totals?.price || 0;
-  lines.push('', `Итого: ${formatHoursInline(totalHours)} ч · ${formatRub(totalRub)} ₽`);
+  lines.push('', `Итого: ${formatHoursInline(totalHours)} балл · ${formatRub(totalRub)} ₽`);
 
   if (hasManualOverride) {
     lines.push('', '* — количество изменено вручную');
@@ -221,7 +221,7 @@ export function buildPresaleText() {
 
   (managerCalc?.breakdown || []).forEach((row) => {
     const hoursPerUnit = row.hours_per_unit ?? row.hoursPerUnit ?? 0;
-    lines.push(`- ${row.title}: ${row.qty || 0} × ${formatHoursInline(hoursPerUnit)} ч = ${formatHoursInline(row.hoursTotal)} ч`);
+    lines.push(`- ${row.title}: ${row.qty || 0} × ${formatHoursInline(hoursPerUnit)} балл = ${formatHoursInline(row.hoursTotal)} балл`);
   });
 
   const c = state.contacts || {};
@@ -235,7 +235,7 @@ export function buildPresaleText() {
     if (c.desired_result) lines.push('', 'Желаемый результат:', c.desired_result);
   }
 
-  lines.push('', `Всего часов: ${managerCalc?.totals?.hours || 0} ч`);
+  lines.push('', `Всего баллов: ${managerCalc?.totals?.hours || 0} балл`);
   lines.push(`Итого (предварительно): ${fmtRub(total)}`);
   return lines.join('\n');
 }

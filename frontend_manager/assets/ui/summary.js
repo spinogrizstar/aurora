@@ -23,14 +23,13 @@ export function renderList(ul, items) {
   });
 }
 
-function fmtHours(value) {
-  const n = Number(value || 0);
-  return Number.isInteger(n) ? `${n} ч` : `${n.toFixed(1)} ч`;
-}
-
-function fmtHoursInline(value) {
+function fmtUnits(value) {
   const n = Number(value || 0);
   return Number.isInteger(n) ? `${n}` : n.toFixed(1);
+}
+
+function unitLabel() {
+  return state.servicesUsePoints ? 'балл' : 'ед';
 }
 
 function groupServices(services) {
@@ -76,7 +75,7 @@ function renderServicesList(managerCalc) {
     header.type = 'button';
     header.className = 'serviceGroupHead';
     const groupTotal = Number(groupHours.get(group) || 0);
-    header.innerHTML = `<span>${group} — ${fmtHoursInline(groupTotal)} ч</span><span class="serviceGroupChevron">▾</span>`;
+    header.innerHTML = `<span>${group} — ${fmtUnits(groupTotal)} ${unitLabel()}</span><span class="serviceGroupChevron">▾</span>`;
 
     const groupState = state.servicesGroupsCollapsed || {};
     const hasStored = Object.prototype.hasOwnProperty.call(groupState, group);
@@ -105,7 +104,7 @@ function renderServicesList(managerCalc) {
       const rowData = breakdownMap.get(svcKey);
       const hoursPerUnit = rowData?.hours_per_unit ?? rowData?.hoursPerUnit ?? svc.hours_per_unit ?? svc.hoursPerUnit;
       const hoursSpan = document.createElement('span');
-      hoursSpan.textContent = `${fmtHoursInline(hoursPerUnit)} ч/ед`;
+      hoursSpan.textContent = `${fmtUnits(hoursPerUnit)} ${unitLabel()}/ед`;
       perUnit.appendChild(hoursSpan);
 
       if (svc.qty_mode === 'auto') {
@@ -189,7 +188,7 @@ function renderServicesList(managerCalc) {
       const rowHours = rowData
         ? rowData.hoursTotal
         : (Number(svc.hours_per_unit || svc.hoursPerUnit || 0) * Number(svc.qty || 0));
-      rowTotal.textContent = fmtHours(rowHours);
+      rowTotal.textContent = `${fmtUnits(rowHours)} ${unitLabel()}`;
 
       row.appendChild(title);
       row.appendChild(perUnit);
@@ -209,7 +208,8 @@ function renderServicesTotals(managerCalc) {
   const totalHours = managerCalc?.totals?.hours || 0;
   const totalRub = managerCalc?.totals?.price || 0;
 
-  if (el.servicesTotalHours) el.servicesTotalHours.textContent = fmtHours(totalHours);
+  if (el.servicesTotalLabel) el.servicesTotalLabel.textContent = state.servicesUsePoints ? 'Всего баллов' : 'Всего единиц';
+  if (el.servicesTotalHours) el.servicesTotalHours.textContent = fmtUnits(totalHours);
   if (el.servicesTotalRub) el.servicesTotalRub.textContent = fmtRub(totalRub);
   if (el.sumTotal) el.sumTotal.textContent = fmtRub(totalRub);
 }
@@ -292,6 +292,10 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
     if (el.servicesToggle) {
       el.servicesToggle.checked = !!state.servicesDetailed;
       el.servicesToggle.disabled = true;
+    }
+    if (el.servicesPointsToggle) {
+      el.servicesPointsToggle.checked = !!state.servicesUsePoints;
+      el.servicesPointsToggle.disabled = true;
     }
     if (el.servicesReset) {
       el.servicesReset.disabled = true;
@@ -383,6 +387,14 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
     el.servicesToggle.disabled = false;
     el.servicesToggle.onchange = () => {
       state.servicesDetailed = !!el.servicesToggle.checked;
+      if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
+    };
+  }
+  if (el.servicesPointsToggle) {
+    el.servicesPointsToggle.checked = !!state.servicesUsePoints;
+    el.servicesPointsToggle.disabled = false;
+    el.servicesPointsToggle.onchange = () => {
+      state.servicesUsePoints = !!el.servicesPointsToggle.checked;
       if (window.__AURORA_APP_UPDATE) window.__AURORA_APP_UPDATE();
     };
   }
@@ -525,14 +537,14 @@ function _wireWhyButton(pkg, calc, costs, managerCalc) {
     items.push(`Пакет: ${pkg.name || '—'}`);
     (managerCalc?.breakdown || []).forEach((row) => {
       const hoursPerUnit = row.hours_per_unit ?? row.hoursPerUnit ?? 0;
-      items.push(`- ${row.title}: ${row.qty || 0} × ${fmtHoursInline(hoursPerUnit)} ч = ${fmtHoursInline(row.hoursTotal)} ч`);
+      items.push(`- ${row.title}: ${row.qty || 0} × ${fmtUnits(hoursPerUnit)} балл = ${fmtUnits(row.hoursTotal)} балл`);
     });
 
     items.push('────────');
-    items.push(`ИТОГО: ${managerCalc?.totals?.hours || 0} ч × 4 950 ₽ = ${fmtRub(managerCalc?.totals?.price || 0)}`);
+    items.push(`ИТОГО: ${fmtUnits(managerCalc?.totals?.hours || 0)} баллов × 4 950 ₽ = ${fmtRub(managerCalc?.totals?.price || 0)}`);
 
     openInfoModal('Почему такая стоимость?', {
-      desc: 'Это внутренняя раскладка для менеджера: какие параметры выбраны и как посчитаны часы.',
+      desc: 'Это внутренняя раскладка для менеджера: какие параметры выбраны и как посчитаны баллы.',
       items,
     });
   };
