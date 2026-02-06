@@ -189,7 +189,8 @@ export function buildKPText() {
 }
 
 export function buildPresaleText() {
-  const pkg = lastResult?.pkg;
+  const selectedPkg = getSelectedPackage();
+  const pkg = selectedPkg ? { title: selectedPkg.label, name: selectedPkg.label } : lastResult?.pkg;
   const prelim = lastResult?.prelim;
   const managerCalc = recalc(normalizeState(getCalcState()));
   const total = managerCalc?.totals?.price || 0;
