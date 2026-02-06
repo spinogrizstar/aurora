@@ -18,16 +18,148 @@ export const SERVICE_GROUPS = [
   'Интеграция/учёт',
   'Оборудование/ККТ',
   'Обучение',
-  'Прочее',
 ];
 
+const SERVICE_CATALOG = [
+  { id: 'reg_chz', title: 'Регистрация в системе ЧЗ', group: 'Регистрация ЧЗ' },
+  { id: 'reg_gs1', title: 'Регистрация в ЧЗ/GS1', group: 'Регистрация ЧЗ' },
+  { id: 'edo', title: 'Настройка ЭДО', group: 'Интеграция/учёт' },
+  { id: 'integration', title: 'Интеграция с товароучеткой', group: 'Интеграция/учёт' },
+  { id: 'ts_piot', title: 'ТС ПИОТ', group: 'Интеграция/учёт', auto_basis: 'kkt' },
+  { id: 'lm_chz', title: 'ЛМ ЧЗ', group: 'Интеграция/учёт', auto_basis: 'kkt' },
+  { id: 'firmware_kkt', title: 'Прошивка ККТ', group: 'Оборудование/ККТ', auto_basis: 'kkt' },
+  { id: 'replace_fn', title: 'Замена ФН', group: 'Оборудование/ККТ', auto_basis: 'kkt' },
+  { id: 'connect_scanner', title: 'Подключение сканера', group: 'Оборудование/ККТ', auto_basis: 'scanner' },
+  { id: 'connect_kkt_to', title: 'Подключение ККТ к товароучетке', group: 'Оборудование/ККТ', auto_basis: 'kkt' },
+  { id: 'printer_setup', title: 'Настройка принтера', group: 'Оборудование/ККТ' },
+  { id: 'training', title: 'Обучение', group: 'Обучение' },
+];
+
+const UNIT_HOURS_BY_PACKAGE = {
+  retail_only: {
+    reg_chz: 1,
+    reg_gs1: 2,
+    edo: 1,
+    integration: 1,
+    ts_piot: 1,
+    lm_chz: 2,
+    firmware_kkt: 0.5,
+    replace_fn: 0.5,
+    connect_scanner: 0.5,
+    connect_kkt_to: 0.5,
+    printer_setup: 3,
+    training: 1,
+  },
+  wholesale_only: {
+    reg_chz: 1,
+    reg_gs1: 2,
+    edo: 2,
+    integration: 2,
+    ts_piot: 1,
+    lm_chz: 2,
+    firmware_kkt: 1,
+    replace_fn: 1,
+    connect_scanner: 1,
+    connect_kkt_to: 1,
+    printer_setup: 3,
+    training: 1,
+  },
+  producer_only: {
+    reg_chz: 0,
+    reg_gs1: 2,
+    edo: 2,
+    integration: 3,
+    ts_piot: 1,
+    lm_chz: 2,
+    firmware_kkt: 1,
+    replace_fn: 1,
+    connect_scanner: 1,
+    connect_kkt_to: 1,
+    printer_setup: 3,
+    training: 1,
+  },
+  producer_retail: {
+    reg_chz: 1,
+    reg_gs1: 2,
+    edo: 2,
+    integration: 3,
+    ts_piot: 1,
+    lm_chz: 2,
+    firmware_kkt: 1,
+    replace_fn: 1,
+    connect_scanner: 1,
+    connect_kkt_to: 1,
+    printer_setup: 3,
+    training: 1,
+  },
+};
+
+const PRESET_QTY_BY_PACKAGE = {
+  retail_only: {
+    reg_chz: 1,
+    reg_gs1: 0,
+    edo: 1,
+    integration: 1,
+    ts_piot: 1,
+    lm_chz: 1,
+    firmware_kkt: 1,
+    replace_fn: 1,
+    connect_scanner: 1,
+    connect_kkt_to: 1,
+    printer_setup: 0,
+    training: 1,
+  },
+  wholesale_only: {
+    reg_chz: 1,
+    reg_gs1: 0,
+    edo: 1,
+    integration: 1,
+    ts_piot: 0,
+    lm_chz: 0,
+    firmware_kkt: 0,
+    replace_fn: 0,
+    connect_scanner: 0,
+    connect_kkt_to: 0,
+    printer_setup: 0,
+    training: 1,
+  },
+  producer_only: {
+    reg_chz: 0,
+    reg_gs1: 1,
+    edo: 1,
+    integration: 1,
+    ts_piot: 0,
+    lm_chz: 0,
+    firmware_kkt: 0,
+    replace_fn: 0,
+    connect_scanner: 0,
+    connect_kkt_to: 0,
+    printer_setup: 1,
+    training: 1,
+  },
+  producer_retail: {
+    reg_chz: 1,
+    reg_gs1: 1,
+    edo: 1,
+    integration: 1,
+    ts_piot: 1,
+    lm_chz: 1,
+    firmware_kkt: 1,
+    replace_fn: 1,
+    connect_scanner: 1,
+    connect_kkt_to: 1,
+    printer_setup: 1,
+    training: 1,
+  },
+};
+
 const EQUIPMENT_BASIS_BY_SERVICE_ID = {
-  kkt_firmware: 'kkt',
-  fn_replace: 'kkt',
-  kkt_connect: 'kkt',
+  firmware_kkt: 'kkt',
+  replace_fn: 'kkt',
+  connect_kkt_to: 'kkt',
   ts_piot: 'kkt',
   lm_chz: 'kkt',
-  scanner_connect: 'scanner',
+  connect_scanner: 'scanner',
 };
 
 const EQUIPMENT_DEFAULTS_BY_PACKAGE = PACKAGE_DEFAULTS;
@@ -65,25 +197,6 @@ function _servicesForPackage(matrix, packageId) {
   return _matrixServices(matrix).filter((service) => String(service?.package_id || service?.packageId || '').trim() === normalized);
 }
 
-function _buildServiceCatalog(matrix) {
-  const catalog = new Map();
-  _matrixServices(matrix).forEach((service) => {
-    const id = String(service?.service_id || service?.id || service?.key || '').trim();
-    if (!id) return;
-    const packageId = String(service?.package_id || service?.packageId || '').trim();
-    if (!catalog.has(id)) {
-      catalog.set(id, {
-        id,
-        first: service,
-        byPackage: new Map(),
-      });
-    }
-    const entry = catalog.get(id);
-    if (packageId) entry.byPackage.set(packageId, service);
-  });
-  return Array.from(catalog.values());
-}
-
 function normalizeEquipment(equipment) {
   return {
     regularCount: Number(equipment?.regularCount || 0),
@@ -93,24 +206,16 @@ function normalizeEquipment(equipment) {
   };
 }
 
-function normalizeServiceLine(rawService, groupMap, { qtyDefault = undefined, packageId = '' } = {}) {
+function normalizeServiceLine(rawService, { qtyDefault = 0, packageId = '' } = {}) {
   const base = rawService || {};
-  const id = String(base.service_id || base.id || base.key || '').trim();
+  const id = String(base.id || '').trim();
   const title = base.title || id;
-  const groupId = String(base.group_id || base.group || '').trim();
-  const group = groupMap.get(groupId) || base.group || groupId || 'Прочее';
-  const hoursPerUnit = base.unit_hours ?? base.hours_per_unit ?? base.hoursPerUnit ?? 0;
-  const qtyValue = qtyDefault ?? base.qty_default ?? base.qty ?? 0;
-  const autoDep = base.auto_dep || base.autoDep || {};
-  const autoFrom = (typeof autoDep === 'string' ? autoDep : autoDep?.source) ?? base.auto_from ?? base.autoFrom ?? '';
-  const autoMultiplier = Number(
-    (typeof autoDep === 'object' && autoDep !== null ? autoDep.multiplier : undefined)
-      ?? base.auto_multiplier
-      ?? base.autoMultiplier
-      ?? 1,
-  );
-  const rawMode = String(base.qty_mode || base.qtyMode || (autoFrom ? 'auto' : 'manual')).toLowerCase();
-  const qtyMode = (rawMode === 'auto' || rawMode === 'preset_auto') ? 'auto' : 'manual';
+  const group = base.group || 'Прочее';
+  const hoursPerUnit = base.unit_hours ?? 0;
+  const qtyValue = qtyDefault;
+  const autoBasis = String(base.auto_basis || '').trim();
+  const autoFrom = autoBasis === 'scanner' ? 'scanner_total' : (autoBasis === 'kkt' ? 'kkt_total' : '');
+  const qtyMode = autoBasis ? 'auto' : 'manual';
   const normalizedQty = Number.isFinite(Number(qtyValue)) ? Math.max(0, Math.trunc(Number(qtyValue))) : 0;
 
   return {
@@ -123,7 +228,7 @@ function normalizeServiceLine(rawService, groupMap, { qtyDefault = undefined, pa
     qty_current: normalizedQty,
     qty_mode: qtyMode,
     auto_from: String(autoFrom || '').trim(),
-    auto_multiplier: Number.isFinite(autoMultiplier) && autoMultiplier > 0 ? autoMultiplier : 1,
+    auto_multiplier: 1,
     preset_qty: normalizedQty,
     preset_qty_mode: qtyMode === 'auto' ? 'auto' : 'manual',
     manual_qty_override: false,
@@ -134,35 +239,30 @@ function normalizeServiceLine(rawService, groupMap, { qtyDefault = undefined, pa
 }
 
 export function getPackagePreset(packageId, isDetailed = false) {
-  const matrix = _matrixData();
-  const groupMap = _matrixGroupMap(matrix);
-  const rawPreset = _servicesForPackage(matrix, packageId);
-  const presetMap = new Map(rawPreset.map((service) => [String(service?.service_id || service?.id || '').trim(), service]));
-  const catalog = _buildServiceCatalog(matrix);
+  const selectedId = String(packageId || '').trim() || 'wholesale_only';
+  const unitHours = UNIT_HOURS_BY_PACKAGE[selectedId] || UNIT_HOURS_BY_PACKAGE.wholesale_only;
+  const presetQty = PRESET_QTY_BY_PACKAGE[selectedId] || PRESET_QTY_BY_PACKAGE.wholesale_only;
 
-  const normalizedServices = catalog
-    .map((entry) => {
-      const selectedId = String(packageId || '').trim();
-      const presetService = presetMap.get(entry.id) || null;
-      const packageHoursSource = presetService || entry.byPackage.get(selectedId) || null;
-      const fallbackHoursSource = entry.byPackage.get('retail_only') || entry.first;
-      const basis = presetService || packageHoursSource || fallbackHoursSource;
-      const qtyDefault = presetService ? (presetService.qty_default ?? presetService.qty ?? 0) : 0;
-      return normalizeServiceLine(basis, groupMap, {
-        qtyDefault,
-        packageId: packageHoursSource ? selectedId : '',
-      });
-    })
-    .filter((svc) => svc.id);
+  const normalizedServices = SERVICE_CATALOG
+    .map((entry) => normalizeServiceLine(
+      {
+        ...entry,
+        unit_hours: Number(unitHours[entry.id] ?? 0),
+      },
+      {
+        qtyDefault: Number(presetQty[entry.id] ?? 0),
+        packageId: selectedId,
+      },
+    ));
 
   return {
     services: normalizedServices,
     diagnostics: {
       selectedPackageId: String(packageId || ''),
       isDetailed: !!isDetailed,
-      source: rawPreset.length ? 'matrix_catalog' : 'catalog_only',
+      source: 'service_catalog_v5',
       hasServices: normalizedServices.length > 0,
-      serviceCatalogIds: catalog.map((entry) => entry.id),
+      serviceCatalogIds: SERVICE_CATALOG.map((entry) => entry.id),
     },
   };
 }
@@ -325,9 +425,8 @@ function runMatrixSelfCheck() {
   _matrixSelfChecked = true;
   const expectations = [
     { id: 'retail_only', hours: 9, rub: 44550 },
-    { id: 'wholesale_only', hours: 7, rub: 34650 },
-    { id: 'producer_only', hours: 12, rub: 59400 },
-    { id: 'producer_retail', hours: 17, rub: 84150 },
+    { id: 'wholesale_only', hours: 6, rub: 29700 },
+    { id: 'producer_only', hours: 11, rub: 54450 },
   ];
   const issues = [];
   expectations.forEach((exp) => {
