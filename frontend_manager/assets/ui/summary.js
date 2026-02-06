@@ -63,6 +63,11 @@ function renderServicesList(managerCalc) {
   });
 
   const grouped = groupServices(state.services || []);
+  const groupHours = new Map();
+  (managerCalc?.breakdown || []).forEach((row) => {
+    const key = String(row.group || 'Прочее');
+    groupHours.set(key, Number(groupHours.get(key) || 0) + Number(row.hoursTotal || 0));
+  });
   grouped.forEach((items, group) => {
     const groupWrap = document.createElement('div');
     groupWrap.className = 'serviceGroup';
@@ -70,7 +75,8 @@ function renderServicesList(managerCalc) {
     const header = document.createElement('button');
     header.type = 'button';
     header.className = 'serviceGroupHead';
-    header.innerHTML = `<span>${group}</span><span class="serviceGroupChevron">▾</span>`;
+    const groupTotal = Number(groupHours.get(group) || 0);
+    header.innerHTML = `<span>${group} — ${fmtHoursInline(groupTotal)} ч</span><span class="serviceGroupChevron">▾</span>`;
 
     const groupState = state.servicesGroupsCollapsed || {};
     const hasStored = Object.prototype.hasOwnProperty.call(groupState, group);
@@ -333,7 +339,7 @@ export function renderFromCalc(pkg, calc, prelim, costs, hint, managerCalc) {
   const whoParts = [];
   if (pkgView.who) whoParts.push(`Для кого: ${pkgView.who}`);
   const dc = deviceCounts();
-  whoParts.push(`ККТ: ${kktCount()} · Сканеры: ${dc.scanners || 0}`);
+  whoParts.push(`ККТ: ${kktCount()} · Сканеры: ${dc.scanners || 0} · Принтеры: ${dc.printers || 0}`);
   el.pkgWho.textContent = whoParts.join(' · ');
 
   // Плашки
@@ -512,7 +518,7 @@ function _wireWhyButton(pkg, calc, costs, managerCalc) {
     const items = [];
     items.push(`Сегменты: ${segs}`);
     items.push(`1С: ${onecStr}`);
-    items.push(`ККТ: ${kktCount()} · Сканеры: ${dc.scanners || 0}`);
+    items.push(`ККТ: ${kktCount()} · Сканеры: ${dc.scanners || 0} · Принтеры: ${dc.printers || 0}`);
     if (state.custom_integration) items.push('Маркер: нестандарт/интеграции');
 
     items.push('────────');
