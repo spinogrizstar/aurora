@@ -67,7 +67,7 @@ export function renderChecklist(update){
   const packages = [
     { key: 'retail_only', title: 'Только розница', segments: ['Розница'], quote_hours: 9 },
     { key: 'wholesale_only', title: 'Только опт', segments: ['Опт'], quote_hours: 6 },
-    { key: 'producer_only', title: 'Только производитель/импортёр', segments: ['Производитель/Импортёр'], quote_hours: 11 },
+    { key: 'producer_only', title: 'Только производитель/импортер', segments: ['Производитель/Импортёр'], quote_hours: 12 },
     { key: 'producer_retail', title: 'Производитель + розница', segments: ['Производитель/Импортёр', 'Розница'], quote_hours: 18 },
   ];
 
@@ -199,30 +199,28 @@ export function renderChecklist(update){
   const totalKkt = () => Number(state.kkt?.regularCount || 0) + Number(state.kkt?.smartCount || 0) + Number(state.kkt?.otherCount || 0);
   const syncScannersWithKkt = () => {
     if (!state.scannersAuto) return;
-    const currentScanners = Number(state.equipment?.scannersCount || 0);
-    const next = Math.max(currentScanners, totalKkt());
-    state.equipment.scannersCount = clamp(next, 0, 99);
+    state.equipment.scannersCount = clamp(totalKkt(), 0, 99);
   };
 
   const kktTypes = [
     {
       key: 'regularCount',
-      title: 'Обычная касса (ФР/ККТ)',
-      note: 'Фактор для авто‑qty услуг',
+      title: 'ККТ (Атол/Штрих/…)',
+      note: '',
       prepHours: 2,
       tooltip: 'классическая касса + фискальник',
     },
     {
       key: 'smartCount',
-      title: 'Смарт-терминал',
-      note: 'Фактор для авто‑qty услуг',
+      title: 'Смарт-терминал (Эвотор/Aqsi/…)',
+      note: '',
       prepHours: 3,
       tooltip: 'Эвотор/Сигма/MS POS и т.п.',
     },
     {
       key: 'otherCount',
-      title: 'Другая касса',
-      note: 'Фактор для авто‑qty услуг',
+      title: 'Другая ККТ',
+      note: '',
       prepHours: 2,
       tooltip: 'Штрих и т.п.',
     },
@@ -238,11 +236,7 @@ export function renderChecklist(update){
       title.className = 'kktRowTitle';
       title.textContent = type.title;
       title.title = type.tooltip;
-      const note = document.createElement('div');
-      note.className = 'kktRowNote';
-      note.textContent = type.note;
       label.appendChild(title);
-      label.appendChild(note);
 
       const right = document.createElement('div');
       right.className = 'kktRowContent';
@@ -277,7 +271,7 @@ export function renderChecklist(update){
   {
     const scannerRow = document.createElement('div');
     scannerRow.className = 'opt';
-    scannerRow.innerHTML = `<div class="label"><div class="t">Сканеры (может быть меньше касс)</div><div class="d">Количество</div></div>`;
+    scannerRow.innerHTML = `<div class="label"><div class="t">Сканеры (Количество)</div></div>`;
     const scannerStep = document.createElement('div'); scannerStep.className = 'stepper';
     const scannerMinus = document.createElement('button'); scannerMinus.className = 'btnTiny'; scannerMinus.type = 'button'; scannerMinus.textContent = '−';
     const scannerNum = document.createElement('div'); scannerNum.className = 'stepNum'; scannerNum.textContent = String(state.equipment?.scannersCount || 0);
@@ -307,7 +301,7 @@ export function renderChecklist(update){
   {
     const printerRow = document.createElement('div');
     printerRow.className = 'opt';
-    printerRow.innerHTML = `<div class="label"><div class="t">Принтеры</div><div class="d">Количество</div></div>`;
+    printerRow.innerHTML = `<div class="label"><div class="t">Принтеры (Количество)</div></div>`;
     const printerStep = document.createElement('div'); printerStep.className = 'stepper';
     const printerMinus = document.createElement('button'); printerMinus.className = 'btnTiny'; printerMinus.type = 'button'; printerMinus.textContent = '−';
     const printerNum = document.createElement('div'); printerNum.className = 'stepNum'; printerNum.textContent = String(state.equipment?.printersCount || 0);

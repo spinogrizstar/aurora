@@ -28,10 +28,78 @@ const SERVICE_MATRIX = [
   { serviceId: 'integration', title: 'Интеграция с товароучёткой', categoryId: 'integration', categoryTitle: 'Интеграция/учёт', autoDriver: 'none', defaultQtyInPreset: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 1, wholesale_only: 2, producer_only: 3, producer_retail: 3 } },
   { serviceId: 'ts_piot', title: 'ТС ПИОТ', categoryId: 'integration', categoryTitle: 'Интеграция/учёт', autoDriver: 'kkt', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 1 }, unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 } },
   { serviceId: 'lm_chz', title: 'ЛМ ЧЗ', categoryId: 'integration', categoryTitle: 'Интеграция/учёт', autoDriver: 'kkt', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 1 }, unitHoursByPackage: { retail_only: 2, wholesale_only: 2, producer_only: 2, producer_retail: 2 } },
-  { serviceId: 'firmware_kkt', title: 'Прошивка ККТ', categoryId: 'equipment', categoryTitle: 'Оборудование/ККТ', autoDriver: 'kkt', defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 }, unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, retailFirstHalf: true },
-  { serviceId: 'replace_fn', title: 'Замена ФН', categoryId: 'equipment', categoryTitle: 'Оборудование/ККТ', autoDriver: 'kkt', defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 }, unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, retailFirstHalf: true },
-  { serviceId: 'connect_scanner', title: 'Подключение сканера', categoryId: 'equipment', categoryTitle: 'Оборудование/ККТ', autoDriver: 'scanner', defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 }, unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, retailFirstHalf: true },
-  { serviceId: 'connect_kkt_to', title: 'Подключение ККТ к товароучётке', categoryId: 'equipment', categoryTitle: 'Оборудование/ККТ', autoDriver: 'kkt', defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 }, unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, retailFirstHalf: true },
+  {
+    serviceId: 'firmware_kkt_package',
+    title: 'Прошивка ККТ (в пакете)',
+    categoryId: 'equipment',
+    categoryTitle: 'Оборудование/ККТ',
+    autoDriver: 'kkt_first',
+    defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 },
+    unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
+  },
+  {
+    serviceId: 'firmware_kkt_extra',
+    title: 'Прошивка ККТ (доп.)',
+    categoryId: 'equipment',
+    categoryTitle: 'Оборудование/ККТ',
+    autoDriver: 'kkt_extra',
+    defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
+    unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
+  },
+  {
+    serviceId: 'replace_fn_package',
+    title: 'Замена ФН (в пакете)',
+    categoryId: 'equipment',
+    categoryTitle: 'Оборудование/ККТ',
+    autoDriver: 'kkt_first',
+    defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 },
+    unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
+  },
+  {
+    serviceId: 'replace_fn_extra',
+    title: 'Замена ФН (доп.)',
+    categoryId: 'equipment',
+    categoryTitle: 'Оборудование/ККТ',
+    autoDriver: 'kkt_extra',
+    defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
+    unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
+  },
+  {
+    serviceId: 'connect_scanner_package',
+    title: 'Подключение сканера (в пакете)',
+    categoryId: 'equipment',
+    categoryTitle: 'Оборудование/ККТ',
+    autoDriver: 'scanner_first',
+    defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 1, producer_retail: 1 },
+    unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
+  },
+  {
+    serviceId: 'connect_scanner_extra',
+    title: 'Подключение сканера (доп.)',
+    categoryId: 'equipment',
+    categoryTitle: 'Оборудование/ККТ',
+    autoDriver: 'scanner_extra',
+    defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
+    unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
+  },
+  {
+    serviceId: 'connect_kkt_to_package',
+    title: 'Подключение ККТ к товароучётке (в пакете)',
+    categoryId: 'equipment',
+    categoryTitle: 'Оборудование/ККТ',
+    autoDriver: 'kkt_first',
+    defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 },
+    unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
+  },
+  {
+    serviceId: 'connect_kkt_to_extra',
+    title: 'Подключение ККТ к товароучётке (доп.)',
+    categoryId: 'equipment',
+    categoryTitle: 'Оборудование/ККТ',
+    autoDriver: 'kkt_extra',
+    defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
+    unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
+  },
   { serviceId: 'printer_setup', title: 'Настройка принтера', categoryId: 'equipment', categoryTitle: 'Оборудование/ККТ', autoDriver: 'printer', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 3, wholesale_only: 3, producer_only: 3, producer_retail: 3 } },
   { serviceId: 'training', title: 'Обучение', categoryId: 'training', categoryTitle: 'Обучение', autoDriver: 'none', defaultQtyInPreset: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 } },
 ];
@@ -68,7 +136,7 @@ function normalizeServiceLine(matrixService, packageId) {
     manual_qty_override: false,
     qty_auto: autoBasis ? qty : null,
     auto_basis: autoBasis,
-    retail_first_half: !!matrixService.retailFirstHalf,
+    auto_qty_source: autoBasis,
     unit_hours_source: `matrix:${packageId}`,
   };
 }
@@ -92,11 +160,17 @@ export function buildServiceMapFromPreset(services) { const m = new Map(); (serv
 
 function getAutoQtyByBasis(basis, equipment, multiplier = 1) {
   const eq = normalizeEquipment(equipment);
-  const kktTotal = eq.regularCount + eq.smartCount + eq.otherCount;
+  const kktTotalPhysical = eq.regularCount + eq.smartCount + eq.otherCount;
+  const kktWorkUnits = eq.regularCount + (eq.smartCount * 2) + (eq.otherCount * 2);
   const safeMultiplier = Number.isFinite(Number(multiplier)) && Number(multiplier) > 0 ? Number(multiplier) : 1;
   if (basis === 'scanner') return Math.max(0, Math.trunc(eq.scannersCount * safeMultiplier));
+  if (basis === 'scanner_first') return eq.scannersCount > 0 ? 1 : 0;
+  if (basis === 'scanner_extra') return Math.max(0, eq.scannersCount - 1);
   if (basis === 'printer') return Math.max(0, Math.trunc(eq.printersCount * safeMultiplier));
-  return Math.max(0, Math.trunc(kktTotal * safeMultiplier));
+  if (basis === 'kkt_physical') return Math.max(0, Math.trunc(kktTotalPhysical * safeMultiplier));
+  if (basis === 'kkt_first') return kktWorkUnits > 0 ? 1 : 0;
+  if (basis === 'kkt_extra') return Math.max(0, kktWorkUnits - 1);
+  return Math.max(0, Math.trunc(kktWorkUnits * safeMultiplier));
 }
 
 export function applyEquipmentToServices(services, equipment) {
@@ -160,10 +234,6 @@ export function getPackagePresetTotals(packageId, detailed = false) {
 function calcRowHours(service) {
   const qty = Number(service?.qty_current ?? service?.qty ?? 0);
   const unit = Number(service?.unit_hours ?? service?.hours_per_unit ?? 0);
-  if (service?.retail_first_half && String(service?.unit_hours_source || '').includes('retail_only')) {
-    if (qty <= 0) return 0;
-    return 0.5 + Math.max(0, qty - 1);
-  }
   return unit * qty;
 }
 
