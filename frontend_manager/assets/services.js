@@ -61,6 +61,20 @@ export function applyPreset(packageId, { resetEquipment = true } = {}) {
   }
 
   syncAutoServiceQuantities();
+
+  if (normalized === 'wholesale_only') {
+    const totals = computeTotals(state.services || []);
+    console.debug('[Aurora][manager_v5] wholesale_only defaults', {
+      equipment: {
+        scanners_count: Number(state.equipment?.scannersCount || 0),
+        kkt_atol_shtrih_count: Number(state.kkt?.regularCount || 0),
+        smart_terminal_count: Number(state.kkt?.smartCount || 0),
+        other_kkt_count: Number(state.kkt?.otherCount || 0),
+        printers_count: Number(state.equipment?.printersCount || 0),
+      },
+      total_hours: Number(totals?.totalHours || 0),
+    });
+  }
 }
 
 export function applyPackagePreset(packageId, options) {
@@ -81,6 +95,20 @@ export function resetPackageDefaults(packageId) {
     svc.qty_current = svc.qty;
   });
   syncAutoServiceQuantities();
+
+  if (normalized === 'wholesale_only') {
+    const totals = computeTotals(state.services || []);
+    console.debug('[Aurora][manager_v5] wholesale_only defaults', {
+      equipment: {
+        scanners_count: Number(state.equipment?.scannersCount || 0),
+        kkt_atol_shtrih_count: Number(state.kkt?.regularCount || 0),
+        smart_terminal_count: Number(state.kkt?.smartCount || 0),
+        other_kkt_count: Number(state.kkt?.otherCount || 0),
+        printers_count: Number(state.equipment?.printersCount || 0),
+      },
+      total_hours: Number(totals?.totalHours || 0),
+    });
+  }
 }
 
 export function onPackageChange(packageId) {
