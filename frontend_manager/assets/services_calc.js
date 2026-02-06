@@ -112,6 +112,25 @@ const SERVICE_MATRIX = [
   { serviceId: 'training', title: 'Обучение', categoryId: 'training', categoryTitle: 'Обучение', autoDriver: 'none', defaultQtyInPreset: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 } },
 ];
 
+const KKT_INCLUDED_FALLBACK = {
+  retail_only: 1,
+  wholesale_only: 0,
+  producer_only: 0,
+  producer_retail: 0,
+};
+
+function getKktIncludedWorkUnits(packageId) {
+  const normalizedPackageId = String(packageId || '').trim() || 'wholesale_only';
+  const kktInPackageService = SERVICE_MATRIX.find((service) => {
+    const autoBasis = service.autoDriver === 'none' ? '' : service.autoDriver;
+    const source = service.autoQtySource || mapAutoQtySource(autoBasis);
+    return autoBasis === 'kkt_first' && source === 'kkt_work_units';
+  });
+  const derivedQty = Number(kktInPackageService?.defaultQtyInPreset?.[normalizedPackageId]);
+  if (Number.isFinite(derivedQty) && derivedQty >= 0) return Math.trunc(derivedQty);
+  return Number(KKT_INCLUDED_FALLBACK[normalizedPackageId] ?? 0);
+}
+
 function normalizeEquipment(equipment) {
   return {
     regularCount: Number(equipment?.regularCount || 0),
@@ -123,6 +142,7 @@ function normalizeEquipment(equipment) {
 }
 
 function normalizeServiceLine(matrixService, packageId) {
+  const kktIncludedWorkUnits = getKktIncludedWorkUnits(packageId);
   const qty = Number(matrixService.defaultQtyInPreset?.[packageId] ?? 0);
   const unit = Number(matrixService.unitHoursByPackage?.[packageId] ?? 0);
   const autoBasis = matrixService.autoDriver === 'none' ? '' : matrixService.autoDriver;
@@ -146,6 +166,7 @@ function normalizeServiceLine(matrixService, packageId) {
     qty_auto: autoBasis ? qty : null,
     auto_basis: autoBasis,
     auto_qty_source: autoQtySource,
+    kkt_included_work_units: kktIncludedWorkUnits,
     unit_hours_source: `matrix:${packageId}`,
   };
 }
@@ -175,18 +196,19 @@ export function getPackagePreset(packageId, isDetailed = false) {
 
 export function buildServiceMapFromPreset(services) { const m = new Map(); (services || []).forEach((s) => s?.id && m.set(String(s.id), s)); return m; }
 
-function getAutoQtyBySource(source, basis, equipment, multiplier = 1) {
+function getAutoQtyBySource(source, basis, equipment, multiplier = 1, kktIncludedWorkUnits = 0) {
   const eq = normalizeEquipment(equipment);
   const kktPhysicalCount = eq.regularCount + eq.smartCount + eq.otherCount;
   const kktWorkUnits = eq.regularCount + (eq.smartCount * 2) + (eq.otherCount * 2);
+  const includedWorkUnits = Math.max(0, Math.trunc(Number(kktIncludedWorkUnits) || 0));
   const safeMultiplier = Number.isFinite(Number(multiplier)) && Number(multiplier) > 0 ? Number(multiplier) : 1;
   if (source === 'scanners' && basis === 'scanner') return Math.max(0, Math.trunc(eq.scannersCount * safeMultiplier));
   if (source === 'scanners' && basis === 'scanner_first') return eq.scannersCount > 0 ? 1 : 0;
   if (source === 'scanners' && basis === 'scanner_extra') return Math.max(0, eq.scannersCount - 1);
   if (source === 'printers') return Math.max(0, Math.trunc(eq.printersCount * safeMultiplier));
   if (source === 'kkt_physical') return Math.max(0, Math.trunc(kktPhysicalCount * safeMultiplier));
-  if (basis === 'kkt_first') return kktWorkUnits > 0 ? 1 : 0;
-  if (basis === 'kkt_extra') return Math.max(0, kktWorkUnits - 1);
+  if (basis === 'kkt_first') return Math.min(kktWorkUnits, includedWorkUnits);
+  if (basis === 'kkt_extra') return Math.max(kktWorkUnits - includedWorkUnits, 0);
   if (source === 'scanners') return Math.max(0, Math.trunc(eq.scannersCount * safeMultiplier));
   if (source === 'printers') return Math.max(0, Math.trunc(eq.printersCount * safeMultiplier));
   if (source === 'kkt_physical') return Math.max(0, Math.trunc(kktPhysicalCount * safeMultiplier));
@@ -199,7 +221,13 @@ export function applyEquipmentToServices(services, equipment) {
     const basis = String(service?.auto_basis || '').trim();
     if (!basis) return;
     const source = String(service?.auto_qty_source || mapAutoQtySource(basis)).trim();
-    const autoQty = getAutoQtyBySource(source, basis, equipment, service.auto_multiplier);
+    const autoQty = getAutoQtyBySource(
+      source,
+      basis,
+      equipment,
+      service.auto_multiplier,
+      service.kkt_included_work_units,
+    );
     service.qty_auto = autoQty;
     if (service.manual_qty_override) {
       const m = Number(service.qty_current ?? service.qty ?? 0);
