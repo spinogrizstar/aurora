@@ -77,6 +77,10 @@
           <div class="servicesActions">
             <button class="btnMini" id="servicesReset" type="button">Сбросить к дефолту пакета</button>
             <label class="toggle">
+              <input type="checkbox" id="servicesPointsToggle" />
+              <span>Баллы</span>
+            </label>
+            <label class="toggle">
               <input type="checkbox" id="servicesToggle" />
               <span>Детализация услуг</span>
             </label>
@@ -84,7 +88,7 @@
         </div>
         <div class="servicesList" id="servicesList"></div>
         <div class="servicesTotals">
-          <div class="sumline"><span>Всего часов</span><strong id="servicesTotalHours">0 ч</strong></div>
+          <div class="sumline"><span id="servicesTotalLabel">Всего единиц</span><strong id="servicesTotalHours">0</strong></div>
           <div class="sumline"><span>Итого ₽</span><strong id="servicesTotalRub">0 ₽</strong></div>
         </div>
       </div>

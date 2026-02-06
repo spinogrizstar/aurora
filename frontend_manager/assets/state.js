@@ -11,6 +11,7 @@ export const state = {
   segments: [],
   services: [],
   servicesDetailed: false,
+  servicesUsePoints: false,
   servicesPackageId: '',
   servicesGroupsCollapsed: {},
   serviceOverrides: {},
