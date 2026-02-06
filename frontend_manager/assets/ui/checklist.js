@@ -9,7 +9,7 @@
 // ------------------------------------------------------------
 
 import { el } from '../dom.js';
-import { state } from '../state.js';
+import { PACKAGE_DEFAULTS, state } from '../state.js';
 import { getDataSync } from '../data.js';
 import { SECTION_ANIM_MS, visibilityFromState } from '../visibility.js';
 import { clamp, fmtRub } from '../helpers.js';
@@ -197,9 +197,16 @@ export function renderChecklist(update){
   card.className = 'kktCard';
 
   const totalKkt = () => Number(state.kkt?.regularCount || 0) + Number(state.kkt?.smartCount || 0) + Number(state.kkt?.otherCount || 0);
+  const packageDefaultScanners = () => {
+    const packageId = String(state.selectedPackageId || '');
+    const fallback = PACKAGE_DEFAULTS.wholesale_only;
+    const defaults = PACKAGE_DEFAULTS[packageId] || fallback;
+    return Number(defaults?.scannersCount || 0);
+  };
   const syncScannersWithKkt = () => {
     if (!state.scannersAuto) return;
-    state.equipment.scannersCount = clamp(totalKkt(), 0, 99);
+    const autoScanners = Math.max(totalKkt(), packageDefaultScanners());
+    state.equipment.scannersCount = clamp(autoScanners, 0, 99);
   };
 
   const kktTypes = [
