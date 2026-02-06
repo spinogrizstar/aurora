@@ -196,6 +196,14 @@ export function renderChecklist(update){
   const card = document.createElement('div');
   card.className = 'kktCard';
 
+  const totalKkt = () => Number(state.kkt?.regularCount || 0) + Number(state.kkt?.smartCount || 0) + Number(state.kkt?.otherCount || 0);
+  const syncScannersWithKkt = () => {
+    if (!state.scannersAuto) return;
+    const currentScanners = Number(state.equipment?.scannersCount || 0);
+    const next = Math.max(currentScanners, totalKkt());
+    state.equipment.scannersCount = clamp(next, 0, 99);
+  };
+
   const kktTypes = [
     {
       key: 'regularCount',
@@ -246,12 +254,14 @@ export function renderChecklist(update){
       minus.onclick = () => {
         state.kkt[type.key] = clamp((state.kkt[type.key] || 0) - 1, 0, 99);
         refresh();
+        syncScannersWithKkt();
         syncAutoServiceQuantities();
         update();
       };
       plus.onclick = () => {
         state.kkt[type.key] = clamp((state.kkt[type.key] || 0) + 1, 0, 99);
         refresh();
+        syncScannersWithKkt();
         syncAutoServiceQuantities();
         update();
       };
@@ -275,12 +285,14 @@ export function renderChecklist(update){
     const refreshScanner = () => { scannerNum.textContent = String(state.equipment?.scannersCount || 0); };
     scannerMinus.onclick = () => {
       state.equipment.scannersCount = clamp((state.equipment?.scannersCount || 0) - 1, 0, 99);
+      state.scannersAuto = false;
       refreshScanner();
       syncAutoServiceQuantities();
       update();
     };
     scannerPlus.onclick = () => {
       state.equipment.scannersCount = clamp((state.equipment?.scannersCount || 0) + 1, 0, 99);
+      state.scannersAuto = false;
       refreshScanner();
       syncAutoServiceQuantities();
       update();
