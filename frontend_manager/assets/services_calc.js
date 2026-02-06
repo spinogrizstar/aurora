@@ -33,9 +33,9 @@ const SERVICE_MATRIX = [
     title: 'Прошивка ККТ (в пакете)',
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
-    autoDriver: 'kkt_first',
-    autoQtySource: 'kkt_work_units',
-    defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 },
+    autoDriver: 'kkt_first_physical',
+    autoQtySource: 'kkt_physical',
+    defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
   {
@@ -43,8 +43,8 @@ const SERVICE_MATRIX = [
     title: 'Прошивка ККТ (доп.)',
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
-    autoDriver: 'kkt_extra',
-    autoQtySource: 'kkt_work_units',
+    autoDriver: 'kkt_extra_physical',
+    autoQtySource: 'kkt_physical',
     defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
@@ -53,9 +53,9 @@ const SERVICE_MATRIX = [
     title: 'Замена ФН (в пакете)',
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
-    autoDriver: 'kkt_first',
-    autoQtySource: 'kkt_work_units',
-    defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 },
+    autoDriver: 'kkt_first_physical',
+    autoQtySource: 'kkt_physical',
+    defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
   {
@@ -63,8 +63,8 @@ const SERVICE_MATRIX = [
     title: 'Замена ФН (доп.)',
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
-    autoDriver: 'kkt_extra',
-    autoQtySource: 'kkt_work_units',
+    autoDriver: 'kkt_extra_physical',
+    autoQtySource: 'kkt_physical',
     defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
@@ -75,7 +75,7 @@ const SERVICE_MATRIX = [
     categoryTitle: 'Оборудование/ККТ',
     autoDriver: 'scanner_first',
     autoQtySource: 'scanners',
-    defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 1, producer_retail: 1 },
+    defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
   {
@@ -93,9 +93,9 @@ const SERVICE_MATRIX = [
     title: 'Подключение ККТ к товароучётке (в пакете)',
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
-    autoDriver: 'kkt_first',
+    autoDriver: 'kkt_first_work',
     autoQtySource: 'kkt_work_units',
-    defaultQtyInPreset: { retail_only: 1, wholesale_only: 0, producer_only: 0, producer_retail: 1 },
+    defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 0.5, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
   {
@@ -103,12 +103,12 @@ const SERVICE_MATRIX = [
     title: 'Подключение ККТ к товароучётке (доп.)',
     categoryId: 'equipment',
     categoryTitle: 'Оборудование/ККТ',
-    autoDriver: 'kkt_extra',
+    autoDriver: 'kkt_extra_work',
     autoQtySource: 'kkt_work_units',
     defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 },
     unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 },
   },
-  { serviceId: 'printer_setup', title: 'Настройка принтера', categoryId: 'equipment', categoryTitle: 'Оборудование/ККТ', autoDriver: 'printer', autoQtySource: 'printers', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 3, wholesale_only: 3, producer_only: 3, producer_retail: 3 } },
+  { serviceId: 'printer_setup', title: 'Настройка принтера', categoryId: 'equipment', categoryTitle: 'Оборудование/ККТ', autoDriver: 'printer', autoQtySource: 'printers', defaultQtyInPreset: { retail_only: 0, wholesale_only: 0, producer_only: 0, producer_retail: 0 }, unitHoursByPackage: { retail_only: 3, wholesale_only: 3, producer_only: 3, producer_retail: 3 } },
   { serviceId: 'training', title: 'Обучение', categoryId: 'training', categoryTitle: 'Обучение', autoDriver: 'none', defaultQtyInPreset: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 }, unitHoursByPackage: { retail_only: 1, wholesale_only: 1, producer_only: 1, producer_retail: 1 } },
 ];
 
@@ -119,6 +119,13 @@ const KKT_INCLUDED_FALLBACK = {
   producer_retail: 0,
 };
 
+const RETAIL_FIRST_HALF_SERVICE_IDS = new Set([
+  'firmware_kkt_package',
+  'replace_fn_package',
+  'connect_scanner_package',
+  'connect_kkt_to_package',
+]);
+
 function getKktIncludedWorkUnits(packageId) {
   const normalizedPackageId = String(packageId || '').trim() || 'wholesale_only';
   const packageDefaults = PACKAGE_DEFAULTS?.[normalizedPackageId];
@@ -128,7 +135,7 @@ function getKktIncludedWorkUnits(packageId) {
   const kktInPackageService = SERVICE_MATRIX.find((service) => {
     const autoBasis = service.autoDriver === 'none' ? '' : service.autoDriver;
     const source = service.autoQtySource || mapAutoQtySource(autoBasis);
-    return autoBasis === 'kkt_first' && source === 'kkt_work_units';
+    return autoBasis === 'kkt_first_work' && source === 'kkt_work_units';
   });
   const derivedQty = Number(kktInPackageService?.defaultQtyInPreset?.[normalizedPackageId]);
   if (Number.isFinite(derivedQty) && derivedQty >= 0) return Math.trunc(derivedQty);
@@ -153,6 +160,7 @@ function normalizeServiceLine(matrixService, packageId) {
   const autoBasis = matrixService.autoDriver === 'none' ? '' : matrixService.autoDriver;
   const autoQtySource = matrixService.autoQtySource || mapAutoQtySource(autoBasis);
   const autoFrom = autoBasis ? `${autoBasis}_total` : '';
+  const shouldUseRetailHalf = packageId === 'retail_only' && RETAIL_FIRST_HALF_SERVICE_IDS.has(matrixService.serviceId);
   return {
     id: matrixService.serviceId,
     title: matrixService.title,
@@ -172,12 +180,14 @@ function normalizeServiceLine(matrixService, packageId) {
     auto_basis: autoBasis,
     auto_qty_source: autoQtySource,
     kkt_included_work_units: kktIncludedWorkUnits,
+    retail_first_half: shouldUseRetailHalf,
     unit_hours_source: `matrix:${packageId}`,
   };
 }
 
 function mapAutoQtySource(autoBasis) {
-  if (autoBasis === 'kkt' || autoBasis === 'kkt_first' || autoBasis === 'kkt_extra') return 'kkt_work_units';
+  if (autoBasis === 'kkt' || autoBasis === 'kkt_first_work' || autoBasis === 'kkt_extra_work') return 'kkt_work_units';
+  if (autoBasis === 'kkt_first_physical' || autoBasis === 'kkt_extra_physical') return 'kkt_physical';
   if (autoBasis === 'kkt_physical') return 'kkt_physical';
   if (autoBasis === 'scanner' || autoBasis === 'scanner_first' || autoBasis === 'scanner_extra') return 'scanners';
   if (autoBasis === 'printer') return 'printers';
@@ -206,14 +216,17 @@ function getAutoQtyBySource(source, basis, equipment, multiplier = 1, kktInclude
   const kktPhysicalCount = eq.regularCount + eq.smartCount + eq.otherCount;
   const kktWorkUnits = eq.regularCount + (eq.smartCount * 2) + (eq.otherCount * 2);
   const includedWorkUnits = Math.max(0, Math.trunc(Number(kktIncludedWorkUnits) || 0));
+  const includedPhysicalUnits = Math.min(includedWorkUnits, kktPhysicalCount);
   const safeMultiplier = Number.isFinite(Number(multiplier)) && Number(multiplier) > 0 ? Number(multiplier) : 1;
+  if (basis === 'kkt_first_work') return Math.min(kktWorkUnits, includedWorkUnits);
+  if (basis === 'kkt_extra_work') return Math.max(kktWorkUnits - includedWorkUnits, 0);
+  if (basis === 'kkt_first_physical') return includedPhysicalUnits > 0 ? 1 : 0;
+  if (basis === 'kkt_extra_physical') return Math.max(kktPhysicalCount - includedPhysicalUnits, 0);
   if (source === 'scanners' && basis === 'scanner') return Math.max(0, Math.trunc(eq.scannersCount * safeMultiplier));
   if (source === 'scanners' && basis === 'scanner_first') return eq.scannersCount > 0 ? 1 : 0;
   if (source === 'scanners' && basis === 'scanner_extra') return Math.max(0, eq.scannersCount - 1);
   if (source === 'printers') return Math.max(0, Math.trunc(eq.printersCount * safeMultiplier));
   if (source === 'kkt_physical') return Math.max(0, Math.trunc(kktPhysicalCount * safeMultiplier));
-  if (basis === 'kkt_first') return Math.min(kktWorkUnits, includedWorkUnits);
-  if (basis === 'kkt_extra') return Math.max(kktWorkUnits - includedWorkUnits, 0);
   if (source === 'scanners') return Math.max(0, Math.trunc(eq.scannersCount * safeMultiplier));
   if (source === 'printers') return Math.max(0, Math.trunc(eq.printersCount * safeMultiplier));
   if (source === 'kkt_physical') return Math.max(0, Math.trunc(kktPhysicalCount * safeMultiplier));
@@ -241,8 +254,10 @@ export function applyEquipmentToServices(services, equipment) {
       service.qty_mode = 'manual';
       return;
     }
-    service.qty = autoQty;
-    service.qty_current = autoQty;
+    const presetQty = Number(service.preset_qty ?? 0);
+    const totalQty = Math.max(0, Math.trunc(presetQty + autoQty));
+    service.qty = totalQty;
+    service.qty_current = totalQty;
     service.qty_mode = 'auto';
   });
   return list;
