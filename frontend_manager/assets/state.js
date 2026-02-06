@@ -15,7 +15,7 @@ export const state = {
   servicesGroupsCollapsed: {},
   serviceOverrides: {},
   servicesPresetError: '',
-  scannersManuallySet: false,
+  scannersAuto: true,
 
   // 2) ККТ: смесь типов (по количеству).
   kkt: {
@@ -92,8 +92,8 @@ export const PACKAGE_DEFAULTS = {
     scannersCount: 0,
   },
   producer_retail: {
-    kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
-    scannersCount: 1,
+    kkt: { regularCount: 0, smartCount: 0, otherCount: 0 },
+    scannersCount: 0,
   },
 };
 
@@ -112,7 +112,7 @@ export function applyPackageDefaults(packageId) {
     scannersCount: Number(defaults.scannersCount || 0),
   };
 
-  state.scannersManuallySet = false;
+  state.scannersAuto = true;
 }
 
 export function getCalcState() {

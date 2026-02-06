@@ -65,6 +65,25 @@ function _servicesForPackage(matrix, packageId) {
   return _matrixServices(matrix).filter((service) => String(service?.package_id || service?.packageId || '').trim() === normalized);
 }
 
+function _buildServiceCatalog(matrix) {
+  const catalog = new Map();
+  _matrixServices(matrix).forEach((service) => {
+    const id = String(service?.service_id || service?.id || service?.key || '').trim();
+    if (!id) return;
+    const packageId = String(service?.package_id || service?.packageId || '').trim();
+    if (!catalog.has(id)) {
+      catalog.set(id, {
+        id,
+        first: service,
+        byPackage: new Map(),
+      });
+    }
+    const entry = catalog.get(id);
+    if (packageId) entry.byPackage.set(packageId, service);
+  });
+  return Array.from(catalog.values());
+}
+
 function normalizeEquipment(equipment) {
   return {
     regularCount: Number(equipment?.regularCount || 0),
@@ -74,14 +93,14 @@ function normalizeEquipment(equipment) {
   };
 }
 
-function normalizeServiceLine(rawService, groupMap) {
+function normalizeServiceLine(rawService, groupMap, { qtyDefault = undefined, packageId = '' } = {}) {
   const base = rawService || {};
   const id = String(base.service_id || base.id || base.key || '').trim();
   const title = base.title || id;
   const groupId = String(base.group_id || base.group || '').trim();
   const group = groupMap.get(groupId) || base.group || groupId || 'Прочее';
   const hoursPerUnit = base.unit_hours ?? base.hours_per_unit ?? base.hoursPerUnit ?? 0;
-  const qtyValue = base.qty_default ?? base.qty ?? 0;
+  const qtyValue = qtyDefault ?? base.qty_default ?? base.qty ?? 0;
   const autoDep = base.auto_dep || base.autoDep || {};
   const autoFrom = (typeof autoDep === 'string' ? autoDep : autoDep?.source) ?? base.auto_from ?? base.autoFrom ?? '';
   const autoMultiplier = Number(
@@ -110,6 +129,7 @@ function normalizeServiceLine(rawService, groupMap) {
     manual_qty_override: false,
     qty_auto: qtyMode === 'auto' ? normalizedQty : null,
     auto_basis: '',
+    unit_hours_source: packageId ? `package:${packageId}` : 'catalog',
   };
 }
 
@@ -117,15 +137,32 @@ export function getPackagePreset(packageId, isDetailed = false) {
   const matrix = _matrixData();
   const groupMap = _matrixGroupMap(matrix);
   const rawPreset = _servicesForPackage(matrix, packageId);
-  const normalizedServices = (rawPreset || []).map((service) => normalizeServiceLine(service, groupMap)).filter((svc) => svc.id);
+  const presetMap = new Map(rawPreset.map((service) => [String(service?.service_id || service?.id || '').trim(), service]));
+  const catalog = _buildServiceCatalog(matrix);
+
+  const normalizedServices = catalog
+    .map((entry) => {
+      const selectedId = String(packageId || '').trim();
+      const presetService = presetMap.get(entry.id) || null;
+      const packageHoursSource = presetService || entry.byPackage.get(selectedId) || null;
+      const fallbackHoursSource = entry.byPackage.get('retail_only') || entry.first;
+      const basis = presetService || packageHoursSource || fallbackHoursSource;
+      const qtyDefault = presetService ? (presetService.qty_default ?? presetService.qty ?? 0) : 0;
+      return normalizeServiceLine(basis, groupMap, {
+        qtyDefault,
+        packageId: packageHoursSource ? selectedId : '',
+      });
+    })
+    .filter((svc) => svc.id);
+
   return {
     services: normalizedServices,
     diagnostics: {
       selectedPackageId: String(packageId || ''),
       isDetailed: !!isDetailed,
-      source: rawPreset.length ? 'matrix' : 'empty',
+      source: rawPreset.length ? 'matrix_catalog' : 'catalog_only',
       hasServices: normalizedServices.length > 0,
-      serviceCatalogIds: _matrixServices(matrix).map((service) => String(service?.service_id || service?.id || '').trim()).filter(Boolean),
+      serviceCatalogIds: catalog.map((entry) => entry.id),
     },
   };
 }
@@ -288,9 +325,9 @@ function runMatrixSelfCheck() {
   _matrixSelfChecked = true;
   const expectations = [
     { id: 'retail_only', hours: 9, rub: 44550 },
-    { id: 'wholesale_only', hours: 6, rub: 29700 },
-    { id: 'producer_only', hours: 11, rub: 54450 },
-    { id: 'producer_retail', hours: 18, rub: 89100 },
+    { id: 'wholesale_only', hours: 7, rub: 34650 },
+    { id: 'producer_only', hours: 12, rub: 59400 },
+    { id: 'producer_retail', hours: 17, rub: 84150 },
   ];
   const issues = [];
   expectations.forEach((exp) => {
