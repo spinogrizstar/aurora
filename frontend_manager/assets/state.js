@@ -30,6 +30,7 @@ export const state = {
   // 4) Устройства: два счётчика (можно мешать)
   equipment: {
     scannersCount: 0,
+    printersCount: 0,
   },
   device_tsd: 0,
   tsd_collective: false,
@@ -82,18 +83,22 @@ export const PACKAGE_DEFAULTS = {
   retail_only: {
     kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
     scannersCount: 1,
+    printersCount: 0,
   },
   wholesale_only: {
     kkt: { regularCount: 0, smartCount: 0, otherCount: 0 },
     scannersCount: 0,
+    printersCount: 0,
   },
   producer_only: {
     kkt: { regularCount: 0, smartCount: 0, otherCount: 0 },
-    scannersCount: 0,
+    scannersCount: 1,
+    printersCount: 1,
   },
   producer_retail: {
-    kkt: { regularCount: 0, smartCount: 0, otherCount: 0 },
-    scannersCount: 0,
+    kkt: { regularCount: 1, smartCount: 0, otherCount: 0 },
+    scannersCount: 1,
+    printersCount: 1,
   },
 };
 
@@ -110,6 +115,7 @@ export function applyPackageDefaults(packageId) {
 
   state.equipment = {
     scannersCount: Number(defaults.scannersCount || 0),
+    printersCount: Number(defaults.printersCount || 0),
   };
 
   state.scannersAuto = true;

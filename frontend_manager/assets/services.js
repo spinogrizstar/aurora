@@ -95,12 +95,13 @@ export function ensureServicesForPackage(packageId) {
 }
 
 export function syncAutoServiceQuantities() {
-  if (!state.equipment) state.equipment = { scannersCount: 0 };
+  if (!state.equipment) state.equipment = { scannersCount: 0, printersCount: 0 };
   const equipment = {
     regularCount: Number(state.kkt?.regularCount || 0),
     smartCount: Number(state.kkt?.smartCount || 0),
     otherCount: Number(state.kkt?.otherCount || 0),
     scannersCount: Number(state.equipment?.scannersCount || 0),
+    printersCount: Number(state.equipment?.printersCount || 0),
   };
   state.services = applyAutoFromEquipment(
     state.services || [],

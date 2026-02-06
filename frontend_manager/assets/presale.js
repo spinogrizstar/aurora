@@ -109,7 +109,7 @@ export function buildKPText() {
   const rate = getRatePerHour();
 
   const { regular, smart, other } = kktCounts();
-  const { scanners } = deviceCounts();
+  const { scanners, printers } = deviceCounts();
   const now = new Date().toLocaleString('ru-RU');
 
   const lines = [
@@ -139,7 +139,7 @@ export function buildKPText() {
   lines.push(`Ставка: ${rate} ₽/час`);
   if (isEquipmentAvailable(state.selectedPackageId)) {
     const kktTotal = kktCount();
-    lines.push(`Оборудование: ККТ ${kktTotal} (обычная/смарт/другая: ${regular}/${smart}/${other}) · Сканеры ${scanners}`);
+    lines.push(`Оборудование: ККТ ${kktTotal} (обычная/смарт/другая: ${regular}/${smart}/${other}) · Сканеры ${scanners} · Принтеры ${printers}`);
   }
   lines.push('Услуги:');
 
@@ -209,6 +209,7 @@ export function buildPresaleText() {
     `Пакет: ${prelim ? 'предварительно ' : ''}${pkg?.title || pkg?.name || '—'}`,
     `ККТ: ${kktCnt} (используется: ${state.uses_kkt ? 'да' : 'нет'})`,
     `Сканеры: ${dc.scanners || 0}`,
+    `Принтеры: ${dc.printers || 0}`,
     ...(isProducer ? [
       `Товарные группы (ЧЗ): ${prodCats.length ? prodCats.join(', ') : '—'}`,
       ...(prodComment ? ['Комментарий по продукции:', prodComment] : []),

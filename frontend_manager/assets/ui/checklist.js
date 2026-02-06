@@ -191,7 +191,7 @@ export function renderChecklist(update){
   box2.style.marginTop='10px';
 
   if (!state.kkt) state.kkt = { regularCount: 0, smartCount: 0, otherCount: 0 };
-  if (!state.equipment) state.equipment = { scannersCount: 0 };
+  if (!state.equipment) state.equipment = { scannersCount: 0, printersCount: 0 };
 
   const card = document.createElement('div');
   card.className = 'kktCard';
@@ -302,6 +302,34 @@ export function renderChecklist(update){
     scannerStep.appendChild(scannerPlus);
     scannerRow.appendChild(scannerStep);
     box2.appendChild(scannerRow);
+  }
+
+  {
+    const printerRow = document.createElement('div');
+    printerRow.className = 'opt';
+    printerRow.innerHTML = `<div class="label"><div class="t">Принтеры</div><div class="d">Количество</div></div>`;
+    const printerStep = document.createElement('div'); printerStep.className = 'stepper';
+    const printerMinus = document.createElement('button'); printerMinus.className = 'btnTiny'; printerMinus.type = 'button'; printerMinus.textContent = '−';
+    const printerNum = document.createElement('div'); printerNum.className = 'stepNum'; printerNum.textContent = String(state.equipment?.printersCount || 0);
+    const printerPlus = document.createElement('button'); printerPlus.className = 'btnTiny'; printerPlus.type = 'button'; printerPlus.textContent = '+';
+    const refreshPrinter = () => { printerNum.textContent = String(state.equipment?.printersCount || 0); };
+    printerMinus.onclick = () => {
+      state.equipment.printersCount = clamp((state.equipment?.printersCount || 0) - 1, 0, 99);
+      refreshPrinter();
+      syncAutoServiceQuantities();
+      update();
+    };
+    printerPlus.onclick = () => {
+      state.equipment.printersCount = clamp((state.equipment?.printersCount || 0) + 1, 0, 99);
+      refreshPrinter();
+      syncAutoServiceQuantities();
+      update();
+    };
+    printerStep.appendChild(printerMinus);
+    printerStep.appendChild(printerNum);
+    printerStep.appendChild(printerPlus);
+    printerRow.appendChild(printerStep);
+    box2.appendChild(printerRow);
   }
 
   sec2.appendChild(box2);

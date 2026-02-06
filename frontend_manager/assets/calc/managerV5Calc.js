@@ -66,6 +66,7 @@ function normalizeServices(rawServices, rawOverrides, issues) {
         issues,
       ),
       enabled: !!svc.enabled,
+      retail_first_half: !!svc.retail_first_half,
     };
   });
 
@@ -115,6 +116,15 @@ export function validate(state, recalcResult) {
   };
 }
 
+
+function computeServiceHours(selectedPackageId, svc, qty, hoursPerUnit) {
+  if (svc?.retail_first_half && String(selectedPackageId || '') === 'retail_only') {
+    if (qty <= 0) return 0;
+    return 0.5 + Math.max(0, Number(qty || 0) - 1);
+  }
+  return Number(qty || 0) * Number(hoursPerUnit || 0);
+}
+
 export function recalc(state) {
   const normalized = (state && state.services && !Array.isArray(state.services) && state.overrides)
     ? state
@@ -128,7 +138,7 @@ export function recalc(state) {
     const hoursPerUnit = override.hoursOverride !== null && override.hoursOverride !== undefined
       ? override.hoursOverride
       : svc.hours_per_unit;
-    const hoursTotal = Number(qty || 0) * Number(hoursPerUnit || 0);
+    const hoursTotal = computeServiceHours(normalized.selectedPackageId, svc, qty, hoursPerUnit);
     const priceTotal = Math.round(hoursTotal * rate);
     const source = (override.qtyOverride !== null && override.qtyOverride !== undefined) ||
       (override.hoursOverride !== null && override.hoursOverride !== undefined)
